@@ -1,0 +1,13 @@
+{
+  "did": "did:asim:d046e3c9f3f80b61b70dc2cf",
+  "public_key_b64": "UHuDT6rDAUNkOXGGNhuf8zQkeSLWShQSQEiWZf4IlSQ=",
+  "commitment": "3f35a34f7a57f16143ca81e8ef4309a07e5b32cf2ddb74338b998cd27cfc34e4",
+  "nonce": "f56b7dd66001deba15629a387d4072d0",
+  "created_at": "2026-05-24T16:56:07Z",
+  "universe": "personal",
+  "display_name": "Asim Tamang",
+  "revoked": false,
+  "last_verified": "2026-05-24T16:56:07Z",
+  "verify_count": 1,
+  "_salt_b64": "Zuybu0DZCQ83WJDEyErT6SJjlCDM85lThATNoSDLqLE="
+}

@@ -1,0 +1,33 @@
+{
+  "node_id": "test-rev-nonexist",
+  "consent": [],
+  "peers": {},
+  "state": {
+    "node_id": "test-rev-nonexist",
+    "version": 0,
+    "msg_count": {
+      "test-rev-nonexist": 0
+    },
+    "active_peers": {
+      "add": {},
+      "rem": {
+        "non-existent-id": []
+      }
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510921.4487948
+  }
+}

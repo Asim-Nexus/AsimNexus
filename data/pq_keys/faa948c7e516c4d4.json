@@ -1,0 +1,9 @@
+{
+  "key_id": "faa948c7e516c4d4",
+  "algorithm": "ML-KEM-768",
+  "public_key": "0ca137977a6a57fab8c8bdc6bd01dad8877b53999482036f39f966a492c41a617a258c02d0ba493ac08b399f07e588f78f7dc98b1f0d94b1a5328123d279cf0c",
+  "private_key": "f02638c140b54a199dacec4737eb3d95436d2ef05c1f93c197f3d43c3cf1f66169e79fd8bc80cb1c7e3553afcafd25ae906c51754dd480b9202e8d7bd3981c22bfbcb338ca1362a604c002aaacd2010eb48d904c90d457a94b1a3f6375915c9e",
+  "created_at": "2026-05-24T22:03:09Z",
+  "did": "did:asim:future_proof_test",
+  "security_bits": 192
+}

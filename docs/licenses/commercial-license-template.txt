@@ -1,0 +1,14 @@
+AsimNexus Enterprise Commercial License — Template
+====================================================
+
+This is a placeholder for the enterprise commercial license template.
+
+For inbound licensing inquiries contact: licensing@asimnexus.org
+
+Key terms (draft):
+- Scope: Closed-source modifications to connectors/enterprise/ and deployment/enterprise/
+- Royalty: Annual fee based on MAU (Monthly Active Users)
+- Dharma clause: All deployments must retain the immutable constitution check
+- Audit right: Licensor may audit compliance annually
+
+Full legal text to be drafted by qualified counsel before v0.1.0-alpha release.

@@ -1,0 +1,167 @@
+# ASIMNEXUS Storage Layer — 5-Layer Docker Compose
+# ==================================================
+# Redis (Cache) + ClickHouse (Analytics) + PostgreSQL (OLTP) + MinIO (Object) + ChromaDB (Vector)
+# Used independently or alongside docker-compose.yml / docker-compose.full.yml
+
+version: '3.8'
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # Layer 0: Redis — Cache / Session / Pub-Sub
+  # ═══════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    container_name: asimnexus-redis-storage
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - asimnexus-storage-network
+
+  # ═══════════════════════════════════════════════════════════════
+  # Layer 1: ClickHouse — Columnar Analytics (time-series, events)
+  # ═══════════════════════════════════════════════════════════════
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    container_name: asimnexus-clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native protocol
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/init:/docker-entrypoint-initdb.d
+    environment:
+      CLICKHOUSE_DB: asimnexus
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-asimnexus}
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8123/ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - asimnexus-storage-network
+
+  # ═══════════════════════════════════════════════════════════════
+  # Layer 2: PostgreSQL — OLTP / Relational (users, transactions)
+  # ═══════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:16-alpine
+    container_name: asimnexus-postgres-storage
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_DB: asimnexus
+      POSTGRES_USER: asimnexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asimnexus}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U asimnexus" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - asimnexus-storage-network
+
+  # ═══════════════════════════════════════════════════════════════
+  # Layer 3: MinIO — Object Storage (files, backups, artifacts)
+  # ═══════════════════════════════════════════════════════════════
+  minio:
+    image: minio/minio:latest
+    container_name: asimnexus-minio
+    restart: unless-stopped
+    ports:
+      - "9001:9000" # S3-compatible API
+      - "9002:9001" # Console
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - asimnexus-storage-network
+
+  # ─── MinIO Bucket Initialisation (one-shot) ───────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: asimnexus-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    entrypoint: >
+      /bin/sh -c " /usr/bin/mc alias set asimnexus http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin}; /usr/bin/mc mb asimnexus/models --ignore-existing; /usr/bin/mc mb asimnexus/data --ignore-existing; /usr/bin/mc mb asimnexus/backups --ignore-existing; /usr/bin/mc mb asimnexus/logs --ignore-existing; /usr/bin/mc mb asimnexus/memory --ignore-existing; /usr/bin/mc mb asimnexus/config --ignore-existing; /usr/bin/mc mb asimnexus/federation --ignore-existing; /usr/bin/mc mb asimnexus/artifacts --ignore-existing; echo 'All MinIO buckets created'; exit 0; "
+    networks:
+      - asimnexus-storage-network
+
+  # ═══════════════════════════════════════════════════════════════
+  # Layer 4: ChromaDB — Vector Database (embeddings, similarity)
+  # ═══════════════════════════════════════════════════════════════
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: asimnexus-chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: TRUE
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: FALSE
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - asimnexus-storage-network
+
+volumes:
+  redis_data:
+    driver: local
+  clickhouse_data:
+    driver: local
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  chroma_data:
+    driver: local
+
+networks:
+  asimnexus-storage-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

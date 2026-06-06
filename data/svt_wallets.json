@@ -1,0 +1,29 @@
+{
+  "did:asim:test_health_check_001": {
+    "did": "did:asim:test_health_check_001",
+    "balance": 900.0,
+    "staked": 0.0,
+    "earned_total": 1000.0,
+    "spent_total": 0.0,
+    "tx_count": 1,
+    "created_at": "2026-05-24T17:25:55Z"
+  },
+  "did:asim:test_health_check_001_receiver": {
+    "did": "did:asim:test_health_check_001_receiver",
+    "balance": 99.0,
+    "staked": 0.0,
+    "earned_total": 99.0,
+    "spent_total": 0.0,
+    "tx_count": 0,
+    "created_at": "2026-05-24T17:25:55Z"
+  },
+  "did:asim:future_proof_test": {
+    "did": "did:asim:future_proof_test",
+    "balance": 0.24,
+    "staked": 0.0,
+    "earned_total": 0.24,
+    "spent_total": 0.0,
+    "tx_count": 2,
+    "created_at": "2026-05-24T21:57:01Z"
+  }
+}

@@ -1,0 +1,1547 @@
+{
+    "__inputs": [],
+    "__requires": [],
+    "dashboard": {
+        "title": "Storage Pod Stability — AsimNexus",
+        "description": "Real-time health, latency, and resource monitoring for the 5 storage-layer services: Redis, ClickHouse, PostgreSQL, MinIO, ChromaDB. Organized by service row with uptime, CPU/memory, connection pool, and alert threshold panels.",
+        "tags": [
+            "asimnexus",
+            "storage",
+            "production",
+            "kubernetes"
+        ],
+        "timezone": "browser",
+        "time": {
+            "from": "now-6h",
+            "to": "now"
+        },
+        "refresh": "15s",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Storage Service Uptime / Reachability",
+                "type": "stat",
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"redis\"}",
+                        "legendFormat": "Redis"
+                    },
+                    {
+                        "expr": "asimmers_storage_up{service=\"clickhouse\"}",
+                        "legendFormat": "ClickHouse"
+                    },
+                    {
+                        "expr": "asimmers_storage_up{service=\"postgres\"}",
+                        "legendFormat": "PostgreSQL"
+                    },
+                    {
+                        "expr": "asimmers_storage_up{service=\"minio\"}",
+                        "legendFormat": "MinIO"
+                    },
+                    {
+                        "expr": "asimmers_storage_up{service=\"chromadb\"}",
+                        "legendFormat": "ChromaDB"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "type": "stat"
+            },
+            {
+                "id": 2,
+                "title": "Overall System Health Score",
+                "type": "gauge",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8
+                },
+                "targets": [
+                    {
+                        "expr": "100 - (count(asimmers_storage_up == 0) * 20)",
+                        "legendFormat": "Health"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "percent",
+                        "min": 0,
+                        "max": 100,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "orange",
+                                    "value": 40
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 60
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 80
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 3,
+                "title": "Query Latency (ms) — p95 per service",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 8,
+                    "y": 8
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket[5m])) by (le, service))",
+                        "legendFormat": "p95 {{service}}"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket[5m])) by (le, service))",
+                        "legendFormat": "p50 {{service}}"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 4,
+                "title": "Error Rate (1m)",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 16,
+                    "y": 8
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total[1m])",
+                        "legendFormat": "{{service}} — {{error_type}}"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 10,
+                "title": "ClickHouse — Service Row",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 16
+                },
+                "collapse": false,
+                "repeat": null
+            },
+            {
+                "id": 11,
+                "title": "ClickHouse Uptime",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 17
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"clickhouse\"}",
+                        "legendFormat": "ClickHouse"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": 12,
+                "title": "ClickHouse Connections",
+                "type": "gauge",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 4,
+                    "y": 17
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active{service=\"clickhouse\"}",
+                        "legendFormat": "ClickHouse"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "max": 150,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 13,
+                "title": "ClickHouse Query Latency p95",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 9,
+                    "y": 17
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"clickhouse\"}[5m])) by (le))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"clickhouse\"}[5m])) by (le))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 14,
+                "title": "ClickHouse Disk Usage",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 17
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_disk_usage_bytes{service=\"clickhouse\"}",
+                        "legendFormat": "Disk"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 10737418240
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 53687091200
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 15,
+                "title": "ClickHouse Error Rate",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 17
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total{service=\"clickhouse\"}[5m])",
+                        "legendFormat": "Errors/s"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 20,
+                "title": "PostgreSQL — Service Row",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 23
+                },
+                "collapse": false,
+                "repeat": null
+            },
+            {
+                "id": 21,
+                "title": "PostgreSQL Uptime",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 24
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"postgres\"}",
+                        "legendFormat": "PostgreSQL"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": 22,
+                "title": "PostgreSQL Connections",
+                "type": "gauge",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 4,
+                    "y": 24
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active{service=\"postgres\"}",
+                        "legendFormat": "PostgreSQL"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "max": 150,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 23,
+                "title": "PostgreSQL Query Latency p95",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 9,
+                    "y": 24
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"postgres\"}[5m])) by (le))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"postgres\"}[5m])) by (le))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 24,
+                "title": "PostgreSQL DB Size",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 24
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_disk_usage_bytes{service=\"postgres\"}",
+                        "legendFormat": "DB Size"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 10737418240
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 53687091200
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 25,
+                "title": "PostgreSQL Error Rate",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 24
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total{service=\"postgres\"}[5m])",
+                        "legendFormat": "Errors/s"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 30,
+                "title": "MinIO — Service Row",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 30
+                },
+                "collapse": false,
+                "repeat": null
+            },
+            {
+                "id": 31,
+                "title": "MinIO Uptime",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 31
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"minio\"}",
+                        "legendFormat": "MinIO"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": 32,
+                "title": "MinIO Bucket Count",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 4,
+                    "y": 31
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active{service=\"minio\"}",
+                        "legendFormat": "Buckets"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 33,
+                "title": "MinIO Query Latency p95",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 9,
+                    "y": 31
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"minio\"}[5m])) by (le))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"minio\"}[5m])) by (le))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 34,
+                "title": "MinIO Disk Usage",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 31
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_disk_usage_bytes{service=\"minio\"}",
+                        "legendFormat": "Disk"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 10737418240
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 53687091200
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 35,
+                "title": "MinIO Error Rate",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 31
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total{service=\"minio\"}[5m])",
+                        "legendFormat": "Errors/s"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 40,
+                "title": "ChromaDB — Service Row",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 37
+                },
+                "collapse": false,
+                "repeat": null
+            },
+            {
+                "id": 41,
+                "title": "ChromaDB Uptime",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 38
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"chromadb\"}",
+                        "legendFormat": "ChromaDB"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": 42,
+                "title": "ChromaDB Collection Count",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 4,
+                    "y": 38
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active{service=\"chromadb\"}",
+                        "legendFormat": "Collections"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 43,
+                "title": "ChromaDB Query Latency p95",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 9,
+                    "y": 38
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"chromadb\"}[5m])) by (le))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"chromadb\"}[5m])) by (le))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 44,
+                "title": "ChromaDB Disk Usage",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 38
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_disk_usage_bytes{service=\"chromadb\"}",
+                        "legendFormat": "Disk"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 10737418240
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 53687091200
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 45,
+                "title": "ChromaDB Error Rate",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 38
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total{service=\"chromadb\"}[5m])",
+                        "legendFormat": "Errors/s"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 50,
+                "title": "Redis — Cache Layer Row",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 44
+                },
+                "collapse": false,
+                "repeat": null
+            },
+            {
+                "id": 51,
+                "title": "Redis Uptime",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 4,
+                    "x": 0,
+                    "y": 45
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_up{service=\"redis\"}",
+                        "legendFormat": "Redis"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "none",
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "mappings": [
+                            {
+                                "type": "value",
+                                "options": {
+                                    "0": {
+                                        "color": "red",
+                                        "text": "DOWN"
+                                    },
+                                    "1": {
+                                        "color": "green",
+                                        "text": "UP"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": 52,
+                "title": "Redis Memory Usage",
+                "type": "gauge",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 4,
+                    "y": 45
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_disk_usage_bytes{service=\"redis\"}",
+                        "legendFormat": "Redis Memory"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "bytes",
+                        "min": 0,
+                        "max": 1073741824,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 536870912
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1073741824
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 53,
+                "title": "Redis Connected Clients",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 9,
+                    "y": 45
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active{service=\"redis\"}",
+                        "legendFormat": "Clients"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 54,
+                "title": "Redis Query Latency p95",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 45
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"redis\"}[5m])) by (le))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, sum(rate(asimmers_storage_query_latency_ms_bucket{service=\"redis\"}[5m])) by (le))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "ms",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 200
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 1000
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 55,
+                "title": "Redis Error Rate",
+                "type": "stat",
+                "gridPos": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 45
+                },
+                "targets": [
+                    {
+                        "expr": "rate(asimmers_storage_errors_total{service=\"redis\"}[5m])",
+                        "legendFormat": "Errors/s"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "cps",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 60,
+                "title": "Host Resources",
+                "type": "row",
+                "gridPos": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 51
+                },
+                "collapse": false
+            },
+            {
+                "id": 61,
+                "title": "CPU Usage (Host)",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 0,
+                    "y": 52
+                },
+                "targets": [
+                    {
+                        "expr": "asimnexus_cpu_usage_percent",
+                        "legendFormat": "CPU %"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "percent",
+                        "min": 0,
+                        "max": 100,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 70
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 90
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 62,
+                "title": "Memory Usage (Host)",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 8,
+                    "y": 52
+                },
+                "targets": [
+                    {
+                        "expr": "asimnexus_memory_usage_percent",
+                        "legendFormat": "Memory %"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "percent",
+                        "min": 0,
+                        "max": 100,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 95
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 63,
+                "title": "Active Connections (All Services)",
+                "type": "timeseries",
+                "gridPos": {
+                    "h": 8,
+                    "w": 8,
+                    "x": 16,
+                    "y": 52
+                },
+                "targets": [
+                    {
+                        "expr": "asimmers_storage_connections_active",
+                        "legendFormat": "{{service}}"
+                    }
+                ],
+                "fieldConfig": {
+                    "defaults": {
+                        "unit": "short",
+                        "min": 0,
+                        "thresholds": {
+                            "mode": "absolute",
+                            "steps": [
+                                {
+                                    "color": "green",
+                                    "value": 0
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 80
+                                },
+                                {
+                                    "color": "red",
+                                    "value": 150
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        ],
+        "annotations": {
+            "list": [
+                {
+                    "datasource": "Prometheus",
+                    "enable": true,
+                    "name": "Storage Down Events",
+                    "query": "asimmers_storage_up == 0"
+                },
+                {
+                    "datasource": "Prometheus",
+                    "enable": true,
+                    "name": "High Latency Events",
+                    "query": "asimmers_storage_query_latency_ms{quantile=\"0.95\"} > 1000"
+                }
+            ]
+        },
+        "links": [
+            {
+                "title": "Storage Runbook",
+                "url": "/docs/runbooks/storage-service-recovery.md",
+                "type": "link"
+            }
+        ],
+        "templating": {
+            "list": [
+                {
+                    "name": "datasource",
+                    "type": "datasource",
+                    "query": "prometheus",
+                    "current": {
+                        "value": "Prometheus"
+                    },
+                    "hide": 0
+                }
+            ]
+        },
+        "schemaVersion": 27,
+        "version": 1
+    },
+    "version": 1
+}

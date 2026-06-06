@@ -1,0 +1,48 @@
+{
+  "node_id": "test-um-sync",
+  "consent": [
+    "6a0e5fd1719b78c8"
+  ],
+  "peers": {
+    "6a0e5fd1719b78c8": {
+      "peer_id": "6a0e5fd1719b78c8",
+      "node_id": "6a0e5fd1719b78c8",
+      "did": "did:example:um",
+      "endpoint": "ws://10.0.0.1:9000",
+      "trusted": true,
+      "last_sync": 1780510921.6962433,
+      "sync_count": 1
+    }
+  },
+  "state": {
+    "node_id": "test-um-sync",
+    "version": 1,
+    "msg_count": {
+      "test-um-sync": 0,
+      "remote-um": 0
+    },
+    "active_peers": {
+      "add": {
+        "6a0e5fd1719b78c8": [
+          "test-um-sync:1780510921691751900:37"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": "developer",
+      "ts": 1780510921.6952393,
+      "node": "remote-um"
+    },
+    "ts": 1780510921.6962433
+  }
+}

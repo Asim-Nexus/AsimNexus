@@ -1,0 +1,53 @@
+{
+  "opencode_path": "opencode",
+  "default_provider": "ollama",
+  "default_model": "codellama:7b",
+  "workspace_path": "./workspace",
+  "git_backup_enabled": true,
+  "max_execution_time": 300,
+  "security_settings": {
+    "require_whitelist": true,
+    "auto_backup": true,
+    "max_file_size": "10MB",
+    "allowed_extensions": [".py", ".js", ".ts", ".java", ".cpp", ".c", ".h", ".css", ".html", ".json", ".yaml", ".yml", ".md", ".txt"],
+    "blocked_paths": ["/etc", "/sys", "/proc", "/dev", "C:\\Windows\\System32", "C:\\Program Files"],
+    "high_risk_patterns": ["rm -rf", "sudo rm", "format", "delete", "system(", "exec(", "eval(", "__import__"],
+    "max_execution_time": 300
+  },
+  "project_settings": {
+    "default_test_commands": {
+      "python": "python -m pytest",
+      "javascript": "npm test",
+      "typescript": "npm test",
+      "java": "mvn test",
+      "cpp": "make test"
+    },
+    "code_quality_checks": {
+      "python": ["flake8", "pylint", "mypy"],
+      "javascript": ["eslint", "prettier"],
+      "typescript": ["eslint", "prettier", "tsc"]
+    }
+  },
+  "llm_providers": {
+    "ollama": {
+      "models": ["codellama:7b", "codellama:13b", "deepseek-coder:6.7b", "starcoder:15b"],
+      "local": true,
+      "description": "Local models via Ollama"
+    },
+    "openai": {
+      "models": ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"],
+      "local": false,
+      "description": "OpenAI API"
+    },
+    "anthropic": {
+      "models": ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"],
+      "local": false,
+      "description": "Anthropic Claude"
+    },
+    "groq": {
+      "models": ["llama2-70b-4096", "mixtral-8x7b-32768"],
+      "local": false,
+      "description": "Groq API"
+    }
+  }
+}

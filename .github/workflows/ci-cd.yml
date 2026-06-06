@@ -1,0 +1,316 @@
+name: ASIMNEXUS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Code Quality and Testing
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    
+    steps:
+    - uses: actions/checkout@v4
+      # Supply-chain pin: actions/checkout@<full-commit-sha>
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      # Pin: actions/setup-python@<sha>
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v4
+      # Pin: actions/cache@<sha>
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8
+    
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=core --cov=agents --cov=connectors --cov=security --cov=economy --cov=identity --cov=ml --cov=frontend --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      # Pin: codecov/codecov-action@<sha>
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # Build and Push Docker Image
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      # Pin: docker/setup-buildx-action@<sha>
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      # Pin: docker/login-action@<sha>
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      # Pin: docker/metadata-action@<sha>
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      id: build-and-push
+      uses: docker/build-push-action@v5
+      # Pin: docker/build-push-action@<sha>
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # Security Scanning
+  security:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@0.29.0
+      # Pin: aquasecurity/trivy-action@<sha>  — NOTE: was @master, pinned to v0.29.0
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      # Pin: github/codeql-action/upload-sarif@<sha>
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Run Bandit security linter
+      run: |
+        pip install bandit
+        bandit -r core/ agents/ economy/ security/ identity/ ml/ -f json -o bandit-report.json
+    
+    - name: Upload Bandit results
+      uses: actions/upload-artifact@v4
+      # Pin: actions/upload-artifact@<sha>
+      with:
+        name: bandit-report
+        path: bandit-report.json
+    
+    - name: Run Semgrep security scanner
+      run: |
+        pip install semgrep
+        semgrep --config=auto --json --output=semgrep-report.json core/ agents/ economy/ security/ identity/ ml/
+    
+    - name: Upload Semgrep results
+      uses: actions/upload-artifact@v4
+      with:
+        name: semgrep-report
+        path: semgrep-report.json
+    
+    - name: Run ASIMNEXUS Security Audit
+      run: |
+        python -c "
+        from core.security.security_audit import get_security_audit
+        audit = get_security_audit()
+        reports = audit.audit_directory('core/')
+        print(f'Security audit completed: {len(reports)} files audited')
+        summary = audit.get_summary()
+        print(f'Critical findings: {summary[\"critical_count\"]}')
+        print(f'High findings: {summary[\"high_count\"]}')
+        print(f'Medium findings: {summary[\"medium_count\"]}')
+        print(f'Low findings: {summary[\"low_count\"]}')
+        "
+    
+    - name: Run Safety check for dependencies
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+    
+    - name: Upload Safety results
+      uses: actions/upload-artifact@v4
+      with:
+        name: safety-report
+        path: safety-report.json
+
+  # Deploy to Cloud (AWS/GCP/Azure)
+  deploy:
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://api.asim-nexus.ai
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      # Pin: aws-actions/configure-aws-credentials@<sha>
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy to AWS ECS
+      run: |
+        aws ecs update-service --cluster asimnexus-cluster --service asimnexus-service --force-new-deployment
+    
+    - name: Health check
+      run: |
+        sleep 30
+        curl -f https://api.asim-nexus.ai/health || exit 1
+
+  # Deploy to Multiple Regions (Global)
+  deploy-global:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      matrix:
+        region: [us-east-1, eu-west-1, ap-south-1]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials for ${{ matrix.region }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ matrix.region }}
+    
+    - name: Deploy to ${{ matrix.region }}
+      run: |
+        aws ecs update-service --cluster asimnexus-cluster-${{ matrix.region }} --service asimnexus-service --force-new-deployment
+
+  # Deploy to GCP
+  deploy-gcp:
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      # Pin: google-github-actions/auth@<sha>
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+    
+    - name: Deploy to GCP Cloud Run
+      uses: google-github-actions/deploy-cloudrun@v2
+      # Pin: google-github-actions/deploy-cloudrun@<sha>
+      with:
+        service: asimnexus
+        region: us-central1
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        flags: --platform=managed --cpu=2 --memory=4Gi --max-instances=1000
+
+  # Deploy to Azure
+  deploy-azure:
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v2
+      # Pin: azure/login@<sha>
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Deploy to Azure Container Apps
+      uses: azure/CLI@v2
+      # Pin: azure/CLI@<sha>
+      with:
+        inlineScript: |
+          az containerapp update \
+            --name asimnexus \
+            --resource-group asimnexus-rg \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --cpu 2 \
+            --memory 4Gi \
+            --min-replicas 1 \
+            --max-replicas 1000
+
+  # Monitoring and Observability
+  monitoring:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Test telemetry integration
+      run: |
+        python -c "
+        from monitoring.opentelemetry.telemetry import get_telemetry
+        telemetry = get_telemetry()
+        telemetry.log('INFO', 'CI/CD Pipeline Test', {'source': 'github_actions'})
+        print('Telemetry system operational')
+        "
+    
+    - name: Export Prometheus metrics
+      run: |
+        python -c "
+        from monitoring.opentelemetry.telemetry import get_telemetry
+        telemetry = get_telemetry()
+        telemetry.record_metric('ci_cd_deployments', 'counter', 1.0, {'branch': 'main'})
+        print(telemetry.get_prometheus_metrics())
+        "

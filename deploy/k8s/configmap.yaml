@@ -1,0 +1,14 @@
+# ─── AsimNexus ConfigMap ─────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asimnexus-config
+  namespace: asimnexus
+  labels:
+    app: asimnexus
+data:
+  ASIM_DEPLOY_NAMESPACE: "asimnexus"
+  ASIM_RELEASE_CHANNEL: "stable"
+  ASIM_CONTAINER_PORT: "8080"
+  ASIM_REMOTE_PUBLISH: "false"
+  PYTHONUNBUFFERED: "1"

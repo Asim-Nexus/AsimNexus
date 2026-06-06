@@ -1,0 +1,57 @@
+{
+  "node_id": "493728baf5e604c839a796e1261d48dd",
+  "consent": [],
+  "peers": {
+    "dafed0efff2d35d1": {
+      "peer_id": "dafed0efff2d35d1",
+      "node_id": "dafed0efff2d35d1",
+      "did": "did:one",
+      "endpoint": "ws://10.0.0.1:9001",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    },
+    "c93ccec84f349a01": {
+      "peer_id": "c93ccec84f349a01",
+      "node_id": "c93ccec84f349a01",
+      "did": "did:two",
+      "endpoint": "ws://10.0.0.2:9002",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "493728baf5e604c839a796e1261d48dd",
+    "version": 0,
+    "msg_count": {
+      "493728baf5e604c839a796e1261d48dd": 0
+    },
+    "active_peers": {
+      "add": {
+        "dafed0efff2d35d1": [
+          "493728baf5e604c839a796e1261d48dd:1780173233.4618506"
+        ],
+        "c93ccec84f349a01": [
+          "493728baf5e604c839a796e1261d48dd:1780173233.4628499"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780173233.4628499
+  }
+}

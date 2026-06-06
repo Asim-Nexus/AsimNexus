@@ -1,0 +1,17 @@
+title = "ASIMNEXUS gitleaks config"
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["key","aws"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key/token"
+regex = '''(?i)(?:api[_-]?key|secret|token)[\'\"=:\s]+[A-Za-z0-9\-_]{16,}'''
+tags = ["secret","apikey"]
+
+[[allowlist]]
+description = "Ignore common baseline and example files"
+paths = ["\\.env.example", "\\.secrets\\.baseline"]

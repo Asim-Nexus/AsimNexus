@@ -1,0 +1,98 @@
+{
+  "manifest_version": 3,
+  "name": "ASIMNEXUS - AI Assistant",
+  "short_name": "ASIM",
+  "version": "1.0.0",
+  "description": "Your personal AI companion for web browsing, writing, and research",
+  "author": "ASIMNEXUS Team",
+  "homepage_url": "https://asim-nexus.ai",
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    },
+    "default_title": "ASIMNEXUS",
+    "default_popup": "popup.html"
+  },
+  
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "contextMenus",
+    "clipboardWrite"
+  ],
+  
+  "optional_permissions": [
+    "tabs",
+    "bookmarks",
+    "history",
+    "downloads"
+  ],
+  
+  "host_permissions": [
+    "https://api.asim-nexus.ai/*",
+    "http://localhost:*/"
+  ],
+  
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*", "models/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      }
+    },
+    "open_chat": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Space",
+        "mac": "Command+Shift+Space"
+      },
+      "description": "Open ASIM chat"
+    },
+    "summarize_page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Summarize current page"
+    }
+  },
+  
+  "externally_connectable": {
+    "matches": ["https://asim-nexus.ai/*"]
+  }
+}

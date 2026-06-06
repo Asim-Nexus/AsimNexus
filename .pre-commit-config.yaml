@@ -1,0 +1,57 @@
+# ASIMNEXUS pre-commit configuration
+# Run `pip install pre-commit detect-secrets pip-audit` then `pre-commit install`
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit
+        entry: python -m pip_audit --format json
+        language: system
+        pass_filenames: false
+
+# Notes:
+# 1) After installing dependencies, run:
+#    pre-commit install
+# 2) Initialize detect-secrets baseline once and commit it:
+#    detect-secrets scan > .secrets.baseline
+#    git add .secrets.baseline && git commit -m "Add detect-secrets baseline"
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.3.0
+    hooks:
+      - id: detect-secrets
+
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.3.1
+    hooks:
+      - id: ruff
+        args: ["--fix"]

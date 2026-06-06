@@ -1,0 +1,3 @@
+Placeholder for AGPLv3 full text.
+To be replaced with official GNU Affero General Public License v3.0 text
+available at: https://www.gnu.org/licenses/agpl-3.0.txt

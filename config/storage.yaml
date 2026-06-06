@@ -1,0 +1,127 @@
+# AsimNexus 4-Layer Storage Configuration
+# All values can be overridden via environment variables (ASIM_*)
+
+version: "1.0"
+
+clickhouse:
+  enabled: true
+  dsn: ${ASIM_CLICKHOUSE_DSN:-clickhouse://localhost:9000/asimnexus}
+  http_port: ${ASIM_CLICKHOUSE_HTTP_PORT:-8123}
+  user: ${ASIM_CLICKHOUSE_USER:-default}
+  password: ${ASIM_CLICKHOUSE_PASSWORD:-}
+  database: ${ASIM_CLICKHOUSE_DATABASE:-asimnexus}
+  connect_timeout: 10
+  query_timeout: 30
+  pool_size: 10
+  tables:
+    auth_events:
+      ttl: "12 MONTH"
+      partition: "toYYYYMM(timestamp)"
+    routing_metrics:
+      ttl: "6 MONTH"
+      partition: "toYYYYMM(timestamp)"
+    latency_data:
+      ttl: "3 MONTH"
+      partition: "toYYYYMM(timestamp)"
+    mesh_events:
+      ttl: "6 MONTH"
+      partition: "toYYYYMM(timestamp)"
+    websocket_events:
+      ttl: "6 MONTH"
+      partition: "toYYYYMM(timestamp)"
+    ui_telemetry:
+      ttl: "12 MONTH"
+      partition: "toYYYYMM(timestamp)"
+  fallback:
+    type: sqlite  # sqlite | jsonl
+    path: ${ASIM_STORAGE_FALLBACK_DB:-data/storage/clickhouse_fallback.db}
+
+oltp:
+  enabled: true
+  dsn: ${ASIM_OLTP_DSN:-postgresql+asyncpg://localhost:5432/asimnexus}
+  user: ${ASIM_OLTP_USER:-asimnexus}
+  password: ${ASIM_OLTP_PASSWORD:-}
+  database: ${ASIM_OLTP_DATABASE:-asimnexus}
+  pool_size: 20
+  max_overflow: 10
+  schema_version: 1
+  tables:
+    - users
+    - sessions
+    - credit_accounts
+    - credit_transactions
+    - governance_state
+    - governance_decisions
+    - did_registry
+    - node_registry
+    - federation_state
+    - notifications
+  fallback:
+    type: sqlite
+    path: ${ASIM_OLTP_FALLBACK_DB:-data/storage/oltp_fallback.db}
+
+object_store:
+  enabled: true
+  endpoint: ${ASIM_OBJECT_STORE_ENDPOINT:-http://localhost:9000}
+  access_key: ${ASIM_ACCESS_KEY:-minioadmin}
+  secret_key: ${ASIM_SECRET_KEY:-minioadmin}
+  region: ${ASIM_OBJECT_STORE_REGION:-auto}
+  bucket_prefix: ${ASIM_OBJECT_STORE_BUCKET_PREFIX:-asimnexus}
+  buckets:
+    - raw-logs
+    - exports
+    - snapshots
+    - deployment-artifacts
+    - user-uploads
+    - mesh-offline-buffers
+    - backups
+    - audit-archive
+  fallback:
+    type: local
+    path: data/object_store
+
+vector_db:
+  enabled: true
+  provider: chromadb  # chromadb | sqlite | memory
+  path: ${ASIM_VECTOR_DB_PATH:-data/chromadb}
+  collections:
+    semantic_memory:
+      ttl: null  # no expiry
+      dimension: 384
+      hnsw_space: cosine
+    agent_context:
+      ttl: 86400  # 24 hours in seconds
+      dimension: 384
+      hnsw_space: cosine
+    retrieval:
+      ttl: null
+      dimension: 384
+      hnsw_space: cosine
+    clone_silos:
+      ttl: 604800  # 7 days in seconds
+      dimension: 384
+      hnsw_space: cosine
+  embedding:
+    model: all-MiniLM-L6-v2
+    dimension: 384
+    cache_size: 10000
+  fallback:
+    type: sqlite
+    path: data/storage/vector_fallback.db
+
+migration:
+  batch_size: 1000
+  dual_write: false  # Set true for zero-downtime: writes go to both old and new
+  auto_migrate: false  # Set true to auto-migrate on first connect
+  sources:
+    jsonl_audit: data/audit/*.jsonl
+    jsonl_telemetry: data/telemetry/*.jsonl
+    jsonl_governance: data/governance/*.jsonl
+    jsonl_mesh: data/mesh/*.jsonl
+    jsonl_power_balance: data/power_balance/*.jsonl
+    jsonl_personal_os: data/personal_os/*.jsonl
+
+logging:
+  level: ${ASIM_STORAGE_LOG_LEVEL:-INFO}
+  slow_query_threshold_ms: 500
+  connection_errors: true

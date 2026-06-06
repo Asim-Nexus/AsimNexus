@@ -1,0 +1,48 @@
+{
+  "node_id": "test-dn-sync",
+  "consent": [
+    "0eb51ef0e8eafcfd"
+  ],
+  "peers": {
+    "0eb51ef0e8eafcfd": {
+      "peer_id": "0eb51ef0e8eafcfd",
+      "node_id": "0eb51ef0e8eafcfd",
+      "did": "did:example:dn",
+      "endpoint": "ws://10.0.0.1:9000",
+      "trusted": true,
+      "last_sync": 1780510921.7545538,
+      "sync_count": 1
+    }
+  },
+  "state": {
+    "node_id": "test-dn-sync",
+    "version": 1,
+    "msg_count": {
+      "test-dn-sync": 0,
+      "remote-dn": 0
+    },
+    "active_peers": {
+      "add": {
+        "0eb51ef0e8eafcfd": [
+          "test-dn-sync:1780510921751483600:38"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": "SyncName",
+      "ts": 1780510921.7545538,
+      "node": "remote-dn"
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510921.7545538
+  }
+}

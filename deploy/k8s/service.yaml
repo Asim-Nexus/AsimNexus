@@ -1,0 +1,19 @@
+# ─── AsimNexus Kubernetes Service ────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-backend
+  namespace: asimnexus
+  labels:
+    app: asimnexus
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: asimnexus
+    component: backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP

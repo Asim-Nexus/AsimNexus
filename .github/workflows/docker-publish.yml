@@ -1,0 +1,120 @@
+name: AsimNexus Docker Publish
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to build'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # NOTE: For supply-chain security, pin to a full commit SHA:
+        # uses: actions/checkout@<full-commit-sha>
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        # Pin: docker/setup-qemu-action@<sha>
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
+        # Pin: docker/setup-buildx-action@<sha>
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        # Pin: docker/login-action@<sha>
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (main image)
+        id: meta
+        uses: docker/metadata-action@v5
+        # Pin: docker/metadata-action@<sha>
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          flavor: |
+            latest=auto
+
+      - name: Build and push main image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        # Pin: docker/build-push-action@<sha>
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata (kernel image)
+        id: meta-kernel
+        uses: docker/metadata-action@v5
+        # Pin: docker/metadata-action@<sha>
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-kernel
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push kernel image
+        uses: docker/build-push-action@v5
+        # Pin: docker/build-push-action@<sha>
+        with:
+          context: .
+          file: Dockerfile.kernel
+          push: true
+          tags: ${{ steps.meta-kernel.outputs.tags }}
+          labels: ${{ steps.meta-kernel.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        # Pin: anchore/sbom-action@<sha>
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        # Pin: sigstore/cosign-installer@<sha>
+        if: github.ref == 'refs/heads/main'
+
+      - name: Sign container image
+        if: github.ref == 'refs/heads/main'
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}

@@ -1,0 +1,223 @@
+# ASIMNEXUS Production Docker Compose
+# ====================================
+# Complete production deployment with:
+#   - Backend API (multi-stage Dockerfile)
+#   - Frontend (React)
+#   - PostgreSQL (primary database)
+#   - Redis (cache & coordination)
+#   - ClickHouse (analytics/time-series)
+#   - MinIO (S3-compatible object storage)
+#   - ChromaDB (vector database)
+#   - Nginx (reverse proxy)
+
+version: '3.8'
+
+services:
+  # ── Backend API ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: asimnexus-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8766:8766"
+    volumes:
+      - backend-data:/app/data
+      - backend-logs:/app/logs
+    environment:
+      - ASIM_ENV=production
+      - ASIM_LOG_LEVEL=WARNING
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://asimnexus:${POSTGRES_PASSWORD:-changeme}@postgres:5432/asimnexus
+      - REDIS_URL=redis://redis:6379/0
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=9000
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-asimnexus}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-changeme}
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      clickhouse:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # ── Frontend ────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend/react
+      dockerfile: Dockerfile
+    container_name: asimnexus-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_SOCKET_URL=http://localhost:8766
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - asimnexus-network
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: asimnexus-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: asimnexus
+      POSTGRES_USER: asimnexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deployment/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U asimnexus -d asimnexus" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis ───────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: asimnexus-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    networks:
+      - asimnexus-network
+
+  # ── ClickHouse (Analytics) ──────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: asimnexus-clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - asimnexus-network
+
+  # ── MinIO (S3-compatible Object Storage) ────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: asimnexus-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-asimnexus}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-changeme}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── ChromaDB (Vector Database) ──────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: asimnexus-chromadb
+    restart: unless-stopped
+    ports:
+      - "8003:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chromadb-data:/chroma/chroma
+    networks:
+      - asimnexus-network
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: asimnexus-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - asimnexus-network
+
+volumes:
+  backend-data:
+    driver: local
+  backend-logs:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  clickhouse-data:
+    driver: local
+  minio-data:
+    driver: local
+  chromadb-data:
+    driver: local
+
+networks:
+  asimnexus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

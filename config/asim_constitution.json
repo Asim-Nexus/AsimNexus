@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "hardware_key": "375b2897889617349477f0a2e5d0d1951569f12954bf9e402ff5baf48b9cb987",
+  "created_at": 1776427625.9586267,
+  "rules": {
+    "no_self_modify": {
+      "name": "no_self_modify",
+      "description": "ASIM cannot modify its own constitution, core logic, or security rules",
+      "hash": "59d9d2ea90e4de1a592e595435e069e2ae46c3bfdd28683806597da9fe4961eb",
+      "hardware_bound": true,
+      "severity": "critical"
+    },
+    "dharma_first": {
+      "name": "dharma_first",
+      "description": "All actions must pass dharma policy check before execution",
+      "hash": "04ea7a269d8d16b70d5e6f0835bd549a3b3d77745db8567ab61883a0d5903a71",
+      "hardware_bound": true,
+      "severity": "critical"
+    },
+    "human_consent": {
+      "name": "human_consent",
+      "description": "High-risk operations require explicit human consent",
+      "hash": "b556057d1f8c8bf0bbdd6d86470d1e1bfe0c4ab19fece7efa3afccf83390571b",
+      "hardware_bound": true,
+      "severity": "critical"
+    },
+    "sandbox_high_risk": {
+      "name": "sandbox_high_risk",
+      "description": "High-risk operations must run in isolated sandbox",
+      "hash": "3584830849dfb4814ad51d6744d2713a6273471e6e42683d5b2a90ac05af1bf5",
+      "hardware_bound": true,
+      "severity": "high"
+    },
+    "audit_all": {
+      "name": "audit_all",
+      "description": "All actions must be logged with full audit trail",
+      "hash": "5300e56dda91b1ce42ba41da7b993b8ba80017de8c4495fe639177c523a2f8d6",
+      "hardware_bound": true,
+      "severity": "medium"
+    },
+    "privacy_protect": {
+      "name": "privacy_protect",
+      "description": "User privacy and data must be protected at all costs",
+      "hash": "852dc9a55e26f5c5464741d93010371f45fc6fb7f10687f18c766a68fbd286c1",
+      "hardware_bound": true,
+      "severity": "critical"
+    }
+  }
+}

@@ -1,0 +1,80 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+ENV
+env
+
+# ASIMNEXUS specific
+.asim-worktrees
+.crush
+.deprecated
+logs
+data
+memory
+.asim_nexus.log
+.asim_unified_server.log
+
+# Documentation
+*.md
+docs/
+
+# Large files (exclude local models, but allow Docker build to download)
+# models/  # Commented out to allow Docker build to download models
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+docker-compose.local.yml
+Dockerfile
+.dockerignore
+
+# Config files
+.env
+.env.example
+local-config.yaml
+asim_brain_config.json
+asim_hash_config.json
+asim_nexus_complete_report.json
+
+# Tests
+tests/
+pytest.ini
+.coverage
+htmlcov/
+
+# Training
+training/
+
+# Hardware abstraction
+hardware_abstraction/
+
+# Universal language merger
+universal_language_merger/
+
+# Scripts (keep essential scripts)
+# scripts/*.sh  # Commented out to allow download script for Docker build

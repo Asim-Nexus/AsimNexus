@@ -1,0 +1,49 @@
+{
+  "node_id": "2b4bb76e66c5f875d179b594f502d94d",
+  "consent": [],
+  "peers": {
+    "1fa10e6189f94de0": {
+      "peer_id": "1fa10e6189f94de0",
+      "node_id": "1fa10e6189f94de0",
+      "did": "did:example:aaa",
+      "endpoint": "ws://10.0.0.4:9004",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "2b4bb76e66c5f875d179b594f502d94d",
+    "version": 0,
+    "msg_count": {
+      "2b4bb76e66c5f875d179b594f502d94d": 0
+    },
+    "active_peers": {
+      "add": {
+        "1fa10e6189f94de0": [
+          "2b4bb76e66c5f875d179b594f502d94d:1780172860.0897677"
+        ]
+      },
+      "rem": {
+        "1fa10e6189f94de0": [
+          "2b4bb76e66c5f875d179b594f502d94d:1780172860.0897677"
+        ]
+      }
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780172860.0917706
+  }
+}

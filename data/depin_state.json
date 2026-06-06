@@ -1,0 +1,17 @@
+{
+  "helium:e_proof_test": {
+    "node_id": "helium:e_proof_test",
+    "network": "helium",
+    "did": "did:asim:future_proof_test",
+    "registered": true,
+    "active": true,
+    "wallet_addr": "sim_helium_40f149d593a33474",
+    "hotspot_key": "15b44b917c1b7aadddca7f6d0f57c75b",
+    "total_earned": 0.01,
+    "total_svt": 0.12,
+    "last_reward": 0.01,
+    "registered_at": "2026-05-24T22:03:09Z",
+    "last_active": "2026-05-24T22:03:10Z",
+    "metadata": {}
+  }
+}

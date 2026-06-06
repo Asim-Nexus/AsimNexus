@@ -1,38 +1,42 @@
-# ASIMNEXUS - Digital Sovereign Entity
-# Master Terminal - Unified System Orchestration
-# Supports all components: OCR, Cloud, Government APIs, Neural Gateway
+# ASIMNEXUS Production Multi-Stage Docker Build
+# ================================================
+# Stage 1: Builder — compile dependencies
+# Stage 2: Runtime — minimal production image
 
-ARG BASE_IMAGE=python:3.11-slim
-FROM ${BASE_IMAGE}
+# ─── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
-LABEL maintainer="ASIMNEXUS Team"
-LABEL version="1.0.0-master-terminal"
-LABEL description="ASIMNEXUS - Digital Sovereign Entity with Master Terminal"
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV ASIM_ENV=production
-ENV ASIM_VERSION=1.0.0
-ENV LOG_LEVEL=INFO
-
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     make \
-    libffi-dev \
     libssl-dev \
+    libffi-dev \
     libpq-dev \
-    libopencv-dev \
-    pkg-config \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for Docker layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ─── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+LABEL maintainer="ASIMNEXUS Team"
+LABEL description="ASIMNEXUS — Digital Sovereign Entity"
+LABEL version="1.1.0"
+
+WORKDIR /app
+
+# Install only runtime system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    wget \
-    git \
-    build-essential \
+    libpq5 \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -42,18 +46,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --no-cache-dir --upgrade pip setuptools==78.1.1 wheel
+# Copy Python site-packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy application code (selective — only production directories)
+COPY main.py .
+COPY simple_backend.py .
+COPY asim_config.py .
+COPY backend/ ./backend/
+COPY core/ ./core/
+COPY agents/ ./agents/
+COPY auth/ ./auth/
+COPY connectors/ ./connectors/
+COPY economy/ ./economy/
+COPY governance/ ./governance/
+COPY integrations/ ./integrations/
+COPY mesh/ ./mesh/
+COPY monitoring/ ./monitoring/
+COPY os_control/ ./os_control/
+COPY runtime/ ./runtime/
+COPY security/ ./security/
+COPY storage/ ./storage/
+COPY tools/ ./tools/
 
-# Copy application code
-COPY . .
-
-# Create necessary directories
-RUN mkdir -p /app/data /app/memory /app/logs /app/config /app/models /app/tests
+# Create data directories
+RUN mkdir -p /app/data /app/logs /app/config /app/models
 
 # Create non-root user for security
 RUN useradd -m -u 1000 asimnexus && \
@@ -61,17 +79,11 @@ RUN useradd -m -u 1000 asimnexus && \
 USER asimnexus
 
 # Expose ports
-# 8000 - ASIMNEXUS API endpoint
-# 8080 - Alternative API endpoint
-# 3000 - Web UI (if available)
-EXPOSE 8000 8080 3000
+EXPOSE 8000 8080 8766
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Set permissions
-RUN chmod +x /app/asim-nexus-root/main.py
-
-# Default command - Run ASIMNEXUS Master Terminal
-CMD ["python", "asim-nexus-root/main.py"]
+# Default command — use simple_backend.py (the working backend with all OS Control, Mesh, and Hardware features)
+CMD ["python", "simple_backend.py"]

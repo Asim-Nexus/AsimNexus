@@ -1,0 +1,51 @@
+{
+  "node_id": "test-sync-consent",
+  "consent": [
+    "cd0ac90828fb1300"
+  ],
+  "peers": {
+    "cd0ac90828fb1300": {
+      "peer_id": "cd0ac90828fb1300",
+      "node_id": "cd0ac90828fb1300",
+      "did": "did:example:syncer",
+      "endpoint": "ws://10.0.0.1:9000",
+      "trusted": true,
+      "last_sync": 1780510920.9582238,
+      "sync_count": 1
+    }
+  },
+  "state": {
+    "node_id": "test-sync-consent",
+    "version": 1,
+    "msg_count": {
+      "test-sync-consent": 0,
+      "remote-node": 7
+    },
+    "active_peers": {
+      "add": {
+        "cd0ac90828fb1300": [
+          "test-sync-consent:1780510920957223800:24"
+        ],
+        "peer-abc": [
+          "remote-node:1780510920958223900:25"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": "Remote",
+      "ts": 1780510920.9582238,
+      "node": "remote-node"
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510920.9582238
+  }
+}

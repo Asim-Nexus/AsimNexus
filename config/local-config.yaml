@@ -1,0 +1,89 @@
+# ASIMNEXUS Local Configuration
+# ==============================
+# Configuration for running ASIMNEXUS locally on your computer
+
+# Environment
+environment:
+  mode: "local"
+  log_level: "INFO"
+  debug: true
+
+# Database
+database:
+  path: "./data/asim.db"
+  type: "sqlite"
+
+# Local LLM Configuration
+local_llm:
+  enabled: true
+  model_path: "c:/AsimNexus/models/gemma-2-2b-it-Q4_K_M.gguf"
+  model_type: "gemma2"
+  device: "cpu"  # CPU mode - optimized for speed
+  n_gpu_layers: 0  # No GPU - CPU only
+  max_length: 2048  # Reduced for faster responses
+  temperature: 0.6  # Lower temperature for more deterministic responses
+  top_p: 0.9  # More focused sampling
+  n_ctx: 4096  # Context window for speed (4K tokens)
+  n_threads: 16  # Max CPU threads for best performance
+  use_llama_server: false  # Use llama-cpp-python library instead of llama-server.exe
+  enable_thinking: false  # Disable thinking mode for faster responses
+  n_batch: 256  # Smaller batch for CPU
+  n_ubatch: 256  # Smaller micro-batch for CPU
+  rope_freq_base: 0  # RoPE frequency base (0 = default)
+  rope_freq_scale: 0  # RoPE frequency scale (0 = default)
+  flash_attn: false  # Disable flash attention for CPU
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  websocket_port: 8766
+  enable_cors: true
+
+# Frontend Configuration
+frontend:
+  enabled: true
+  port: 3000
+  static_path: "./ui"
+  template_path: "./ui"
+
+# Memory Configuration
+memory:
+  path: "./memory"
+  max_size_mb: 1000
+
+# Logging
+logging:
+  path: "./logs"
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Features (enable/disable for local testing)
+features:
+  mmmm_engine: true
+  life_dimensions: true
+  founder_clones: true
+  virtual_company: true
+  universal_chat: true
+  mesh_network: false  # Disable mesh for local testing
+  world_integrations: false  # Disable external APIs for local testing
+  self_learning: true
+  meta_harness: true
+  universe_engine: true  # Self-sustaining autonomous system based on universe principles
+
+# Cloud Configuration (disabled for local)
+cloud:
+  enabled: false
+  provider: "none"
+
+# Security (relaxed for local testing)
+security:
+  enabled: true
+  encryption: false  # Disable for local testing
+  strict_mode: false
+
+# Performance
+performance:
+  max_workers: 4
+  request_timeout: 30
+  connection_pool_size: 10

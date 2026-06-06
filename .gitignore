@@ -1,0 +1,185 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# ASIMNEXUS Specific
+logs/
+*.log
+# memory/ - Temporarily removed for __init__.py setup
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Separate projects (to be integrated)
+crush/
+opencode/
+
+# Cloud/Deployment
+*.pem
+*.key
+*.crt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+docker-compose.override.yml
+node_modules/
+
+# AsimNexus — Large files & test data
+*.dat
+test_large*
+large_*.json
+processed_dataset.json
+atomic_integrity_test_results.json
+asimnexus_file_list.txt
+
+# AsimNexus — Runtime junk
+*.log
+logs/
+cache/
+uploads/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.continue/
+
+# AsimNexus — Sensitive / local only
+encryption.key
+*.key
+asim_vault/
+.secrets/
+.env.auto
+
+# AsimNexus — Generated reports / metrics
+*_results.json
+*_report.json
+*_metrics.json
+heartbeat_*.json
+dashboard_data.json
+system_status.json
+
+# AsimNexus — Forensic reports & audit artifacts
+forensic_report_*.json
+ASIMNEXUS_AUDIT_REPORT.md
+ASIMNEXUS_MERGE_PLAN.md
+ASIMNEXUS_STATUS.md
+BUG_CHECK_REPORT.md
+COMPREHENSIVE_FIX_SUMMARY.md
+DEEP_AUDIT_AND_FIX.md
+IMAGES_FIX_SUMMARY.md
+LOGO_BACKGROUND_FIX.md
+LIVE_DEMONSTRATION.md
+LAUNCH_CHECKLIST.md
+
+# AsimNexus — Generated test outputs
+test_output.txt
+test.json
+atomic_integrity_test.py
+final_integrity_test.py
+final_stress_test.py
+fix_asimnexus_issues.py
+fix_encoding.py
+validate_and_fix.py
+technical_fixes.py
+quick_test.py
+run_all_tests.py
+run_tests.py
+staging_verify.py
+audit_status.py
+critical_questions_answers.py
+practical_tasks.py
+_techpana_article.html
+
+# AsimNexus — Temporary / generated files
+_odysseus_temp/
+query
+package-lock.json
+package.json
+sitecustomize.py
+auto_start.py
+start_all.bat
+start_all.ps1
+start_asimnexus.py
+start_asimnexus_demo.py
+start-local.sh
+universal_installer.py
+agent_host_setup.py
+domain_agents_setup.py
+cross_platform_file_manager.py
+federated_learning_node.py
+gateway_client.py
+gateway_middleware.py
+global_resource_manager.py
+global_vision_implementation.py
+god_mode_test.py
+nim_router.py
+nexus_event_bus.py
+p2p_synchronization.py
+sovereignty_control.py
+voice_vision_integration.py
+
+# AsimNexus — Large model files (use Git LFS or download separately)
+models/*.gguf
+models/*.bin
+models/*.pt
+models/*.pth
+models/*.onnx
+
+# AsimNexus — Large JS source maps
+ui/static/js/*.map
+
+# AsimNexus — Sensitive data files with API keys
+data/api_keys.json
+data/*.key
+data/*.secret

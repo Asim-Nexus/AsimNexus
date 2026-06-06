@@ -1,0 +1,355 @@
+# ASIMNEXUS Sovereign Ecosystem - Full Stack Deployment
+# =====================================================
+# One command to deploy the complete Digital Sovereign Entity
+# Backend + Frontend + Database + Monitoring + WebSocket Bridge
+
+version: '3.8'
+
+services:
+  # ASIMNEXUS Core Backend (Neural Gateway + API Bridge)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: asimnexus-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # FastAPI Backend
+      - "8766:8766"  # WebSocket Server
+    volumes:
+      # Data persistence
+      - ./data:/app/data
+      - ./memory:/app/memory
+      - ./logs:/app/logs
+      - ./config:/app/config
+      # Core modules
+      - ./core:/app/core
+      - ./security:/app/security
+      - ./integrations:/app/integrations
+      - ./network:/app/network
+      - ./asim-nexus-root:/app/asim-nexus-root
+    environment:
+      # Core Settings
+      - ASIM_ENV=production
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      # Neural Gateway
+      - NEURAL_GATEWAY_ENABLED=true
+      - NEURAL_GATEWAY_HEARTBEAT_INTERVAL=5
+      # Safety System
+      - CONSTITUTIONAL_SAFETY_ENABLED=true
+      - KILL_SWITCH_ARMED=true
+      # Hardware & Memory
+      - HARDWARE_SYNC_ENABLED=true
+      - VECTOR_MEMORY_SIZE=10000
+      # Security & Identity
+      - IDENTITY_MANAGER_ENABLED=true
+      - IDENTITY_HARD_LOCK_ENABLED=true
+      - OCR_ENGINE_ENABLED=true
+      # External Services
+      - CLOUD_CONNECTOR_ENABLED=true
+      - GOVT_GATEWAY_ENABLED=true
+      - MOBILE_BRIDGE_ENABLED=true
+      # WebSocket
+      - WEBSOCKET_ENABLED=true
+      - WEBSOCKET_HEARTBEAT_INTERVAL=2
+      # Database
+      - DATABASE_URL=sqlite:///./data/asimnexus.db
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - redis
+      - postgres
+
+  # React Frontend (Sovereign Interface)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: asimnexus-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # React App
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent node_modules override
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+      - REACT_APP_ENV=production
+    networks:
+      - asimnexus-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL Database (Primary Storage)
+  postgres:
+    image: postgres:15-alpine
+    container_name: asimnexus-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=asimnexus
+      - POSTGRES_USER=asimnexus
+      - POSTGRES_PASSWORD=asimnexus_sovereign_2026
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "asimnexus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (Session & Real-time Data)
+  redis:
+    image: redis:7-alpine
+    container_name: asimnexus-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - asimnexus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx Reverse Proxy (Load Balancer)
+  nginx:
+    image: nginx:alpine
+    container_name: asimnexus-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"    # HTTP
+      - "443:443"  # HTTPS
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - asimnexus-network
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus Monitoring (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: asimnexus-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - asimnexus-network
+    depends_on:
+      - backend
+
+  # Grafana Dashboard (Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: asimnexus-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=asimnexus
+      - GF_SECURITY_ADMIN_PASSWORD=sovereign_access_2026
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - asimnexus-network
+    depends_on:
+      - prometheus
+
+  # Jaeger Tracing (Request Tracing)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: asimnexus-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+      - "14250:14250"  # gRPC collector
+      - "6831:6831"    # UDP collector
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - SPAN_STORAGE_TYPE=memory
+    networks:
+      - asimnexus-network
+
+  # Elasticsearch (Log Storage)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: asimnexus-elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - asimnexus-network
+
+  # Kibana (Log Visualization)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: asimnexus-kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=asimnexus-kibana
+      - SERVER_HOST=0.0.0.0
+    networks:
+      - asimnexus-network
+    depends_on:
+      - elasticsearch
+
+# Volumes for Data Persistence
+volumes:
+  postgres-data:
+    driver: local
+    external: false
+  redis-data:
+    driver: local
+    external: false
+  prometheus-data:
+    driver: local
+    external: false
+  grafana-data:
+    driver: local
+    external: false
+  elasticsearch-data:
+    driver: local
+    external: false
+
+# Network Configuration
+networks:
+  asimnexus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+# Deployment Profiles
+profiles:
+  # Development: Only core services
+  dev:
+    services:
+      - backend
+      - redis
+      - postgres
+
+  # Production: Full monitoring stack
+  prod:
+    services:
+      - backend
+      - frontend
+      - redis
+      - postgres
+      - nginx
+      - prometheus
+      - grafana
+      - jaeger
+      - elasticsearch
+      - kibana
+
+  # Minimal: Only backend + database
+  minimal:
+    services:
+      - backend
+      - postgres
+
+  # Monitoring: Only observability stack
+  monitoring:
+    services:
+      - prometheus
+      - grafana
+      - jaeger
+      - elasticsearch
+      - kibana
+
+# Environment Variables (can be overridden by .env file)
+x-common-variables: &common-vars
+  ASIM_VERSION: "1.0.0"
+  ASIM_BUILD_DATE: "2026-05-10"
+  ASIM_COMMIT_HASH: "sovereign-entity-v1"
+
+# Health Check Configuration
+x-health-checks: &health-check
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
+# Resource Limits (Production)
+x-resource-limits: &resource-limits
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 4G
+      reservations:
+        cpus: '0.5'
+        memory: 1G
+
+# Restart Policy
+x-restart-policy: &restart-policy
+  restart: unless-stopped
+
+# Logging Configuration
+x-logging: &logging-config
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"

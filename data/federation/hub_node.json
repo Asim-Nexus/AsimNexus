@@ -1,0 +1,70 @@
+{
+  "node_id": "hub_node",
+  "consent": [
+    "did:example:violator",
+    "7d863126b10a5472"
+  ],
+  "peers": {
+    "7d863126b10a5472": {
+      "peer_id": "7d863126b10a5472",
+      "node_id": "7d863126b10a5472",
+      "did": "did:example:new_member",
+      "endpoint": "https://new.member/endpoint",
+      "trusted": true,
+      "last_sync": 0.0,
+      "sync_count": 0
+    },
+    "d94ec58a71a33225": {
+      "peer_id": "d94ec58a71a33225",
+      "node_id": "d94ec58a71a33225",
+      "did": "did:example:suspicious",
+      "endpoint": "https://suspicious/endpoint",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    },
+    "44bdf4d8af0f966b": {
+      "peer_id": "44bdf4d8af0f966b",
+      "node_id": "44bdf4d8af0f966b",
+      "did": "did:example:violator",
+      "endpoint": "https://violator/endpoint",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "hub_node",
+    "version": 0,
+    "msg_count": {
+      "hub_node": 0
+    },
+    "active_peers": {
+      "add": {
+        "44bdf4d8af0f966b": [
+          "hub_node:1780510928501440600:96"
+        ]
+      },
+      "rem": {
+        "44bdf4d8af0f966b": [
+          "hub_node:1780510928501440600:96"
+        ]
+      }
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510928.5046666
+  }
+}

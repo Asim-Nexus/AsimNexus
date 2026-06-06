@@ -1,0 +1,31 @@
+{
+  "dfe54b6969233c7a": {
+    "node_id": "dfe54b6969233c7a",
+    "node_type": "citizen",
+    "display_name": "Sita-Device",
+    "host": "192.168.101.10",
+    "port": 8000,
+    "country_code": "NP",
+    "capabilities": {
+      "has_gpu": true,
+      "gpu_name": "NVIDIA GeForce RTX 2060",
+      "cpu_cores": 12,
+      "ram_gb": 16.0,
+      "storage_gb": 50.0,
+      "has_local_llm": false,
+      "local_llm_model": "",
+      "max_concurrent_users": 24,
+      "offline_capable": true,
+      "country_code": "NP",
+      "languages": [
+        "en"
+      ]
+    },
+    "status": "online",
+    "registered_at": "2026-05-22T14:11:49.792100",
+    "last_heartbeat": "2026-05-22T14:11:49.792100",
+    "connected_users": 0,
+    "load_percent": 0.0,
+    "trust_score": 1.0
+  }
+}

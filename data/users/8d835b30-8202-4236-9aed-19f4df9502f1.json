@@ -1,0 +1,17 @@
+{
+  "asim_id": "8d835b30-8202-4236-9aed-19f4df9502f1",
+  "display_name": "Sita Devi",
+  "email": "sita@test.com",
+  "phone": "+977-9800000001",
+  "role": "citizen",
+  "verification": "verified",
+  "country_code": "NP",
+  "created_at": "2026-05-22T14:11:48.952011",
+  "last_seen": "2026-05-22T14:11:49.483889",
+  "is_active": true,
+  "personal_os_namespace": "user_8d835b30",
+  "national_id_hash": "db9def042e33ded071d6297f66563d3eb23da3b649c785d60bb62727498ace75",
+  "public_key": "",
+  "clone_config": {},
+  "preferences": {}
+}

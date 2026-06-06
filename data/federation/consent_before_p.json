@@ -1,0 +1,33 @@
+{
+  "node_id": "consent_before_peer",
+  "consent": [
+    "ghost_peer"
+  ],
+  "peers": {},
+  "state": {
+    "node_id": "consent_before_peer",
+    "version": 0,
+    "msg_count": {
+      "consent_before_peer": 0
+    },
+    "active_peers": {
+      "add": {},
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780362933.179796
+  }
+}

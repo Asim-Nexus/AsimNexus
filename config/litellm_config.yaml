@@ -1,0 +1,386 @@
+# ASIM NEXUS LiteLLM Configuration
+# Universal Chaitanya Router - Multi-Model Intelligence Layer
+
+model_list:
+  # NVIDIA NIM Models (27 instances)
+  - model_name: nvidia_nim_1
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_2
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_3
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_4
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_5
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_6
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_7
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_8
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_9
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_10
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_11
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_12
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_13
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_14
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_15
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_16
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_17
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_18
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_19
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_20
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_21
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_22
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_23
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_24
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_25
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_26
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  - model_name: nvidia_nim_27
+    litellm_params:
+      model: nvidia/meta/llama-3.1-70b-instruct
+      api_key: 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
+      api_base: https://integrate.api.nvidia.com/v1
+  
+  # Additional Models (placeholder for future expansion)
+  # OpenAI Models
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: os.environ/OPENAI_API_KEY
+  
+  - model_name: gpt-4-turbo
+    litellm_params:
+      model: openai/gpt-4-turbo
+      api_key: os.environ/OPENAI_API_KEY
+  
+  # Anthropic Claude
+  - model_name: claude-3-opus
+    litellm_params:
+      model: anthropic/claude-3-opus
+      api_key: os.environ/ANTHROPIC_API_KEY
+  
+  - model_name: claude-3-5-sonnet
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet
+      api_key: os.environ/ANTHROPIC_API_KEY
+  
+  # Google Gemini
+  - model_name: gemini-pro
+    litellm_params:
+      model: gemini/gemini-pro
+      api_key: os.environ/GEMINI_API_KEY
+  
+  # Local GGUF Models
+  - model_name: llama-3-70b-local
+    litellm_params:
+      model: ollama/llama3:70b
+      api_base: http://localhost:11434
+  
+  - model_name: qwen-72b-local
+    litellm_params:
+      model: ollama/qwen:72b
+      api_base: http://localhost:11434
+
+  # vLLM / GGUF Local Node (Phase-1)
+  - model_name: vllm-gguf-1
+    litellm_params:
+      model: local/vllm-gguf
+      api_base: http://localhost:8080
+      note: "High-perf local GGUF runtime (vLLM/cTransformers) exposed at :8080"
+  
+  # Future Models (placeholder)
+  - model_name: future-model-1
+    litellm_params:
+      model: custom/future-model
+      api_key: os.environ/FUTURE_API_KEY
+
+# Load Balancing Configuration
+litellm_settings:
+  drop_params: True
+  set_verbose: False
+  success_callback: ["litellm/integrations/otel"]
+  failure_callback: ["litellm/integrations/otel"]
+
+# Fallback Configuration
+fallbacks:
+  - model: nvidia_nim_1
+    fallbacks:
+      - nvidia_nim_2
+      - nvidia_nim_3
+      - nvidia_nim_4
+      - nvidia_nim_5
+      - claude-3-5-sonnet
+      - gemini-pro
+      - llama-3-70b-local
+
+# Routing Configuration
+router_settings:
+  model_group_alias:
+    reasoning: ["claude-3-5-sonnet", "gpt-4-turbo"]
+    creative: ["gemini-pro", "nvidia_nim_1"]
+    fast: ["llama-3-70b-local", "qwen-72b-local"]
+    critical: ["nvidia_nim_1", "nvidia_nim_2", "nvidia_nim_3"]
+    ensemble: ["nvidia_nim_1", "nvidia_nim_2", "nvidia_nim_3", "claude-3-5-sonnet", "gemini-pro"]
+  
+  routing_strategy: usage-based-routing  # or latency-based-routing, cost-based-routing
+  
+  # Context-aware routing
+  context_aware_routing:
+    enabled: true
+    task_type_detection: true
+    performance_tracking: true
+    cost_optimization: true
+
+# ASIM Guardrails Configuration
+guardrails:
+  enabled: true
+  ethical_alignment: true
+  zero_trust: true
+  self_reflection: true
+  
+  # Ethical constraints
+  ethical_constraints:
+    - no_harmful_content
+    - no_bias
+    - no_privacy_violation
+    - no_misinformation
+    - respect_dharma_principles
+  
+  # Zero Trust policies
+  zero_trust_policies:
+    - continuous_verification
+    - least_privilege
+    - assume_compromise
+    - micro_segmentation
+
+# Self-Reflection Loop Configuration
+self_reflection:
+  enabled: true
+  verification_models: ["claude-3-5-sonnet", "gpt-4-turbo", "nvidia_nim_1"]
+  truth_threshold: 0.8
+  coherence_threshold: 0.75
+  
+  # Multi-model verification
+  verification_strategy:
+    - cross_model_consensus
+    - logical_validity
+    - factual_accuracy
+    - ethical_compliance
+
+# Holographic Distribution Configuration
+holographic:
+  enabled: true
+  mesh_networking: true
+  global_knowledge_graph: true
+  
+  # Node synchronization
+  node_sync:
+    enabled: true
+    sync_interval: 30  # seconds
+    conflict_resolution: merge
+  
+  # Knowledge distribution
+  knowledge_distribution:
+    strategy: holographic
+    redundancy: 3
+    compression: true
+
+# Quantum-Resistant Encryption
+quantum_encryption:
+  enabled: true
+  algorithm: kyber-1024
+  key_rotation: 86400  # 24 hours
+  
+  # Bio-digital interfaces
+  bio_digital:
+    enabled: true
+    biometric_auth: true
+    neural_interface: false  # Future
+
+# Multi-Directional Operation
+multi_directional:
+  enabled: true
+  device_support:
+    - mobile
+    - desktop
+    - iot
+    - embedded
+    - edge
+  
+  language_support:
+    - python
+    - javascript
+    - rust
+    - go
+    - c++
+    - java
+    - swift
+    - kotlin
+  
+  platform_support:
+    - windows
+    - linux
+    - macos
+    - android
+    - ios
+    - web
+
+# Cost Optimization
+cost_optimization:
+  enabled: true
+  budget_tracking: true
+  cost_prediction: true
+  smart_routing: true
+  
+  # Cost thresholds
+  thresholds:
+    daily_budget: 1000  # USD
+    alert_threshold: 0.8  # 80%
+    block_threshold: 0.95  # 95%
+
+# Monitoring and Logging
+monitoring:
+  enabled: true
+  metrics:
+    - latency
+    - cost
+    - tokens
+    - success_rate
+    - ethical_score
+    - consciousness_score
+  
+  logging:
+    level: info
+    format: json
+    retention: 30  # days
+
+# Rate Limiting
+rate_limits:
+  enabled: true
+  default_rpm: 1000
+  per_user_rpm: 100
+  per_api_key_rpm: 500

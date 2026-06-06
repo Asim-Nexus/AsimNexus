@@ -1,0 +1,68 @@
+{
+  "node_id": "main_node",
+  "consent": [
+    "did:example:new_node",
+    "did:example:partner",
+    "20d18e5326603887",
+    "e31f07ffc1dd6d02"
+  ],
+  "peers": {
+    "20d18e5326603887": {
+      "peer_id": "20d18e5326603887",
+      "node_id": "20d18e5326603887",
+      "did": "did:example:new_node",
+      "endpoint": "https://new.node/endpoint",
+      "trusted": true,
+      "last_sync": 0.0,
+      "sync_count": 0
+    },
+    "43aa43426d5df521": {
+      "peer_id": "43aa43426d5df521",
+      "node_id": "43aa43426d5df521",
+      "did": "did:example:bad_actor",
+      "endpoint": "https://bad.actor/endpoint",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    },
+    "e31f07ffc1dd6d02": {
+      "peer_id": "e31f07ffc1dd6d02",
+      "node_id": "e31f07ffc1dd6d02",
+      "did": "did:example:partner",
+      "endpoint": "https://partner/endpoint",
+      "trusted": true,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "main_node",
+    "version": 0,
+    "msg_count": {
+      "main_node": 0
+    },
+    "active_peers": {
+      "add": {
+        "e31f07ffc1dd6d02": [
+          "main_node:1780510927347666400:93"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510927.4904733
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "node_id": "test-dup-peer",
+  "consent": [],
+  "peers": {
+    "fbbaef2ebed51055": {
+      "peer_id": "fbbaef2ebed51055",
+      "node_id": "fbbaef2ebed51055",
+      "did": "did:example:dup",
+      "endpoint": "ws://10.0.0.1:9000",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "test-dup-peer",
+    "version": 0,
+    "msg_count": {
+      "test-dup-peer": 0
+    },
+    "active_peers": {
+      "add": {
+        "fbbaef2ebed51055": [
+          "test-dup-peer:1780510923037468300:57",
+          "test-dup-peer:1780510923036468200:56"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780510923.0374684
+  }
+}
