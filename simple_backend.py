@@ -598,12 +598,30 @@ async def _smart_generate(prompt: str, user_id: str, system: str = "") -> Dict:
 
 
 def create_app():
+    from contextlib import asynccontextmanager
     from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
     from fastapi.responses import JSONResponse
     from fastapi.middleware.cors import CORSMiddleware
     import uvicorn
 
-    app = FastAPI(title="ASIMNEXUS Core", description="AsimNexus World OS Backend", version="2.0.0")
+    @asynccontextmanager
+    async def lifespan(app):
+        _init_local_llm()
+        if _dreaming:
+            asyncio.create_task(_dreaming.start())
+        # Initialize ASIM Kernel
+        try:
+            from core.kernel.kernel import get_kernel
+            _kernel = get_kernel()
+            hp = _kernel.get_hardware_profile()
+            logger.info(f"🧠 ASIM Kernel initialized: {hp.os_name} | {hp.cpu_name} | {hp.total_memory_gb:.1f}GB RAM")
+        except Exception as e:
+            logger.warning(f"⚠️ ASIM Kernel init skipped: {e}")
+        logger.info("🚀 AsimNexus Backend started")
+        yield
+        logger.info("🛑 AsimNexus Backend shutting down")
+
+    app = FastAPI(title="ASIMNEXUS Core", description="AsimNexus World OS Backend", version="1.0.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -620,21 +638,13 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ ObservabilityMiddleware registration skipped: {e}")
 
-    # ─── STARTUP ──────────────────────────────────────────────────────────────
-    @app.on_event("startup")
-    async def startup():
-        _init_local_llm()
-        if _dreaming:
-            asyncio.create_task(_dreaming.start())
-        # Initialize ASIM Kernel
-        try:
-            from core.kernel.kernel import get_kernel
-            _kernel = get_kernel()
-            hp = _kernel.get_hardware_profile()
-            logger.info(f"🧠 ASIM Kernel initialized: {hp.os_name} | {hp.cpu_name} | {hp.total_memory_gb:.1f}GB RAM")
-        except Exception as e:
-            logger.warning(f"⚠️ ASIM Kernel init skipped: {e}")
-        logger.info("🚀 AsimNexus Backend started")
+    # Rate limiting middleware
+    try:
+        from core.rate_limiter_middleware import RateLimiterMiddleware
+        app.add_middleware(RateLimiterMiddleware)
+        logger.info("✅ RateLimiterMiddleware registered — all endpoints rate limited")
+    except Exception as e:
+        logger.warning(f"⚠️ RateLimiterMiddleware registration skipped: {e}")
 
     # ─── CORE TRUST PATH: HEALTH & REGISTRY ─────────────────────────────────────
     if setup_health_routes:
@@ -1795,7 +1805,7 @@ def create_app():
                 "port_ws": t.port_ws,
                 "running": t._running,
                 "peers": len(t.peers),
-                "online_peers": len(t.get_online_peers()),
+                "online_peers": len(await t.get_online_peers()),
             }
         except Exception as e:
             out["p2p_transport"] = {"running": False, "error": str(e)}
@@ -1866,7 +1876,7 @@ def create_app():
             from mesh.p2p_transport import get_p2p_transport
             from dataclasses import asdict
             t = get_p2p_transport()
-            peers = [asdict(p) for p in t.get_online_peers()]
+            peers = [asdict(p) for p in await t.get_online_peers()]
             return JSONResponse({"peers": peers, "total": len(t.peers)})
         except Exception as e:
             return JSONResponse({"peers": [], "total": 0, "error": str(e)})
@@ -3103,6 +3113,198 @@ def create_app():
                 "sandboxed_fs":    True,
             },
         })
+
+    # ─── AGENT LOOP ENDPOINTS ───────────────────────────────────────────────────
+    @app.post("/api/agent/run")
+    async def agent_run(request: Request):
+        """Run agent loop with user input"""
+        try:
+            body = await request.json()
+            user_id = _get_user_id_from_request(request) or "anonymous"
+            from core.agent_loop import get_agent_loop, AgentMode
+            loop = get_agent_loop()
+            mode_str = body.get("mode", "AUTO").upper()
+            mode = AgentMode[mode_str] if mode_str in AgentMode.__members__ else AgentMode.AUTO
+            ctx = await loop.run(
+                user_input=body["user_input"],
+                user_id=user_id,
+                clone_id=body.get("clone_id"),
+                mode=mode,
+                system_prompt=body.get("system_prompt"),
+                max_steps=body.get("max_steps", 25),
+            )
+            return {"status": "ok", "session_id": ctx.session_id, "mode": mode.name}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.post("/api/agent/cancel")
+    async def agent_cancel(request: Request):
+        """Cancel an active agent session"""
+        try:
+            body = await request.json()
+            from core.agent_loop import get_agent_loop
+            loop = get_agent_loop()
+            loop.cancel_session(body["session_id"])
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.get("/api/agent/status/{session_id}")
+    async def agent_status(session_id: str):
+        """Get agent session status"""
+        try:
+            from core.agent_loop import get_agent_loop
+            loop = get_agent_loop()
+            ctx = loop.get_active_sessions().get(session_id)
+            if not ctx:
+                return {"status": "error", "detail": "Session not found"}
+            return {
+                "status": ctx.status.name,
+                "mode": ctx.mode.name,
+                "steps": len(ctx.steps),
+                "messages": len(ctx.messages),
+                "session_id": ctx.session_id,
+                "user_id": ctx.user_id,
+                "clone_id": ctx.clone_id,
+            }
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.get("/api/agent/sessions")
+    async def agent_sessions():
+        """List all active agent sessions"""
+        try:
+            from core.agent_loop import get_agent_loop
+            loop = get_agent_loop()
+            sessions = {}
+            for sid, ctx in loop.get_active_sessions().items():
+                sessions[sid] = {
+                    "status": ctx.status.name,
+                    "mode": ctx.mode.name,
+                    "steps": len(ctx.steps),
+                    "user_id": ctx.user_id,
+                    "clone_id": ctx.clone_id,
+                }
+            return {"status": "ok", "sessions": sessions}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.get("/api/agent/stats")
+    async def agent_stats():
+        """Get agent loop statistics"""
+        try:
+            from core.agent_loop import get_agent_loop
+            loop = get_agent_loop()
+            return {"status": "ok", "stats": loop.get_stats()}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    # ─── TOOL EXECUTION ENDPOINTS ───────────────────────────────────────────────
+    @app.get("/api/tools/list")
+    async def tool_list():
+        """List all available tools"""
+        try:
+            from core.tools import get_default_tool_registry
+            registry = get_default_tool_registry()
+            tools = registry.get_tools_for_llm()
+            return {"status": "ok", "tools": tools}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.post("/api/tools/execute")
+    async def tool_execute(request: Request):
+        """Execute a tool (goes through veto check)"""
+        try:
+            body = await request.json()
+            user_id = _get_user_id_from_request(request) or "anonymous"
+            tool_name = body["tool_name"]
+            args = body.get("arguments", {})
+            session_id = body.get("session_id")
+
+            from core.tools import get_default_tool_registry
+            from core.tools.veto_integration import get_veto_integration
+            from core.tools.audit_integration import get_tool_auditor
+
+            registry = get_default_tool_registry()
+            veto = get_veto_integration()
+            auditor = get_tool_auditor()
+
+            # Veto check
+            veto_result = await veto.check_tool(tool_name, args, user_id=user_id)
+            if not veto_result.get("allowed", True):
+                auditor.record(tool_name, args, "BLOCKED by veto", veto_result, user_id=user_id, session_id=session_id, success=False, error=veto_result.get("reason", ""))
+                return {"status": "veto_blocked", "reason": veto_result.get("reason", ""), "severity": veto_result.get("severity", "error")}
+
+            # Execute
+            tool_func = registry.get_tool(tool_name)
+            if not tool_func:
+                return {"status": "error", "detail": f"Tool '{tool_name}' not found"}
+
+            import time, traceback
+            start = time.monotonic()
+            try:
+                if asyncio.iscoroutinefunction(tool_func):
+                    result = await tool_func(**args)
+                else:
+                    result = tool_func(**args)
+                duration_ms = int((time.monotonic() - start) * 1000)
+                auditor.record(tool_name, args, str(result)[:200], veto_result, user_id=user_id, session_id=session_id, success=True, duration_ms=duration_ms)
+                return {"status": "ok", "result": result, "duration_ms": duration_ms}
+            except Exception as exec_err:
+                duration_ms = int((time.monotonic() - start) * 1000)
+                auditor.record(tool_name, args, "", veto_result, user_id=user_id, session_id=session_id, success=False, error=str(exec_err), duration_ms=duration_ms)
+                return {"status": "error", "detail": str(exec_err), "duration_ms": duration_ms}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.get("/api/tools/pending")
+    async def tool_pending():
+        """Get list of approved tool executions pending human approval"""
+        try:
+            from core.tools.veto_integration import get_veto_integration
+            veto = get_veto_integration()
+            return {"status": "ok", "pending": veto.get_pending_approvals() if hasattr(veto, 'get_pending_approvals') else []}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.post("/api/tools/approve")
+    async def tool_approve(request: Request):
+        """Approve a pending tool execution"""
+        try:
+            body = await request.json()
+            execution_id = body["execution_id"]
+            from core.tools.veto_integration import get_veto_integration
+            veto = get_veto_integration()
+            if hasattr(veto, 'approve_execution'):
+                veto.approve_execution(execution_id)
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.post("/api/tools/reject")
+    async def tool_reject(request: Request):
+        """Reject a pending tool execution"""
+        try:
+            body = await request.json()
+            execution_id = body["execution_id"]
+            from core.tools.veto_integration import get_veto_integration
+            veto = get_veto_integration()
+            if hasattr(veto, 'reject_execution'):
+                veto.reject_execution(execution_id)
+            return {"status": "ok"}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
+
+    @app.get("/api/tools/audit")
+    async def tool_audit(request: Request, limit: int = 30):
+        """Get tool audit log"""
+        try:
+            from core.tools.audit_integration import get_tool_auditor
+            auditor = get_tool_auditor()
+            entries = auditor.get_recent(limit=limit) if hasattr(auditor, 'get_recent') else []
+            return {"status": "ok", "entries": entries}
+        except Exception as e:
+            return {"status": "error", "detail": str(e)}
 
     # ─── SYSTEM HEALING & MONITORING ───────────────────────────────────────────
     @app.get("/api/healing/status")
@@ -5677,7 +5879,15 @@ def create_app():
         except Exception as e:
             logger.error(f"⚠️ ASIM Kernel unavailable: {e}")
             return JSONResponse({"status": "unavailable", "error": str(e)})
-    
+
+    # ─── PHASE 4-6 ROUTES: SECTORS, GLOBAL AGENT, HARDENING ─────────────────
+    try:
+        from core.api_endpoints.register_routes import register_all_routes
+        register_all_routes(app)
+        logger.info("✅ Phase 4-6 routes registered (sectors, global agent, hardening)")
+    except Exception as e:
+        logger.warning(f"⚠️ Phase 4-6 route registration skipped: {e}")
+
     return app
 
 

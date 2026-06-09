@@ -21,8 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements first for Docker layer caching
 COPY requirements.txt .
+# Filter out GPU-only packages (cudf requires conda, cupy needs CUDA runtime)
+# and install the rest — GPU packages can be added manually if CUDA is available
+# Use legacy resolver to handle dependency conflicts gracefully
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+    grep -v "cudf\|cupy-cuda" requirements.txt > /tmp/requirements-docker.txt && \
+    pip install --no-cache-dir --use-deprecated=legacy-resolver -r /tmp/requirements-docker.txt
 
 # ─── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.11-slim AS runtime
@@ -56,6 +60,7 @@ COPY simple_backend.py .
 COPY asim_config.py .
 COPY backend/ ./backend/
 COPY core/ ./core/
+COPY core/sectors/ ./core/sectors/
 COPY agents/ ./agents/
 COPY auth/ ./auth/
 COPY connectors/ ./connectors/

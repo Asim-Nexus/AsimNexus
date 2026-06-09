@@ -677,6 +677,150 @@ ASIM_WAMP_URL=ws://localhost:8080/ws
 - **Security Guide**: `/docs/security.md`
 - **Deployment**: `/docs/deployment.md`
 
+## 🔷 Phase 4: Sector Modules (Hospital, Hotel, Education, Banking)
+
+Specialized sector modules enforcing the 51/49 constitutional balance across all industries.
+
+### Architecture
+
+Each sector follows the same pattern:
+- **Dataclass Records**: Strongly-typed data models with audit hashes
+- **Manager Class**: CRUD operations + internal audit logging
+- **51/49 Balance**: `government_share=0.51` / `private_share=0.49` in all records
+- **REST API**: Consistent `/api/sectors/{sector}/` endpoint pattern
+
+### Sectors Implemented
+
+| Sector | Module | Key Records |
+|--------|--------|-------------|
+| 🏥 Hospital | [`core/sectors/hospital_sector.py`](core/sectors/hospital_sector.py) | PatientRecord, HospitalRecord |
+| 🏨 Hotel | [`core/sectors/hotel_sector.py`](core/sectors/hotel_sector.py) | RoomRecord, HotelBooking |
+| 🎓 Education | [`core/sectors/education_sector.py`](core/sectors/education_sector.py) | StudentRecord, CourseRecord |
+| 🏦 Banking | [`core/sectors/banking_sector.py`](core/sectors/banking_sector.py) | AccountRecord, TransactionRecord |
+
+### API Endpoints
+
+```
+GET    /api/sectors/health                    — Sector system health
+GET    /api/sectors/stats                     — All sectors aggregated stats
+
+# Hospital
+POST   /api/sectors/hospital/register         — Register a hospital
+POST   /api/sectors/hospital/admit            — Admit a patient
+POST   /api/sectors/hospital/discharge/{id}   — Discharge a patient
+GET    /api/sectors/hospital/patients         — List patients (optional ?department=)
+GET    /api/sectors/hospital/patient/{id}     — Get patient details
+GET    /api/sectors/hospital/list             — List hospitals
+GET    /api/sectors/hospital/stats            — Hospital sector statistics
+
+# Hotel
+POST   /api/sectors/hotel/rooms               — Add a room
+POST   /api/sectors/hotel/bookings            — Create a booking
+POST   /api/sectors/hotel/bookings/{id}/checkin   — Check-in
+POST   /api/sectors/hotel/bookings/{id}/checkout  — Check-out
+POST   /api/sectors/hotel/bookings/{id}/cancel    — Cancel booking
+GET    /api/sectors/hotel/rooms               — List rooms (?status=)
+GET    /api/sectors/hotel/bookings            — List bookings (?status=)
+GET    /api/sectors/hotel/room/{id}           — Get room details
+GET    /api/sectors/hotel/booking/{id}        — Get booking details
+GET    /api/sectors/hotel/stats               — Hotel sector statistics
+
+# Education
+POST   /api/sectors/education/enroll          — Enroll a student
+POST   /api/sectors/education/courses         — Create a course
+POST   /api/sectors/education/enroll-course   — Enroll student in course
+POST   /api/sectors/education/grades          — Update grades
+POST   /api/sectors/education/graduate/{id}   — Graduate a student
+GET    /api/sectors/education/students        — List students (?program=)
+GET    /api/sectors/education/courses         — List courses (?department=)
+GET    /api/sectors/education/student/{id}    — Get student details
+GET    /api/sectors/education/course/{id}     — Get course details
+GET    /api/sectors/education/stats           — Education sector statistics
+
+# Banking
+POST   /api/sectors/banking/accounts          — Create account
+POST   /api/sectors/banking/deposit           — Deposit funds
+POST   /api/sectors/banking/withdraw          — Withdraw funds
+POST   /api/sectors/banking/transfer          — Transfer between accounts
+GET    /api/sectors/banking/accounts          — List accounts
+GET    /api/sectors/banking/account/{id}      — Get account details
+GET    /api/sectors/banking/account/{id}/transactions — Get transaction history
+GET    /api/sectors/banking/stats             — Banking sector statistics
+```
+
+## 🔷 Phase 5: Global Agent Mode
+
+Worldwide deployment orchestration with personal OS sovereignty.
+
+**Module**: [`core/api_endpoints/global_agent_api.py`](core/api_endpoints/global_agent_api.py)
+
+### Features
+- **Global Discovery**: Auto-detect regions and agents worldwide
+- **Region Management**: Register and deploy agents to geographic regions
+- **Cross-Border Sync**: Federated mesh synchronization across borders
+- **Personal OS Mode**: 100% individual sovereignty guaranteed
+
+### API Endpoints
+
+```
+POST  /api/global/activate                    — Activate global agent mode
+POST  /api/global/deactivate                  — Deactivate global agent mode
+POST  /api/global/regions                     — Register a new region
+POST  /api/global/regions/{id}/deploy         — Deploy agents to region
+POST  /api/global/agents                      — Register a new agent
+GET   /api/global/status                      — Get global agent status
+GET   /api/global/overview                    — Get global overview
+```
+
+### Default Configuration
+```json
+{
+  "government_share": 0.51,
+  "private_share": 0.49,
+  "personal_os_enabled": true,
+  "global_discovery": true,
+  "cross_border_sync": true
+}
+```
+
+## 🔷 Phase 6: Hardening & Security
+
+Seven-layer security verification system enforcing constitutional balance.
+
+**Module**: [`core/api_endpoints/hardening_api.py`](core/api_endpoints/hardening_api.py)
+
+### Security Layers
+
+| Layer | Name | Purpose |
+|-------|------|---------|
+| 1 | Dharma-Chakra Constitution | Constitutional compliance (51/49 balance) |
+| 2 | RBAC | Role-based access control |
+| 3 | Input Sanitization | Input validation and sanitization |
+| 4 | Audit Logger | Comprehensive audit trail |
+| 5 | Zero Trust | Verify-every-trust policy |
+| 6 | Risk Validator | Risk assessment and scoring |
+| 7 | Power Balance Constitution | 51% Gov / 49% Private enforcement |
+
+### API Endpoints
+
+```
+GET   /api/hardening/health           — Check all security modules health
+GET   /api/hardening/verify           — Verify system integrity across all layers
+GET   /api/hardening/security-layers  — List all security layers and status
+```
+
+## 🔷 Licensing Model
+
+ASIMNEXUS uses a tri-license model reflecting the constitutional balance:
+
+| License | Share | Purpose | File |
+|---------|-------|---------|------|
+| 🏛️ Government Public License | 51% | Sovereign governance use | [`LICENSE-GOV`](LICENSE-GOV) |
+| 🏢 Private Company License | 49% | Commercial innovation | [`LICENSE-PRIVATE`](LICENSE-PRIVATE) |
+| 👤 Personal OS License | 100% | Individual digital sovereignty | [`LICENSE-PERSONAL-OS`](LICENSE-PERSONAL-OS) |
+
+The Personal OS License is **irrevocable** — no government or private entity may override an individual's digital sovereignty.
+
 ## 🙏 Acknowledgments
 
 - Ancient wisdom traditions (Vedas, Geeta, Buddha, Osho, Prashant)
