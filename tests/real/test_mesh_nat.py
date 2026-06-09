@@ -70,6 +70,11 @@ from mesh.p2p_transport import (
     get_p2p_transport,
     reset_p2p_transport,
 )
+from mesh.nat_traversal import (
+    NATDetector as NATraversalDetector,
+    NATTraversal,
+    NATType as NATraversalNATType,
+)
 
 logger = logging.getLogger("TestMeshNAT")
 logger.setLevel(logging.DEBUG)
@@ -1029,6 +1034,88 @@ class TestP2PTransportNATIntegration:
         finally:
             await transport.stop()
 
+
+# ---------------------------------------------------------------------------
+# Phase 1B: Localhost Short-Circuit
+# ---------------------------------------------------------------------------
+
+
+class TestNATLocalhostShortCircuit:
+    """NAT traversal short-circuits correctly on localhost (Phase 1B)."""
+
+    @pytest.mark.asyncio
+    async def test_nat_traversal_detector_localhost(self):
+        """nat_traversal.NATDetector.detect() returns OPEN for 127.0.0.1."""
+        detector = NATraversalDetector(local_ip="127.0.0.1", local_port=9999)
+        nat_type = await detector.detect(timeout=1.0)
+        assert nat_type == NATraversalNATType.OPEN
+        assert detector.nat_type == NATraversalNATType.OPEN
+        assert detector.public_ip == "127.0.0.1"
+        assert detector.public_port == 9999
+
+    @pytest.mark.asyncio
+    async def test_nat_traversal_detector_localhost_v6(self):
+        """nat_traversal.NATDetector.detect() returns OPEN for ::1."""
+        detector = NATraversalDetector(local_ip="::1", local_port=9999)
+        nat_type = await detector.detect(timeout=1.0)
+        assert nat_type == NATraversalNATType.OPEN
+
+    @pytest.mark.asyncio
+    async def test_nat_traversal_detector_localhost_zero(self):
+        """nat_traversal.NATDetector.detect() returns OPEN for 0.0.0.0."""
+        detector = NATraversalDetector(local_ip="0.0.0.0", local_port=9999)
+        nat_type = await detector.detect(timeout=1.0)
+        assert nat_type == NATraversalNATType.OPEN
+
+    @pytest.mark.asyncio
+    async def test_nat_traversal_start_localhost(self):
+        """NATTraversal.start() short-circuits when transport.host is localhost."""
+        p2p = P2PTransport(
+            node_id="nat-localhost",
+            host="127.0.0.1",
+            port_udp=find_free_port(),
+            port_ws=find_free_port(),
+        )
+        await p2p.start()
+        try:
+            nat = NATTraversal(node_id="nat-localhost", transport=p2p)
+            await nat.start()
+            try:
+                assert nat.nat_type == NATraversalNATType.OPEN
+                assert nat.public_ip == "127.0.0.1"
+                stats = nat.get_stats()
+                assert stats["nat_type"] == "open"
+                assert stats["running"] is True
+            finally:
+                await nat.stop()
+        finally:
+            await p2p.stop()
+
+    @pytest.mark.asyncio
+    async def test_stun_turn_detector_localhost(self):
+        """stun_turn.NATDetector.classify() short-circuits on localhost."""
+        detector = NATDetector(local_ip="127.0.0.1")
+        classification = await detector.classify()
+        assert classification.nat_type == NATType.OPEN_INTERNET
+        assert classification.confidence == 1.0
+        reason = classification.details.get("reason", "")
+        assert "localhost" in reason.lower()
+
+    @pytest.mark.asyncio
+    async def test_stun_turn_detector_localhost_v6(self):
+        """stun_turn.NATDetector.classify() short-circuits on ::1."""
+        detector = NATDetector(local_ip="::1")
+        classification = await detector.classify()
+        assert classification.nat_type == NATType.OPEN_INTERNET
+
+    @pytest.mark.asyncio
+    async def test_stun_turn_detector_without_localip(self):
+        """stun_turn.NATDetector.classify() without local_ip proceeds normally."""
+        detector = NATDetector(local_ip=None)
+        # No local_ip set → no short-circuit, falls through to STUN check
+        # Since no STUN servers respond in test env, returns UDP_BLOCKED
+        classification = await detector.classify()
+        assert classification.nat_type in (NATType.UDP_BLOCKED, NATType.UNKNOWN)
     @pytest.mark.asyncio
     async def test_nat_classification_default_none(self):
         """nat_classification is None by default."""

@@ -32,7 +32,6 @@ cudf>=23.0.0  # GPU-accelerated pandas replacement
 
 # LLM Runtime - CUDA GPU Support
 llama-cpp-python==0.2.28
-llama-cpp-python>=0.2.0
 huggingface-hub>=0.19.0
 torch>=2.0.0
 transformers>=4.30.0

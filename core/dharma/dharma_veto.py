@@ -7,11 +7,12 @@ AsimNexus — Dharma Veto Enforcer
 Standalone enforcement layer that runs BEFORE any critical action.
 
 Veto Layers (in order):
-  1. Anti-Concentration Check  — ΔT Engine cap enforcement
-  2. Sovereignty Check         — blocks data drain, foreign control
-  3. Cultural Compliance       — local law + cultural_compiler
-  4. Anti-Monopoly Check       — ESG/narrative manipulation filter
-  5. Human Supremacy Gate      — enforces Final-3 for critical actions
+  0. Immutable Constitution    — checks action against 10 constitutional principles
+  1. Critical Forbidden        — non-overridable dangerous patterns
+  2. Block Patterns            — requires explicit human override
+  3. Monopoly/ESG Patterns     — sovereignty risk warnings
+  4. ΔT Anti-Concentration     — Delta-T Engine cap enforcement
+  5. Cultural Compliance       — local law + cultural_compiler sovereignty
 
 "जय धर्मचक्र — Machine proposes. Human decides. Always."
 """
@@ -26,6 +27,14 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("AsimNexus.DharmaVeto")
+
+# ─── Optional: Immutable Constitution integration ─────────────────────────────
+try:
+    from security.immutable_constitution import check_constitution
+    _HAS_CONSTITUTION = True
+except ImportError:
+    _HAS_CONSTITUTION = False
+    logger.info("ℹ️ DharmaVeto: ImmutableConstitution not available — Layer 0 skipped")
 
 # ─── Environment Configuration ────────────────────────────────────────────────
 _ENABLE_DT_ENGINE = os.getenv("ASIM_DHARMA_DT_ENGINE", "true").lower() == "true"
@@ -43,6 +52,7 @@ class VetoSeverity(str, Enum):
 
 
 class VetoReason(str, Enum):
+    CONSTITUTION_VIOLATION   = "constitution_violation"    # Immutable Constitution violation
     CONCENTRATION_VIOLATION  = "concentration_violation"   # ΔT cap exceeded
     SOVEREIGNTY_INVASIVE     = "sovereignty_invasive"      # Data drain/foreign control
     CULTURAL_ANOMALY         = "cultural_anomaly"          # Violates local norms
@@ -180,6 +190,52 @@ class DharmaVeto:
         ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
         scan_text = f"{action} {content or ''} {str(context)}".lower()
+
+        # ── LAYER 0: Immutable Constitution check ───────────────────────────
+        if _HAS_CONSTITUTION:
+            try:
+                constitution_result = check_constitution(action, context)
+                if not constitution_result["passed"]:
+                    const_severity = constitution_result.get("severity", "block")
+                    veto_severity = (
+                        VetoSeverity.CRITICAL if const_severity == "critical"
+                        else VetoSeverity.BLOCK if const_severity == "block"
+                        else VetoSeverity.WARN
+                    )
+                    violation_names = [
+                        v.get("principle_name", v.get("principle_id", "unknown"))
+                        for v in constitution_result.get("violations", [])
+                    ]
+                    ev = VetoEvent(
+                        timestamp=ts,
+                        severity=veto_severity,
+                        reason=VetoReason.CONSTITUTION_VIOLATION,
+                        detail=(
+                            f"Constitution violation(s): {', '.join(violation_names)}. "
+                            f"Action '{action}' conflicts with immutable principles."
+                        ),
+                        action=action,
+                        node_id=node_id,
+                    )
+                    events.append(ev)
+                    self._audit.append(ev)
+
+                    if veto_severity in (VetoSeverity.CRITICAL, VetoSeverity.BLOCK):
+                        logger.error(f"🛑 CONSTITUTION VETO [{node_id}] action='{action}': {ev.detail}")
+                        return VetoResult(
+                            passed=False,
+                            severity=veto_severity,
+                            events=events,
+                            summary=f"🛑 CONSTITUTION BLOCKED: {ev.detail}",
+                            requires_human=(veto_severity == VetoSeverity.BLOCK),
+                        )
+
+                    # WARN level — log and continue
+                    logger.warning(f"⚠️ CONSTITUTION WARN [{node_id}] action='{action}': {ev.detail}")
+            except Exception as exc:
+                logger.warning(f"⚠️ DharmaVeto: Constitution check failed — {exc}")
+        else:
+            logger.debug("DharmaVeto: Constitution not available, skipping Layer 0")
 
         # ── LAYER 1: Critical forbidden patterns (CANNOT override) ──────────
         for pattern in CRITICAL_FORBIDDEN:

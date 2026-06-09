@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 """
 STATUS: CONCEPT — Auto-labeled by batch_label.py
 """
@@ -20,7 +22,6 @@ SovereignToken (SVT):
 
 "Money should serve people. Not the other way around."
 """
-from __future__ import annotations
 
 import hashlib
 import json
@@ -314,3 +315,9 @@ def get_svt_engine() -> SovereignTokenEngine:
     global _engine
     if _engine is None: _engine = SovereignTokenEngine()
     return _engine
+
+
+def reset_svt_engine() -> None:
+    """Reset the singleton (for testing) and clean persisted state."""
+    global _engine
+    _engine = None

@@ -6,10 +6,20 @@
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
+/**
+ * ASIMNEXUS API Service (fetch-based)
+ * =====================================
+ * Auth storage uses 'asimnexus_token' to stay consistent with api/asimnexus.js.
+ * All new code should import from '../../api' (the unified barrel) instead.
+ *
+ * @deprecated Use the axios-based API modules in api/asimnexus.js instead.
+ *   Import from '../../api' for the canonical API client.
+ */
+
 class ApiService {
   constructor() {
     this.baseUrl = API_BASE_URL;
-    this.token = localStorage.getItem('token') || null;
+    this.token = localStorage.getItem('asimnexus_token') || null;
   }
 
   // Helper: Make API call
@@ -61,21 +71,22 @@ class ApiService {
   // ==========================================
 
   async login(email, password) {
-    const result = await this.post('/api/auth/login', { email, password });
+    const result = await this.post('/auth/login', { email, password });
     if (result.token) {
       this.token = result.token;
-      localStorage.setItem('token', result.token);
+      localStorage.setItem('asimnexus_token', result.token);
     }
     return result;
   }
 
   async register(email, password, displayName) {
-    return this.post('/api/auth/register', { email, password, display_name: displayName });
+    return this.post('/auth/register', { email, password, display_name: displayName });
   }
 
   logout() {
     this.token = null;
-    localStorage.removeItem('token');
+    localStorage.removeItem('asimnexus_token');
+    localStorage.removeItem('asimnexus_user');
   }
 
   // ==========================================

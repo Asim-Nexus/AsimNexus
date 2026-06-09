@@ -12,7 +12,7 @@ class AsimBrainService {
   }
 
   authHeaders() {
-    const token = localStorage.getItem('asim_token');
+    const token = localStorage.getItem('asimnexus_token');
     return {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -69,7 +69,7 @@ class AsimBrainService {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.token) yield data.token;
-            } catch {}
+            } catch { }
           }
         }
       }
@@ -80,10 +80,11 @@ class AsimBrainService {
 
   localProcess(message, context = {}) {
     const lower = message.toLowerCase();
-    
+
     // 🏥 HEALTH & WELLNESS
     if (lower.includes('health') || lower.includes('swasthya') || lower.includes('doctor')) {
-      return { response: `🏥 **Health Dashboard** (PersonalOS)
+      return {
+        response: `🏥 **Health Dashboard** (PersonalOS)
 
 **Vitals:**
 • Blood Pressure: 120/80 mmHg (Normal)
@@ -97,12 +98,14 @@ class AsimBrainService {
 • Medicine: Vitamin D @ 8:00 AM
 
 **Actions:**
-🩺 Book appointment | 📊 View history | 🚨 Emergency`, source: 'local' };
+🩺 Book appointment | 📊 View history | 🚨 Emergency`, source: 'local'
+      };
     }
-    
+
     // 💼 WORK & ENTERPRISE
     if (lower.includes('work') || lower.includes('company') || lower.includes('business') || lower.includes('job')) {
-      return { response: `💼 **Enterprise Mode** (WorldOS)
+      return {
+        response: `💼 **Enterprise Mode** (WorldOS)
 
 **Active Projects:**
 • Contract #2841: AI Development ($12,500)
@@ -117,12 +120,14 @@ class AsimBrainService {
 **Pending:** 3 proposals awaiting client approval
 
 **Actions:**
-📋 View contracts | 👥 Hire agents | 📊 Reports`, source: 'local' };
+📋 View contracts | 👥 Hire agents | 📊 Reports`, source: 'local'
+      };
     }
-    
+
     // 🤖 AI AGENTS & CLONES
     if (lower.includes('agent') || lower.includes('clone') || lower.includes('hire') || lower.includes('bot')) {
-      return { response: `🤖 **AI Agent Marketplace** (MCP)
+      return {
+        response: `🤖 **AI Agent Marketplace** (MCP)
 
 **Available Clones:**
 1. 🧙‍♂️ **Tech Architect** — $50/day
@@ -142,12 +147,14 @@ class AsimBrainService {
 ⏸️ Data Engineer (paused)
 
 **Actions:**
-💰 Hire | ⏸️ Pause | 🔄 Switch | 💸 Budget`, source: 'local' };
+💰 Hire | ⏸️ Pause | 🔄 Switch | 💸 Budget`, source: 'local'
+      };
     }
-    
+
     // 🌐 MESH NETWORK
     if (lower.includes('mesh') || lower.includes('network') || lower.includes('connect') || lower.includes('wifi')) {
-      return { response: `🌐 **Mesh Network Status** (NetworkHub)
+      return {
+        response: `🌐 **Mesh Network Status** (NetworkHub)
 
 **Neighbors Online:** 3 nodes
 • Node-A47: 2 hops, Strong signal (-45dBm)
@@ -163,12 +170,14 @@ class AsimBrainService {
 **Offline Mode:** ✅ Ready (local AI active)
 
 **Actions:**
-📡 Scan network | 🔒 Security audit | ⚡ Boost signal`, source: 'local' };
+📡 Scan network | 🔒 Security audit | ⚡ Boost signal`, source: 'local'
+      };
     }
-    
+
     // ⚖️ DHARMA / GOVERNANCE
     if (lower.includes('dharma') || lower.includes('balance') || lower.includes('vote') || lower.includes('governance')) {
-      return { response: `⚖️ **Dharma Governance** (ΔT System)
+      return {
+        response: `⚖️ **Dharma Governance** (ΔT System)
 
 **Network Balance:**
 • Symmetry Score: 94.2% (Excellent)
@@ -186,12 +195,14 @@ class AsimBrainService {
 🗳️ Prop #902: New health AI features
 
 **Actions:**
-🗳️ Vote | 📜 View proposals | ⚖️ Create proposal`, source: 'local' };
+🗳️ Vote | 📜 View proposals | ⚖️ Create proposal`, source: 'local'
+      };
     }
-    
+
     // 💰 WALLET / FINANCE
     if (lower.includes('money') || lower.includes('wallet') || lower.includes('balance') || lower.includes('payment') || lower.includes('send')) {
-      return { response: `💰 **Asim Wallet** (IdentityHub)
+      return {
+        response: `💰 **Asim Wallet** (IdentityHub)
 
 **Balances:**
 • ASIM Tokens: 1,247.50 ⓐ
@@ -208,12 +219,14 @@ class AsimBrainService {
 ✅ KYC Verified: Level 3 (Enterprise)
 
 **Actions:**
-💸 Send | 📥 Receive | 📊 History | 🔒 Security`, source: 'local' };
+💸 Send | 📥 Receive | 📊 History | 🔒 Security`, source: 'local'
+      };
     }
-    
+
     // 🆘 HELP / WHAT IS ASIM
     if (lower.includes('help') || lower.includes('what is asim') || lower.includes('about') || lower.includes('guide')) {
-      return { response: `🌌 **AsimNexus v3 — World Operating System**
+      return {
+        response: `🌌 **AsimNexus v3 — World Operating System**
 
 **What is AsimNexus?**
 A unified digital ecosystem connecting Individuals, Companies, Governments, and Communities through AI, Blockchain, and Mesh Networking.
@@ -235,12 +248,14 @@ A unified digital ecosystem connecting Individuals, Companies, Governments, and 
 🌐 Network — Mesh & Connectivity
 
 **Need help? Try:**
-"Health check" | "Work status" | "Hire agent" | "Mesh info"`, source: 'local' };
+"Health check" | "Work status" | "Hire agent" | "Mesh info"`, source: 'local'
+      };
     }
-    
+
     // 📊 SYSTEM STATUS
     if (lower.includes('status') || lower.includes('system') || lower.includes('info') || lower.includes('dashboard')) {
-      return { response: `📊 **AsimNexus System Status**
+      return {
+        response: `📊 **AsimNexus System Status**
 
 **Components:**
 ✅ Frontend React — v3.0.1 (Running)
@@ -261,11 +276,13 @@ A unified digital ecosystem connecting Individuals, Companies, Governments, and 
 • Network nodes: 3 neighbors
 • Wallet balance: 1,247 ⓐ
 
-**Everything is operational!** 🚀`, source: 'local' };
+**Everything is operational!** 🚀`, source: 'local'
+      };
     }
-    
+
     // Default response with suggestions
-    return { response: `🤔 I received: "${message}"
+    return {
+      response: `🤔 I received: "${message}"
 
 **I can help you with:**
 🏥 Health & Wellness — "Health check"
@@ -277,7 +294,8 @@ A unified digital ecosystem connecting Individuals, Companies, Governments, and 
 📊 System — "Show status"
 ❓ Help — "What is Asim"
 
-Try one of these commands!`, source: 'local' };
+Try one of these commands!`, source: 'local'
+    };
   }
 }
 

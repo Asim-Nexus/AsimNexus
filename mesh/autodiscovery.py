@@ -29,6 +29,7 @@ class DiscoveryMethod(Enum):
     BROADCAST = "broadcast"       # UDP broadcast
     MULTICAST = "multicast"       # UDP multicast
     MDNS = "mdns"                 # mDNS/Bonjour
+    CONFIG = "config"             # Config-based (ASIM_SINGLE_MACHINE_PEERS)
 
 
 @dataclass
@@ -55,6 +56,9 @@ class AutoDiscovery:
     DISCOVERY_PORT = int(os.getenv("ASIM_MESH_DISCOVERY_PORT", "7331"))
     DISCOVERY_INTERVAL = int(os.getenv("ASIM_MESH_DISCOVERY_INTERVAL", "30"))  # seconds
     BEACON_INTERVAL = int(os.getenv("ASIM_MESH_BEACON_INTERVAL", "60"))  # seconds
+    # Phase 1C: Single-machine config-based peer list
+    # Format: "node_a:host:port_udp:port_ws,node_b:host:port_udp:port_ws"
+    SINGLE_MACHINE_PEERS = os.getenv("ASIM_SINGLE_MACHINE_PEERS", "")
     
     def __init__(self, node_id: Optional[str] = None, port: int = 8000,
                  device_registry: Optional[Any] = None):
@@ -105,6 +109,54 @@ class AutoDiscovery:
             version="2.0.0"
         )
     
+    def _is_localhost(self) -> bool:
+        """Check if we are running on localhost (single-machine mode)."""
+        return self.ip_address in ("127.0.0.1", "::1", "localhost", "0.0.0.0")
+
+    def _discover_from_env(self) -> List[NodeInfo]:
+        """
+        Parse ASIM_SINGLE_MACHINE_PEERS env var and return discovered NodeInfo list.
+        Format: "node_a:127.0.0.1:17332:17333,node_b:127.0.0.1:17334:17335"
+        """
+        peer_spec = self.SINGLE_MACHINE_PEERS
+        if not peer_spec:
+            return []
+        
+        discovered: List[NodeInfo] = []
+        for entry in peer_spec.split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = entry.split(":")
+            if len(parts) < 4:
+                logger.warning(f"Malformed peer entry in ASIM_SINGLE_MACHINE_PEERS: {entry}")
+                continue
+            node_id = parts[0].strip()
+            host = parts[1].strip()
+            try:
+                port_udp = int(parts[2])
+                port_ws = int(parts[3])
+            except ValueError:
+                logger.warning(f"Invalid port in ASIM_SINGLE_MACHINE_PEERS entry: {entry}")
+                continue
+            
+            node_info = NodeInfo(
+                node_id=node_id,
+                hostname=node_id,
+                ip_address=host,
+                port=port_udp,
+                capabilities=["chat", "memory", "clones", "mesh", "compute", "storage"],
+                version="2.0.0",
+                metadata={"port_ws": port_ws, "source": "ASIM_SINGLE_MACHINE_PEERS"}
+            )
+            discovered.append(node_info)
+            # Immediately trigger discovery callback
+            self._on_node_discovered(node_info)
+        
+        if discovered:
+            logger.info(f"📋 Discovered {len(discovered)} peer(s) from ASIM_SINGLE_MACHINE_PEERS")
+        return discovered
+
     def start(self, method: DiscoveryMethod = DiscoveryMethod.BROADCAST):
         """Start discovery service."""
         if self._running:
@@ -113,12 +165,34 @@ class AutoDiscovery:
         
         self._running = True
         
+        # Phase 1C: On localhost, short-circuit broadcast/multicast/mDNS
+        # Windows loopback doesn't support broadcast discovery
+        if self._is_localhost() and method in (DiscoveryMethod.BROADCAST,
+                                                 DiscoveryMethod.MULTICAST,
+                                                 DiscoveryMethod.MDNS):
+            logger.info(
+                f"🔍 Localhost detected ({self.ip_address}) — "
+                f"short-circuiting {method.value} discovery, using CONFIG instead"
+            )
+            # Still try env-based discovery first
+            self._discover_from_env()
+            logger.info(
+                f"🔍 AutoDiscovery started (method: {DiscoveryMethod.CONFIG.value}, "
+                f"localhost shortcut)"
+            )
+            return
+        
+        # Try env-based discovery regardless of method (adds configured peers)
+        self._discover_from_env()
+        
         if method == DiscoveryMethod.BROADCAST:
             self._start_broadcast_discovery()
         elif method == DiscoveryMethod.MULTICAST:
             self._start_multicast_discovery()
         elif method == DiscoveryMethod.MDNS:
             self._start_mdns_discovery()
+        elif method == DiscoveryMethod.CONFIG:
+            logger.info("🔍 Config-based discovery — no broadcast threads needed")
         
         logger.info(f"🔍 AutoDiscovery started (method: {method.value})")
     
@@ -142,6 +216,9 @@ class AutoDiscovery:
     
     def _start_broadcast_discovery(self):
         """Start UDP broadcast discovery."""
+        if self._is_localhost():
+            logger.warning("Broadcast discovery skipped — localhost detected")
+            return
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -294,6 +371,9 @@ class AutoDiscovery:
     
     def _start_mdns_discovery(self):
         """Start mDNS/Bonjour discovery."""
+        if self._is_localhost():
+            logger.warning("mDNS discovery skipped — localhost detected")
+            return
         try:
             from zeroconf import ServiceBrowser, Zeroconf
             from zeroconf import ServiceListener
@@ -480,6 +560,16 @@ class AutoDiscovery:
                 pass
         
         return stale_nodes
+
+    def get_single_machine_peers(self) -> List[NodeInfo]:
+        """
+        Parse and return peers from ASIM_SINGLE_MACHINE_PEERS env var.
+        Convenience wrapper around _discover_from_env() for external callers.
+        
+        Returns:
+            List of NodeInfo for peers defined in the environment variable.
+        """
+        return self._discover_from_env()
 
 
 # Global auto discovery instance

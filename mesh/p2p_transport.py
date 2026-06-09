@@ -120,6 +120,8 @@ class RPCMessageType(Enum):
     VALUE_FOUND = "value_found"
     STORE = "store"
     STORE_ACK = "store_ack"
+    MULTIHOP_ROUTE = "multihop_route"
+    DIRECT_MESSAGE = "direct_message"
 
 
 # Message types for WebSocket CRDT sync + lifecycle
@@ -682,6 +684,20 @@ class P2PTransport:
                 logger.debug(f"RPC timeout for {msg_type} to {peer.node_id}")
                 peer.record_failure()
                 self._pending_rpcs.pop(msg_id, None)
+                # Emit RPC_TIMEOUT event
+                try:
+                    await event_bus.publish(ASIMEvent(
+                        event_type=EventType.RPC_TIMEOUT,
+                        source="P2PTransport",
+                        data={
+                            "peer_id": peer.node_id,
+                            "msg_type": msg_type,
+                            "msg_id": msg_id,
+                            "timeout": timeout,
+                        },
+                    ))
+                except Exception:
+                    pass
                 return None
         finally:
             # Clean up one-shot handler
@@ -1410,12 +1426,13 @@ def get_p2p_transport(
     host: str = "0.0.0.0",
     port_udp: int = 7332,
     port_ws: int = 7333,
+    ssl_context: Optional[ssl.SSLContext] = None,
 ) -> P2PTransport:
     """Get or create the global P2P transport instance."""
     global _p2p_transport
     if _p2p_transport is None:
         _node_id = node_id or f"node_{os.urandom(4).hex()}"
-        _p2p_transport = P2PTransport(_node_id, host, port_udp, port_ws)
+        _p2p_transport = P2PTransport(_node_id, host, port_udp, port_ws, ssl_context=ssl_context)
     return _p2p_transport
 
 

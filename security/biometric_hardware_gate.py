@@ -399,10 +399,11 @@ class BiometricHardwareGate:
                 # Use asyncio.run() which handles loop creation/cleanup properly
                 # even when a loop is already running (pytest-asyncio context).
                 try:
-                    result = asyncio.run(
-                        self._biometric_auth.verify_biometric(user_id, biometric_data)
-                    )
+                    coro = self._biometric_auth.verify_biometric(user_id, biometric_data)
+                    result = asyncio.run(coro)
                 except RuntimeError:
+                    # Close the coroutine to avoid "was never awaited" RuntimeWarning
+                    coro.close()
                     # Fallback: if asyncio.run() fails (e.g. nested event loop),
                     # use the direct template comparison instead
                     return self._verify_biometric_direct(user_id, biometric_data)

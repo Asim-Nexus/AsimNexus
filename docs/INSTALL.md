@@ -1,8 +1,8 @@
 # AsimNexus Installation Guide
 
-> **Version:** 1.0.0+build42 (RC-1)  
-> **Last updated:** 2026-05-31  
-> **See also:** [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/RELEASE_PROCESS.md`](RELEASE_PROCESS.md)
+> **Version:** 1.1.0-rc.1 (RC-1)
+> **Last updated:** 2026-06-07
+> **See also:** [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), [`docs/RELEASE_PROCESS.md`](RELEASE_PROCESS.md), [`docs/ROLLBACK.md`](ROLLBACK.md), [`docs/PWA_SETUP.md`](PWA_SETUP.md)
 
 ---
 
@@ -100,7 +100,7 @@ curl http://localhost:8000/health
 # Expected response:
 # {
 #   "status": "ok",
-#   "version": "1.0.0+build42",
+#   "version": "1.1.0-rc.1",
 #   "components": {
 #     "database": "connected",
 #     "llm": "available|unavailable",

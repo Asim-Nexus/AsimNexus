@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './BlockchainIdentity.css';
-import { API_BASE_URL } from '../../api/unified_api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const BlockchainIdentity = ({ apiEndpoint }) => {
   const resolvedApiEndpoint = apiEndpoint || `${API_BASE_URL || ''}/api/blockchain`;
@@ -28,19 +28,19 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
   // Mock wallet connection for demo
   const connectWallet = async () => {
     setIsLoading(true);
-    
+
     // Simulate wallet connection delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     // Generate mock wallet address
-    const mockAddress = '0x' + Array(40).fill(0).map(() => 
+    const mockAddress = '0x' + Array(40).fill(0).map(() =>
       Math.floor(Math.random() * 16).toString(16)
     ).join('');
-    
+
     setWalletAddress(mockAddress);
     setIsConnected(true);
     setIsLoading(false);
-    
+
     // Create DID after connection
     await createDID(mockAddress);
   };
@@ -56,10 +56,10 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
           network: selectedNetwork
         })
       });
-      
+
       const data = await response.json();
       setDid(data.did);
-      
+
       // Load credentials and tokens
       await loadCredentials(data.did);
       await loadSBTs(data.did);
@@ -102,7 +102,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
   // Issue new credential
   const issueCredential = async (type) => {
     if (!did) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`${resolvedApiEndpoint}/credential`, {
@@ -118,7 +118,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
           }
         })
       });
-      
+
       const data = await response.json();
       await loadCredentials(did);
     } catch (error) {
@@ -131,7 +131,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
   // Create ZK Proof
   const createZKProof = async () => {
     if (!did) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`${resolvedApiEndpoint}/zkproof`, {
@@ -143,7 +143,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
           secret_data: walletAddress
         })
       });
-      
+
       alert('Zero-Knowledge Proof created successfully!');
     } catch (error) {
       console.error('Error creating ZK proof:', error);
@@ -254,7 +254,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
                     <span className="did-badge">W3C Standard</span>
                   </div>
                   <p className="did-info">
-                    Your DID is a self-sovereign identity that you control. 
+                    Your DID is a self-sovereign identity that you control.
                     It is not stored on any central server.
                   </p>
                 </div>
@@ -289,7 +289,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
                     + Issue Credential
                   </button>
                 </div>
-                
+
                 {credentials.length === 0 ? (
                   <p className="empty-state">No credentials issued yet.</p>
                 ) : (
@@ -322,7 +322,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
                 <p className="sbt-info">
                   Non-transferable tokens representing your identity, achievements, and memberships.
                 </p>
-                
+
                 {sbts.length === 0 ? (
                   <p className="empty-state">No SBTs found.</p>
                 ) : (
@@ -348,7 +348,7 @@ const BlockchainIdentity = ({ apiEndpoint }) => {
                 <p className="zk-info">
                   Prove statements about your identity without revealing underlying data.
                 </p>
-                
+
                 <div className="zk-actions">
                   <button
                     onClick={createZKProof}

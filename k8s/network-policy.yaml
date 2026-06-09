@@ -1,0 +1,85 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: asimnexus-network-policy
+  namespace: asimnexus
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: asimnexus-sector-api
+    - podSelector:
+        matchLabels:
+          app: asimnexus-core
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: asimnexus-core
+    - podSelector:
+        matchLabels:
+          app: asimnexus-sector-api
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: TCP
+      port: 53
+      name: dns
+    - protocol: UDP
+      port: 53
+      name: dns-udp
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-network-policy
+  namespace: asimnexus
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: database
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: asimnexus-core
+    - podSelector:
+        matchLabels:
+          app: asimnexus-sector-api
+    ports:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 8123

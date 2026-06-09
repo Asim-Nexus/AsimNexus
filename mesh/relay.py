@@ -131,10 +131,10 @@ class RelayService:
         self._running = True
         
         if self.role == RelayRole.RELAY:
-            # Start relay server
+            # Start relay server on all interfaces
             self._server = await asyncio.start_server(
                 self._handle_relay_connection,
-                self.ip_address,
+                "0.0.0.0",
                 self.port
             )
             
@@ -419,6 +419,6 @@ def reset_relay_service():
     """Reset global relay service instance (for testing)."""
     global _relay_service
     if _relay_service and _relay_service._running:
-        # Note: This won't properly stop the async loop in tests
         pass
+    _relay_service = None
     _relay_service = None

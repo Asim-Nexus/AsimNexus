@@ -340,6 +340,9 @@ class CloneSpecializer:
             return CLONE_BY_ID[2]  # Default: Tech Architect
         return CLONE_BY_ID[best_id]
 
+    # Alias for API consumers that expect the longer method name
+    route_query = route
+
     def get_system_prompt(self, clone_id: int) -> str:
         spec = self.get_spec(clone_id)
         return spec.system_prompt if spec else "You are a helpful AsimNexus assistant."
@@ -515,6 +518,9 @@ class CloneSpecializer:
             "specializations": s.specializations,
         } for s in CLONE_SPECS]
 
+    # Alias for API consumers that expect the longer method name
+    get_all_specs = all_specs
+
     def status(self) -> Dict[str, Any]:
         vm_ok = self._vector_memory is not None
         vm_stats = {}
@@ -538,3 +544,6 @@ def get_specializer() -> CloneSpecializer:
     global _specializer
     if _specializer is None: _specializer = CloneSpecializer()
     return _specializer
+
+# Alias for API consumers that expect the longer name
+get_clone_specializer = get_specializer

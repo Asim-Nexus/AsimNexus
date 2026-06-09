@@ -70,6 +70,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Rate limiting middleware
+try:
+    from core.rate_limiter_middleware import RateLimiterMiddleware
+    app.add_middleware(RateLimiterMiddleware)
+    logger = logging.getLogger(__name__)
+    logger.info("✅ RateLimiterMiddleware registered on bridge API")
+except Exception:
+    pass
+
 # WebSocket connections manager
 class ConnectionManager:
     def __init__(self):

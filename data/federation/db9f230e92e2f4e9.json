@@ -1,0 +1,45 @@
+{
+  "node_id": "db9f230e92e2f4e9f76e5c66d7ab7319",
+  "consent": [],
+  "peers": {
+    "d16e514ef18cbe40": {
+      "peer_id": "d16e514ef18cbe40",
+      "node_id": "d16e514ef18cbe40",
+      "did": "did:example:test",
+      "endpoint": "https://test/endpoint",
+      "trusted": false,
+      "last_sync": 0.0,
+      "sync_count": 0
+    }
+  },
+  "state": {
+    "node_id": "db9f230e92e2f4e9f76e5c66d7ab7319",
+    "version": 0,
+    "msg_count": {
+      "db9f230e92e2f4e9f76e5c66d7ab7319": 0
+    },
+    "active_peers": {
+      "add": {
+        "d16e514ef18cbe40": [
+          "db9f230e92e2f4e9f76e5c66d7ab7319:1780866755640825500:107"
+        ]
+      },
+      "rem": {}
+    },
+    "capabilities": {
+      "add": {},
+      "rem": {}
+    },
+    "display_name": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "universe_mode": {
+      "value": null,
+      "ts": 0.0,
+      "node": ""
+    },
+    "ts": 1780866755.6408255
+  }
+}

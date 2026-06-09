@@ -128,6 +128,169 @@ class GCounter:
         return False
 
 
+class PNCounter:
+    """PN-Counter CRDT (allows both increment and decrement).
+
+    Composed of two G-Counters: P (increments) and N (decrements).
+    Value is sum(P) - sum(N).
+    """
+
+    def __init__(self, crdt_id: str):
+        self.crdt_id = crdt_id
+        self.crdt_type = CRDTType.PN_COUNTER
+        self.p_counter: Dict[str, int] = {}
+        self.n_counter: Dict[str, int] = {}
+        self.operations: List[CRDTOperation] = []
+
+    def increment(self, node_id: str, amount: int = 1) -> CRDTOperation:
+        """Increment (add to P counter)."""
+        self.p_counter[node_id] = self.p_counter.get(node_id, 0) + amount
+        op = CRDTOperation(
+            id=hashlib.sha256(f"{node_id}{time.time()}".encode()).hexdigest()[:16],
+            crdt_id=self.crdt_id,
+            crdt_type=self.crdt_type,
+            operation="increment",
+            value=amount,
+            node_id=node_id,
+        )
+        self.operations.append(op)
+        return op
+
+    def decrement(self, node_id: str, amount: int = 1) -> CRDTOperation:
+        """Decrement (add to N counter)."""
+        self.n_counter[node_id] = self.n_counter.get(node_id, 0) + amount
+        op = CRDTOperation(
+            id=hashlib.sha256(f"{node_id}{time.time()}".encode()).hexdigest()[:16],
+            crdt_id=self.crdt_id,
+            crdt_type=self.crdt_type,
+            operation="decrement",
+            value=amount,
+            node_id=node_id,
+        )
+        self.operations.append(op)
+        return op
+
+    def value(self) -> int:
+        """Get current value (P - N)."""
+        return sum(self.p_counter.values()) - sum(self.n_counter.values())
+
+    def merge(self, other: 'PNCounter') -> List[CRDTOperation]:
+        """Merge with another PNCounter."""
+        new_ops = []
+        for node_id, count in other.p_counter.items():
+            if node_id not in self.p_counter or count > self.p_counter[node_id]:
+                self.p_counter[node_id] = count
+        for node_id, count in other.n_counter.items():
+            if node_id not in self.n_counter or count > self.n_counter[node_id]:
+                self.n_counter[node_id] = count
+        return new_ops
+
+    def apply_operation(self, op: CRDTOperation) -> bool:
+        """Apply an operation."""
+        if op.operation == "increment" and op.node_id:
+            self.p_counter[op.node_id] = self.p_counter.get(op.node_id, 0) + (op.value or 1)
+            return True
+        elif op.operation == "decrement" and op.node_id:
+            self.n_counter[op.node_id] = self.n_counter.get(op.node_id, 0) + (op.value or 1)
+            return True
+        return False
+
+
+class GMap:
+    """Grow-only map CRDT."""
+
+    def __init__(self, crdt_id: str):
+        self.crdt_id = crdt_id
+        self.crdt_type = CRDTType.G_MAP
+        self.data: Dict[str, Any] = {}
+        self.operations: List[CRDTOperation] = []
+
+    def put(self, key: str, value: Any, node_id: str) -> CRDTOperation:
+        """Put a key-value pair (idempotent, first write wins)."""
+        if key in self.data:
+            return None
+        self.data[key] = value
+        op = CRDTOperation(
+            id=hashlib.sha256(f"{node_id}{key}{time.time()}".encode()).hexdigest()[:16],
+            crdt_id=self.crdt_id,
+            crdt_type=self.crdt_type,
+            operation="put",
+            key=key,
+            value=value,
+            node_id=node_id,
+        )
+        self.operations.append(op)
+        return op
+
+    def get(self, key: str) -> Optional[Any]:
+        """Get value for key."""
+        return self.data.get(key)
+
+    def merge(self, other: 'GMap') -> List[CRDTOperation]:
+        """Merge with another GMap (first write wins per key)."""
+        new_ops = []
+        for key, value in other.data.items():
+            if key not in self.data:
+                self.data[key] = value
+        return new_ops
+
+    def apply_operation(self, op: CRDTOperation) -> bool:
+        """Apply an operation."""
+        if op.operation == "put" and op.key and op.key not in self.data:
+            self.data[op.key] = op.value
+            return True
+        return False
+
+
+class LWWMap:
+    """Last-writer-wins map CRDT."""
+
+    def __init__(self, crdt_id: str):
+        self.crdt_id = crdt_id
+        self.crdt_type = CRDTType.LWW_MAP
+        self.data: Dict[str, Tuple[Any, float, str]] = {}  # key -> (value, timestamp, node_id)
+        self.operations: List[CRDTOperation] = []
+
+    def put(self, key: str, value: Any, node_id: str) -> CRDTOperation:
+        """Put a key-value pair (last-writer-wins)."""
+        now = time.time()
+        self.data[key] = (value, now, node_id)
+        op = CRDTOperation(
+            id=hashlib.sha256(f"{node_id}{key}{now}".encode()).hexdigest()[:16],
+            crdt_id=self.crdt_id,
+            crdt_type=self.crdt_type,
+            operation="put",
+            key=key,
+            value=value,
+            node_id=node_id,
+        )
+        self.operations.append(op)
+        return op
+
+    def get(self, key: str) -> Optional[Any]:
+        """Get value for key."""
+        entry = self.data.get(key)
+        if entry:
+            return entry[0]
+        return None
+
+    def merge(self, other: 'LWWMap') -> List[CRDTOperation]:
+        """Merge with another LWWMap (last-writer-wins per key)."""
+        new_ops = []
+        for key, (value, ts, node_id) in other.data.items():
+            if key not in self.data or ts > self.data[key][1]:
+                self.data[key] = (value, ts, node_id)
+        return new_ops
+
+    def apply_operation(self, op: CRDTOperation) -> bool:
+        """Apply an operation."""
+        if op.operation == "put" and op.key:
+            if op.key not in self.data or op.timestamp > self.data[op.key][1]:
+                self.data[op.key] = (op.value, op.timestamp, op.node_id or "unknown")
+                return True
+        return False
+
+
 class LWWRegister:
     """Last-writer-wins register CRDT."""
     
@@ -360,7 +523,7 @@ class CRDTStore:
         )
         
         # Find the requesting peer and send response
-        peer = self.transport.get_peer(msg.sender_id) if self.transport else None
+        peer = await self.transport.get_peer(msg.sender_id) if self.transport else None
         if peer and self.transport:
             await self.transport.send_ws(peer, response)
     
@@ -392,7 +555,7 @@ class CRDTStore:
             payload={"applied": applied},
         )
         if self.transport:
-            peer = self.transport.get_peer(msg.sender_id)
+            peer = await self.transport.get_peer(msg.sender_id)
             if peer:
                 await self.transport.send_ws(peer, ack)
     
@@ -498,7 +661,25 @@ class CRDTStore:
         or_set = ORSet(crdt_id)
         self.crdts[crdt_id] = or_set
         return or_set
-    
+
+    def create_pn_counter(self, crdt_id: str) -> PNCounter:
+        """Create a PN-Counter."""
+        counter = PNCounter(crdt_id)
+        self.crdts[crdt_id] = counter
+        return counter
+
+    def create_g_map(self, crdt_id: str) -> GMap:
+        """Create a grow-only map."""
+        gmap = GMap(crdt_id)
+        self.crdts[crdt_id] = gmap
+        return gmap
+
+    def create_lww_map(self, crdt_id: str) -> LWWMap:
+        """Create a last-writer-wins map."""
+        lww_map = LWWMap(crdt_id)
+        self.crdts[crdt_id] = lww_map
+        return lww_map
+
     def get_crdt(self, crdt_id: str) -> Optional[Any]:
         """Get a CRDT by ID."""
         return self.crdts.get(crdt_id)
@@ -545,16 +726,46 @@ class CRDTStore:
         state = {}
         for crdt_id, crdt in self.crdts.items():
             if isinstance(crdt, GCounter):
-                state[crdt_id] = {"type": "g_counter", "value": crdt.value()}
+                state[crdt_id] = {
+                    "type": "g_counter",
+                    "counters": dict(crdt.counters),  # per-node counters for correct merge
+                    "value": crdt.value(),
+                }
             elif isinstance(crdt, LWWRegister):
-                state[crdt_id] = {"type": "lww_register", "value": crdt.get()}
+                state[crdt_id] = {
+                    "type": "lww_register",
+                    "value": crdt.get(),
+                    "timestamp": crdt.timestamp,
+                    "node_id": crdt.node_id,
+                }
             elif isinstance(crdt, ORSet):
                 state[crdt_id] = {"type": "or_set", "value": crdt.elements_list()}
+            elif isinstance(crdt, PNCounter):
+                state[crdt_id] = {
+                    "type": "pn_counter",
+                    "p_counter": dict(crdt.p_counter),
+                    "n_counter": dict(crdt.n_counter),
+                    "value": crdt.value(),
+                }
+            elif isinstance(crdt, GMap):
+                state[crdt_id] = {"type": "g_map", "data": dict(crdt.data)}
+            elif isinstance(crdt, LWWMap):
+                state[crdt_id] = {
+                    "type": "lww_map",
+                    "data": {k: {"value": v[0], "timestamp": v[1], "node_id": v[2]} for k, v in crdt.data.items()},
+                }
         
         return state
     
     def get_sync_state(self, since: float = 0) -> Dict[str, Any]:
-        """Get state for synchronization."""
+        """Get state for synchronization.
+
+        Returns the current CRDT state (value snapshots + per-node counters)
+        for full-state merge on the receiving side. Individual operations
+        are NOT included here — they propagate via push_operations()
+        using pending_operations, which is populated by the CRDT mutation
+        wrappers in the create_* methods.
+        """
         return {
             "node_id": self.node_id,
             "operations": [op.to_dict() for op in self.operation_log if op.timestamp > since],
@@ -587,6 +798,12 @@ class CRDTStore:
                     local_crdt = self.create_lww_register(crdt_id)
                 elif crdt_type == "or_set":
                     local_crdt = self.create_or_set(crdt_id)
+                elif crdt_type == "pn_counter":
+                    local_crdt = self.create_pn_counter(crdt_id)
+                elif crdt_type == "g_map":
+                    local_crdt = self.create_g_map(crdt_id)
+                elif crdt_type == "lww_map":
+                    local_crdt = self.create_lww_map(crdt_id)
                 else:
                     logger.debug(f"Unknown CRDT type for merge: {crdt_type}")
                     continue
@@ -594,18 +811,27 @@ class CRDTStore:
             # Reconstruct a representative remote CRDT and merge
             try:
                 if crdt_type == "g_counter" and isinstance(local_crdt, GCounter):
-                    # For GCounter, merge using the value as a single-node counter
+                    # Use per-node counters from state for correct merge.
+                    # Previously we stored the full sum under a single node_id,
+                    # which inflated totals when merged into partial state.
                     remote = GCounter(crdt_id)
-                    remote.counters[sync_state.get("node_id", "remote")] = remote_value if isinstance(remote_value, int) else 0
+                    remote_counters = crdt_data.get("counters")
+                    if remote_counters and isinstance(remote_counters, dict):
+                        for node_id, count in remote_counters.items():
+                            remote.counters[node_id] = count
+                    else:
+                        # Fallback for backwards compatibility
+                        remote.counters[sync_state.get("node_id", "remote")] = remote_value if isinstance(remote_value, int) else 0
                     new_ops = local_crdt.merge(remote)
                     applied_count += len(new_ops)
                 
                 elif crdt_type == "lww_register" and isinstance(local_crdt, LWWRegister):
-                    # For LWWRegister, the remote value has a higher timestamp
+                    # Use the actual timestamp from sync_state so last-writer-wins
+                    # semantics are preserved correctly during merge.
                     remote = LWWRegister(crdt_id)
                     remote.value = remote_value
-                    remote.timestamp = time.time()
-                    remote.node_id = sync_state.get("node_id", "remote")
+                    remote.timestamp = crdt_data.get("timestamp", time.time())
+                    remote.node_id = crdt_data.get("node_id", sync_state.get("node_id", "remote"))
                     new_ops = local_crdt.merge(remote)
                     applied_count += len(new_ops)
                 
@@ -613,6 +839,36 @@ class CRDTStore:
                     # For ORSet, merge is handled by operation replay
                     # The operations already replayed above handle element add/remove
                     pass
+
+                elif crdt_type == "pn_counter" and isinstance(local_crdt, PNCounter):
+                    remote = PNCounter(crdt_id)
+                    p_data = crdt_data.get("p_counter", {})
+                    n_data = crdt_data.get("n_counter", {})
+                    if isinstance(p_data, dict):
+                        for node_id, count in p_data.items():
+                            remote.p_counter[node_id] = count
+                    if isinstance(n_data, dict):
+                        for node_id, count in n_data.items():
+                            remote.n_counter[node_id] = count
+                    new_ops = local_crdt.merge(remote)
+                    applied_count += len(new_ops)
+
+                elif crdt_type == "g_map" and isinstance(local_crdt, GMap):
+                    remote = GMap(crdt_id)
+                    remote_data = crdt_data.get("data", {})
+                    if isinstance(remote_data, dict):
+                        remote.data = dict(remote_data)
+                    new_ops = local_crdt.merge(remote)
+                    applied_count += len(new_ops)
+
+                elif crdt_type == "lww_map" and isinstance(local_crdt, LWWMap):
+                    remote = LWWMap(crdt_id)
+                    remote_data = crdt_data.get("data", {})
+                    if isinstance(remote_data, dict):
+                        for k, v in remote_data.items():
+                            remote.data[k] = (v["value"], v["timestamp"], v.get("node_id", "remote"))
+                    new_ops = local_crdt.merge(remote)
+                    applied_count += len(new_ops)
             except Exception as e:
                 logger.error(f"Merge error for {crdt_id}: {e}")
         

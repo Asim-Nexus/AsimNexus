@@ -109,6 +109,13 @@ class ASIMKernel:
     def __init__(self, config: Optional[KernelConfig] = None):
         self.config = config or KernelConfig()
         self.app = FastAPI(title="ASIMNEXUS AI Kernel", version="2.0.0")
+
+        try:
+            from core.rate_limiter_middleware import RateLimiterMiddleware
+            self.app.add_middleware(RateLimiterMiddleware)
+            logger.info("✅ RateLimiterMiddleware registered on AI Kernel")
+        except Exception:
+            pass
         
         # Core components
         self.llm_core: Optional[LLMCore] = None

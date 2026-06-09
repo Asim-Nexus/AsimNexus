@@ -155,7 +155,16 @@ class TestCRDTOperations:
         self.store = CRDTStore("node-A")
 
     def teardown_method(self):
-        asyncio.run_coroutine_threadsafe(self.store.stop(), asyncio.get_event_loop())
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop is not None and loop.is_running():
+            asyncio.run_coroutine_threadsafe(self.store.stop(), loop)
+        else:
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(self.store.stop())
+            loop.close()
 
     def test_create_gcounter(self):
         """create_g_counter creates a GCounter."""

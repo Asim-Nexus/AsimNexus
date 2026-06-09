@@ -109,8 +109,8 @@ class TestTwoNodeMeshIntegration:
             await node_b.start()
 
             # Add peers to each other
-            peer_b = node_a.add_peer("node_b", "127.0.0.1", port_b, port_b + 1)
-            node_b.add_peer("node_a", "127.0.0.1", port_a, port_a + 1)
+            peer_b = await node_a.add_peer("node_b", "127.0.0.1", port_b, port_b + 1)
+            await node_b.add_peer("node_a", "127.0.0.1", port_a, port_a + 1)
 
             # Give servers time to start
             await asyncio.sleep(0.2)
@@ -228,8 +228,8 @@ class TestTwoNodeMeshIntegration:
             await store_b.start()
 
             # Add peers
-            peer_b = transport_a.add_peer("crdt_b", "127.0.0.1", port_b, port_b + 1)
-            transport_b.add_peer("crdt_a", "127.0.0.1", port_a, port_a + 1)
+            peer_b = await transport_a.add_peer("crdt_b", "127.0.0.1", port_b, port_b + 1)
+            await transport_b.add_peer("crdt_a", "127.0.0.1", port_a, port_a + 1)
 
             # Give servers time to start
             await asyncio.sleep(0.3)
@@ -312,8 +312,8 @@ class TestTwoNodeMeshIntegration:
                 ip_address="127.0.0.1",
                 port=port_a,
             ))
-            peer_b = transport_a.add_peer("full_b", "127.0.0.1", port_b, port_b + 1)
-            transport_b.add_peer("full_a", "127.0.0.1", port_a, port_a + 1)
+            peer_b = await transport_a.add_peer("full_b", "127.0.0.1", port_b, port_b + 1)
+            await transport_b.add_peer("full_a", "127.0.0.1", port_a, port_a + 1)
 
             await asyncio.sleep(0.3)
 
@@ -343,7 +343,7 @@ class TestTwoNodeMeshIntegration:
                 f"Counter B expected 15, got {counter_b.value()}"
 
             # --- 3. Peer health tracking ---
-            stats_a = transport_a.get_online_peers()
+            stats_a = await transport_a.get_online_peers()
             # node_b might not be "connected" since it's UDP (connectionless)
             # but it should be in the peers list
             assert "full_b" in transport_a.peers

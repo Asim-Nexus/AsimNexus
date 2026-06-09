@@ -1,0 +1,272 @@
+# =============================================================================
+# ASIMNEXUS Prometheus Alerting Rules
+# =============================================================================
+# These rules are loaded by Prometheus and evaluated every evaluation_interval
+# (default: 15s). Alerts fire to the Alertmanager for routing.
+#
+# Groups:
+#   asimnexus-core      — Core API server health
+#   asimnexus-sectors   — Sector API server health
+#   asimnexus-db        — Database & storage health
+#   asimnexus-infra     — Infrastructure & resource alerts
+#   asimnexus-security  — Security-oriented alerts
+# =============================================================================
+
+groups:
+
+  # ── Core API Server ──────────────────────────────────────────────────────
+  - name: asimnexus-core
+    interval: 30s
+    rules:
+
+      - alert: CoreApiDown
+        expr: up{job="asimnexus-core"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Core API is down (instance {{ $labels.instance }})"
+          description: |
+            The core ASIMNEXUS API server has been unreachable for >1m.
+            Action: Check pod status and application logs immediately.
+
+      - alert: CoreApiHighErrorRate
+        expr: rate(http_requests_total{job="asimnexus-core",status=~"5.."}[5m])
+              / rate(http_requests_total{job="asimnexus-core"}[5m])
+              > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Core API high error rate ({{ $value | humanizePercentage }})"
+          description: |
+            Error rate on core API exceeds 5% over 5m.
+            Current: {{ $value | humanizePercentage }}
+
+      - alert: CoreApiHighLatency
+        expr: histogram_quantile(0.95,
+              rate(http_request_duration_seconds_bucket{job="asimnexus-core"}[5m]))
+              > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Core API p95 latency > 2s"
+          description: |
+            p95 latency is {{ $value }}s — investigate slow endpoints.
+
+      - alert: CoreApiPodCrashLoop
+        expr: rate(kube_pod_container_status_restarts_total{pod=~"asimnexus-core-.*"}[10m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Core API pod restarting frequently"
+          description: |
+            Pod {{ $labels.pod }} is crash-looping.
+            Action: Check logs with `kubectl logs -f {{ $labels.pod }}`
+
+  # ── Sector API Server ────────────────────────────────────────────────────
+  - name: asimnexus-sectors
+    interval: 30s
+    rules:
+
+      - alert: SectorApiDown
+        expr: up{job="asimnexus-sector-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Sector API is down (instance {{ $labels.instance }})"
+
+      - alert: SectorApiHighErrorRate
+        expr: rate(http_requests_total{job="asimnexus-sector-api",status=~"5.."}[5m])
+              / rate(http_requests_total{job="asimnexus-sector-api"}[5m])
+              > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Sector API high error rate ({{ $value | humanizePercentage }})"
+
+      - alert: SectorApiHighLatency
+        expr: histogram_quantile(0.95,
+              rate(http_request_duration_seconds_bucket{job="asimnexus-sector-api"}[5m]))
+              > 3.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Sector API p95 latency > 3s"
+
+      - alert: SectorApiHpaMaxedOut
+        expr: kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="asimnexus-sector-api"}
+              ==
+              kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="asimnexus-sector-api"}
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Sector API HPA at max replicas"
+          description: |
+            Sector API has scaled to its maximum ({{ $value }} replicas)
+            for >10m. Consider raising maxReplicas or investigating load.
+
+  # ── Database & Storage ───────────────────────────────────────────────────
+  - name: asimnexus-db
+    interval: 30s
+    rules:
+
+      - alert: PostgresDown
+        expr: pg_up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "PostgreSQL is down"
+
+      - alert: PostgresHighConnections
+        expr: pg_stat_activity_count{datname="asimnexus"} > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "PostgreSQL connection count high ({{ $value }})"
+
+      - alert: PostgresReplicaLag
+        expr: pg_replication_lag_seconds{job="postgres"} > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "PostgreSQL replication lag > 60s ({{ $value }}s)"
+
+      - alert: RedisDown
+        expr: redis_up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Redis is down"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Redis memory usage > 85% ({{ $value | humanizePercentage }})"
+
+      - alert: ClickHouseDown
+        expr: clickhouse_up{job="clickhouse"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "ClickHouse is down"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Disk space below 10% on {{ $labels.mountpoint }}"
+          description: |
+            Available: {{ $value | humanizePercentage }}
+            Action: Clean up old backups or expand the volume.
+
+  # ── Infrastructure & Resources ───────────────────────────────────────────
+  - name: asimnexus-infra
+    interval: 30s
+    rules:
+
+      - alert: NodeMemoryPressure
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+        for: 10m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Node memory pressure — < 10% available"
+
+      - alert: NodeCpuHigh
+        expr: (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance)) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Node CPU usage > 85% on {{ $labels.instance }}"
+
+      - alert: ContainerOOMKilled
+        expr: increase(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Container OOM-killed: {{ $labels.pod }} / {{ $labels.container }}"
+          description: |
+            Container was OOM-killed. Increase memory limits or fix memory leak.
+
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errors_total[5m]) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Network errors detected on {{ $labels.device }}"
+
+  # ── Security ─────────────────────────────────────────────────────────────
+  - name: asimnexus-security
+    interval: 60s
+    rules:
+
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(http_requests_total{job="asimnexus-core",status="401"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Elevated 401 rate — possible brute-force"
+          description: |
+            401 rate: {{ $value }} req/s over 5m
+
+      - alert: RateLimitThrottling
+        expr: rate(http_requests_total{job="asimnexus-core",status="429"}[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Rate-limit throttling active — >0.2 req/s 429s"
+
+      - alert: SecurityAuditFailure
+        expr: asimnexus_security_audit_status{result="failure"} > 0
+        for: 5m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Security audit check failed"
+          description: |
+            Module: {{ $labels.module }}
+            Action: Review security audit logs immediately.

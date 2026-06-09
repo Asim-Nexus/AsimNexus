@@ -1,235 +1,129 @@
-# PWA Setup Guide
+# PWA Setup
 
-> **Version:** 1.0.0+build42 (RC-1)  
-> **Last updated:** 2026-05-31  
-> **Applies to:** Frontend at [`frontend/react/`](frontend/react/)
+> **Applies to:** AsimNexus React Frontend
 
 ---
 
 ## Overview
 
-AsimNexus is designed as a Progressive Web Application (PWA), allowing it to be installed on desktop and mobile devices directly from the browser — no app store required.
+The AsimNexus frontend is configured as a Progressive Web Application (PWA), allowing it to be installed as a standalone app on desktop and mobile devices.
 
 ---
 
-## PWA Files
+## Manifest
 
-| File | Path | Purpose |
-|------|------|---------|
-| Manifest | `frontend/react/public/manifest.json` | App metadata, icons, display mode |
-| Service Worker | `frontend/react/public/service-worker.js` | Offline caching, background sync |
-| App Shell | `frontend/react/src/App.js` | Main app component (already PWA-compatible) |
+**Location:** [`frontend/react/public/manifest.json`](../frontend/react/public/manifest.json)
 
----
-
-## Manifest Configuration
-
-The manifest should include:
+The manifest controls how the app appears when installed:
 
 ```json
 {
   "name": "AsimNexus",
   "short_name": "AsimNexus",
-  "description": "World Operating System — One Kernel. Infinite Worlds.",
+  "description": "World Operating System",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a1a",
-  "theme_color": "#00d4ff",
+  "theme_color": "#0a0a1a",
   "icons": [
-    {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
 ```
 
-**Key properties:**
-- `display: "standalone"` — Opens without browser chrome
-- `start_url: "/"` — Entry point
-- `theme_color` — Matches the UI theme
+### Requirements
+
+- `start_url` must be `/` or the app's root path
+- `display` must be `standalone` or `fullscreen` for installability
+- At least one 192x192 and one 512x512 icon must be defined
+- `theme_color` and `background_color` should match the app's design system
 
 ---
 
 ## Service Worker
 
-The service worker should handle:
+**Location:** [`frontend/react/public/service-worker.js`](../frontend/react/public/service-worker.js)
 
-1. **Pre-caching** — Cache the app shell on install
-2. **Runtime caching** — Cache API responses for offline access
-3. **Offline fallback** — Show cached content when offline
-4. **Background sync** — Queue actions for when connectivity returns
+The service worker enables offline caching and faster load times.
 
-### Basic Service Worker Template
+### Registration
 
-```javascript
-// frontend/react/public/service-worker.js
-
-const CACHE_NAME = 'asimnexus-v1';
-const URLS_TO_CACHE = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
-];
-
-// Install: pre-cache app shell
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(URLS_TO_CACHE);
-    })
-  );
-});
-
-// Fetch: serve from cache, fallback to network
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
-  );
-});
-
-// Activate: clean old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      );
-    })
-  );
-});
-```
-
----
-
-## Registration
-
-In the React entry point (`src/index.js` or similar):
+The service worker is registered in the main app entry point (typically `src/index.js` or `src/App.js`):
 
 ```javascript
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
-      .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.error('SW registration failed:', err));
+      .then(registration => {
+        console.log('SW registered:', registration);
+      })
+      .catch(error => {
+        console.log('SW registration failed:', error);
+      });
   });
 }
 ```
 
 ---
 
-## Offline-First Architecture
-
-AsimNexus is designed for offline-first operation through:
-
-| Mechanism | Implementation | Status |
-|-----------|---------------|--------|
-| **Offline Sync Queue** | [`core/identity/personal_os.py`](core/identity/personal_os.py) (OfflineCache class) | **REAL** — Queue, retry, flush, stale cleanup |
-| **Local LLM** | GGUF models via llama.cpp | **REAL** — Operates without internet |
-| **PWA Cache** | Service worker caching | **CONCEPT** — Needs implementation |
-| **Mesh P2P** | Direct peer-to-peer | **PARTIAL** — Framework exists |
-
----
-
-## Build for Production
+## Building for Production
 
 ```bash
 cd frontend/react
 npm run build
 ```
 
-The `build/` directory will contain:
-- `build/index.html` — Entry point
-- `build/static/` — Bundled JS/CSS
-- `build/manifest.json` — PWA manifest
-- `build/service-worker.js` — Service worker
+The build output will be in `frontend/react/build/`. This directory can be served by any static file server or the AsimNexus backend.
 
-Serve the `build/` directory with any static file server:
+### Verify PWA Compliance
 
-```bash
-npx serve build -s -l 3000
-```
+Check that the build output includes:
+
+- `build/manifest.json` — valid JSON with required fields
+- `build/service-worker.js` — valid service worker
+- `build/icon-192x192.png` — app icon (192x192)
+- `build/icon-512x512.png` — app icon (512x512)
 
 ---
 
 ## Lighthouse Audit
 
-Run a Lighthouse audit to verify PWA readiness:
+Run a Lighthouse audit to verify PWA compliance:
 
-```bash
-npx lighthouse http://localhost:3000 --view
-```
+1. Open the deployed app in Chrome
+2. Open DevTools → Lighthouse tab
+3. Check **Progressive Web App** category
+4. Run audit
 
-### Pass Criteria
+### Required PWA Checks
 
-| Audit | Requirement | Status |
-|-------|-------------|--------|
-| `installable-manifest` | Manifest valid with required fields | Needs verification |
-| `service-worker` | SW registered and responds | Needs implementation |
-| `works-offline` | App returns content when offline | Needs verification |
-| `offline-start-url` | Start URL returns 200 when offline | Needs verification |
-
----
-
-## Mobile-Specific Considerations
-
-### iOS (Safari)
-- Full PWA support since iOS 11.3
-- Must include `<meta name="apple-mobile-web-app-capable" content="yes">`
-- Must include apple-touch-icon links
-
-### Android (Chrome)
-- Automatic install prompt when PWA criteria are met
-- Add `beforeinstallprompt` event listener for custom install UI
-
-### Windows (Edge)
-- Full PWA support
-- Can be installed from Edge toolbar
+| Check | Requirement |
+|-------|-------------|
+| `start_url` responds with 200 | App loads at `/` |
+| Service worker registered | SW file exists and registers |
+| HTTPS or localhost | Required for service worker |
+| Manifest has `display: standalone` | Installable |
+| Manifest has icons | At least 192x192 and 512x512 |
+| Redirects HTTP → HTTPS | If deployed publicly |
 
 ---
 
-## Desktop-Specific Considerations
+## Troubleshooting
 
-### Electron Wrapper (Future)
-For a native desktop experience, wrap the PWA in Electron:
+### Service Worker Not Registering
 
-```bash
-npm install -g electron
-npx electron-packager . AsimNexus --platform=win32,darwin,linux
-```
+1. Check that the service worker file exists at the public path
+2. Ensure the app is served over HTTPS (or localhost)
+3. Check browser console for registration errors
 
-### Current Desktop Support
-The PWA can be installed via browser "Install" button on:
-- Chrome/Edge: Install as app
-- Safari: Add to Dock
-- Firefox: Not supported (use Chrome/Edge)
+### Manifest Not Loading
 
----
+1. Verify `manifest.json` is valid JSON
+2. Check that `start_url` path is correct
+3. Ensure all referenced icon files exist
 
-## Verification Checklist
+### App Not Installable
 
-- [ ] `manifest.json` exists with valid JSON
-- [ ] `start_url` is set to `/`
-- [ ] `display` is `standalone`
-- [ ] Icons array has at least 192x192 and 512x512 icons
-- [ ] Service worker registers without errors
-- [ ] App loads offline (after initial cache)
-- [ ] Install prompt fires on supported browsers
-- [ ] Lighthouse PWA audit passes
-
----
-
-## Related
-
-- [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) — System architecture
-- [`docs/INSTALL.md`](INSTALL.md) — Installation guide
-- [`frontend/react/public/manifest.json`](frontend/react/public/manifest.json) — PWA manifest
+1. Run Lighthouse audit to identify missing requirements
+2. Common issues: missing icons, wrong `display` value, no service worker

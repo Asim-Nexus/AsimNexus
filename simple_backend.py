@@ -638,6 +638,17 @@ def create_app():
     except Exception as e:
         logger.warning(f"⚠️ ObservabilityMiddleware registration skipped: {e}")
 
+    # Sentry / APM Integration
+    try:
+        from monitoring.sentry_config import init_sentry, AsimSentryMiddleware
+        if init_sentry():
+            app.add_middleware(AsimSentryMiddleware)
+            logger.info("✅ Sentry APM initialized")
+        else:
+            logger.info("ℹ️ Sentry APM skipped (SENTRY_DSN not set)")
+    except Exception as e:
+        logger.warning(f"⚠️ Sentry init skipped: {e}")
+
     # Rate limiting middleware
     try:
         from core.rate_limiter_middleware import RateLimiterMiddleware

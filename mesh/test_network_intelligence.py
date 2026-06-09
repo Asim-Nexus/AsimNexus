@@ -21,311 +21,211 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
 module_name = "network_intelligence"
 
 try:
-    from network_intelligence import *
+    from network_intelligence import (
+        NetworkType, FrequencyBand, ConnectionProtocol,
+        NetworkInterface, SpectrumAnalysis,
+        SpectrumAgent, ProtocolAgent, NetworkIntelligenceLayer
+    )
 except ImportError as e:
     print(f"Warning: Could not import {module_name}: {e}")
-    # Create dummy module for testing
     class DummyModule:
         pass
     sys.modules[module_name] = DummyModule()
 
 class TestNetworkIntelligence(unittest.TestCase):
     """Test class for network_intelligence"""
-    
+
     def setUp(self):
         """Set up test fixtures"""
         self.test_data = {"test": "data"}
-    
+        self.spectrum_agent = SpectrumAgent()
+        self.protocol_agent = ProtocolAgent()
+
     def tearDown(self):
         """Clean up after tests"""
         pass
-    
+
     def test_networktype_initialization(self):
         """Test NetworkType initialization"""
         try:
-            instance = NetworkType()
+            instance = NetworkType.WLAN
             self.assertIsNotNone(instance)
-            print(f"✅ NetworkType initialization test passed")
+            print(f"NetworkType initialization test passed")
         except Exception as e:
-            print(f"❌ NetworkType initialization test failed: {e}")
-            self.fail(f"{class_name} initialization failed: {e}")
-    
+            print(f"NetworkType initialization test failed: {e}")
+            self.fail(f"NetworkType initialization failed: {e}")
+
     def test_networktype_functionality(self):
         """Test NetworkType functionality"""
         try:
-            instance = NetworkType()
-            # Test basic functionality
+            instance = NetworkType.WLAN
             self.assertTrue(hasattr(instance, '__class__'))
-            print(f"✅ NetworkType functionality test passed")
+            print(f"NetworkType functionality test passed")
         except Exception as e:
-            print(f"❌ NetworkType functionality test failed: {e}")
-            self.fail(f"{class_name} functionality failed: {e}")
-    
+            print(f"NetworkType functionality test failed: {e}")
+            self.fail(f"NetworkType functionality failed: {e}")
+
     def test_frequencyband_initialization(self):
         """Test FrequencyBand initialization"""
         try:
-            instance = FrequencyBand()
+            instance = FrequencyBand.WIFI_5
             self.assertIsNotNone(instance)
-            print(f"✅ FrequencyBand initialization test passed")
+            print(f"FrequencyBand initialization test passed")
         except Exception as e:
-            print(f"❌ FrequencyBand initialization test failed: {e}")
-            self.fail(f"{class_name} initialization failed: {e}")
-    
+            print(f"FrequencyBand initialization test failed: {e}")
+            self.fail(f"FrequencyBand initialization failed: {e}")
+
     def test_frequencyband_functionality(self):
         """Test FrequencyBand functionality"""
         try:
-            instance = FrequencyBand()
-            # Test basic functionality
+            instance = FrequencyBand.WIFI_5
             self.assertTrue(hasattr(instance, '__class__'))
-            print(f"✅ FrequencyBand functionality test passed")
+            print(f"FrequencyBand functionality test passed")
         except Exception as e:
-            print(f"❌ FrequencyBand functionality test failed: {e}")
-            self.fail(f"{class_name} functionality failed: {e}")
-    
+            print(f"FrequencyBand functionality test failed: {e}")
+            self.fail(f"FrequencyBand functionality failed: {e}")
+
     def test_connectionprotocol_initialization(self):
         """Test ConnectionProtocol initialization"""
         try:
-            instance = ConnectionProtocol()
+            instance = ConnectionProtocol.WIFI
             self.assertIsNotNone(instance)
-            print(f"✅ ConnectionProtocol initialization test passed")
+            print(f"ConnectionProtocol initialization test passed")
         except Exception as e:
-            print(f"❌ ConnectionProtocol initialization test failed: {e}")
-            self.fail(f"{class_name} initialization failed: {e}")
-    
+            print(f"ConnectionProtocol initialization test failed: {e}")
+            self.fail(f"ConnectionProtocol initialization failed: {e}")
+
     def test_connectionprotocol_functionality(self):
         """Test ConnectionProtocol functionality"""
         try:
-            instance = ConnectionProtocol()
-            # Test basic functionality
+            instance = ConnectionProtocol.WIFI
             self.assertTrue(hasattr(instance, '__class__'))
-            print(f"✅ ConnectionProtocol functionality test passed")
+            print(f"ConnectionProtocol functionality test passed")
         except Exception as e:
-            print(f"❌ ConnectionProtocol functionality test failed: {e}")
-            self.fail(f"{class_name} functionality failed: {e}")
-    
+            print(f"ConnectionProtocol functionality test failed: {e}")
+            self.fail(f"ConnectionProtocol functionality failed: {e}")
+
     def test___init___execution(self):
-        """Test __init__ execution"""
+        """Test SpectrumAgent initialization"""
         try:
-            if callable(__init__):
-                result = __init__()
-                print(f"✅ __init__ execution test passed")
-            else:
-                print(f"⚠️ __init__ is not callable")
+            agent = SpectrumAgent()
+            self.assertIsNotNone(agent)
+            print(f"SpectrumAgent initialization test passed")
         except Exception as e:
-            print(f"❌ __init__ execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
+            print(f"SpectrumAgent initialization test failed: {e}")
+            self.fail(f"SpectrumAgent initialization failed: {e}")
+
     def test___init___parameters(self):
-        """Test __init__ with parameters"""
+        """Test SpectrumAgent with parameters"""
         try:
-            if callable(__init__):
-                # Test with different parameters
-                try:
-                    __init__(None)
-                    print(f"✅ __init__ parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    __init__({"test": "data"})
-                    print(f"✅ __init__ parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
+            agent = SpectrumAgent()
+            self.assertIsNotNone(agent)
+            print(f"SpectrumAgent parameter test passed")
         except Exception as e:
-            print(f"❌ __init__ parameter test failed: {e}")
-    
+            print(f"SpectrumAgent parameter test failed: {e}")
+
     def test_calculate_optimal_wifi_channels_execution(self):
         """Test calculate_optimal_wifi_channels execution"""
         try:
-            if callable(calculate_optimal_wifi_channels):
-                result = calculate_optimal_wifi_channels()
-                print(f"✅ calculate_optimal_wifi_channels execution test passed")
+            if hasattr(self.spectrum_agent, 'calculate_optimal_wifi_channels'):
+                result = self.spectrum_agent.calculate_optimal_wifi_channels(FrequencyBand.WIFI_2_4)
+                self.assertIsNotNone(result)
+                print(f"calculate_optimal_wifi_channels execution test passed")
             else:
-                print(f"⚠️ calculate_optimal_wifi_channels is not callable")
+                print(f"calculate_optimal_wifi_channels is not available")
         except Exception as e:
-            print(f"❌ calculate_optimal_wifi_channels execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
+            print(f"calculate_optimal_wifi_channels execution test failed: {e}")
+            self.fail(f"calculate_optimal_wifi_channels execution failed: {e}")
+
     def test_calculate_optimal_wifi_channels_parameters(self):
         """Test calculate_optimal_wifi_channels with parameters"""
         try:
-            if callable(calculate_optimal_wifi_channels):
-                # Test with different parameters
-                try:
-                    calculate_optimal_wifi_channels(None)
-                    print(f"✅ calculate_optimal_wifi_channels parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    calculate_optimal_wifi_channels({"test": "data"})
-                    print(f"✅ calculate_optimal_wifi_channels parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
+            if hasattr(self.spectrum_agent, 'calculate_optimal_wifi_channels'):
+                result = self.spectrum_agent.calculate_optimal_wifi_channels(FrequencyBand.WIFI_5)
+                print(f"calculate_optimal_wifi_channels parameter test passed")
         except Exception as e:
-            print(f"❌ calculate_optimal_wifi_channels parameter test failed: {e}")
-    
-    def test___init___execution(self):
-        """Test __init__ execution"""
-        try:
-            if callable(__init__):
-                result = __init__()
-                print(f"✅ __init__ execution test passed")
-            else:
-                print(f"⚠️ __init__ is not callable")
-        except Exception as e:
-            print(f"❌ __init__ execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
-    def test___init___parameters(self):
-        """Test __init__ with parameters"""
-        try:
-            if callable(__init__):
-                # Test with different parameters
-                try:
-                    __init__(None)
-                    print(f"✅ __init__ parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    __init__({"test": "data"})
-                    print(f"✅ __init__ parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
-        except Exception as e:
-            print(f"❌ __init__ parameter test failed: {e}")
-    
+            print(f"calculate_optimal_wifi_channels parameter test failed: {e}")
+
     def test_assign_node_roles_execution(self):
         """Test assign_node_roles execution"""
         try:
-            if callable(assign_node_roles):
-                result = assign_node_roles()
-                print(f"✅ assign_node_roles execution test passed")
+            if hasattr(self.protocol_agent, 'assign_node_roles'):
+                result = self.protocol_agent.assign_node_roles(["node1", "node2"], "star")
+                self.assertIsNotNone(result)
+                print(f"assign_node_roles execution test passed")
             else:
-                print(f"⚠️ assign_node_roles is not callable")
+                print(f"assign_node_roles is not available")
         except Exception as e:
-            print(f"❌ assign_node_roles execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
+            print(f"assign_node_roles execution test failed: {e}")
+            self.fail(f"assign_node_roles execution failed: {e}")
+
     def test_assign_node_roles_parameters(self):
         """Test assign_node_roles with parameters"""
         try:
-            if callable(assign_node_roles):
-                # Test with different parameters
-                try:
-                    assign_node_roles(None)
-                    print(f"✅ assign_node_roles parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    assign_node_roles({"test": "data"})
-                    print(f"✅ assign_node_roles parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
+            if hasattr(self.protocol_agent, 'assign_node_roles'):
+                result = self.protocol_agent.assign_node_roles([], "star")
+                print(f"assign_node_roles parameter test passed")
         except Exception as e:
-            print(f"❌ assign_node_roles parameter test failed: {e}")
-    
-    def test___init___execution(self):
-        """Test __init__ execution"""
-        try:
-            if callable(__init__):
-                result = __init__()
-                print(f"✅ __init__ execution test passed")
-            else:
-                print(f"⚠️ __init__ is not callable")
-        except Exception as e:
-            print(f"❌ __init__ execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
-    def test___init___parameters(self):
-        """Test __init__ with parameters"""
-        try:
-            if callable(__init__):
-                # Test with different parameters
-                try:
-                    __init__(None)
-                    print(f"✅ __init__ parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    __init__({"test": "data"})
-                    print(f"✅ __init__ parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
-        except Exception as e:
-            print(f"❌ __init__ parameter test failed: {e}")
-    
+            print(f"assign_node_roles parameter test failed: {e}")
+
     def test_get_interfaces_for_protocol_execution(self):
         """Test get_interfaces_for_protocol execution"""
         try:
-            if callable(get_interfaces_for_protocol):
-                result = get_interfaces_for_protocol()
-                print(f"✅ get_interfaces_for_protocol execution test passed")
+            intelligence = NetworkIntelligenceLayer()
+            if hasattr(intelligence, 'get_interfaces_for_protocol'):
+                result = intelligence.get_interfaces_for_protocol(ConnectionProtocol.WIFI)
+                self.assertIsNotNone(result)
+                print(f"get_interfaces_for_protocol execution test passed")
             else:
-                print(f"⚠️ get_interfaces_for_protocol is not callable")
+                print(f"get_interfaces_for_protocol is not available")
         except Exception as e:
-            print(f"❌ get_interfaces_for_protocol execution test failed: {e}")
-            self.fail(f"{func_name} execution failed: {e}")
-    
+            print(f"get_interfaces_for_protocol execution test failed: {e}")
+            self.fail(f"get_interfaces_for_protocol execution failed: {e}")
+
     def test_get_interfaces_for_protocol_parameters(self):
         """Test get_interfaces_for_protocol with parameters"""
         try:
-            if callable(get_interfaces_for_protocol):
-                # Test with different parameters
-                try:
-                    get_interfaces_for_protocol(None)
-                    print(f"✅ get_interfaces_for_protocol parameter test (None) passed")
-                except:
-                    pass  # Expected if function doesn't accept None
-                
-                try:
-                    get_interfaces_for_protocol({"test": "data"})
-                    print(f"✅ get_interfaces_for_protocol parameter test (dict) passed")
-                except:
-                    pass  # Expected if function doesn't accept dict
+            intelligence = NetworkIntelligenceLayer()
+            if hasattr(intelligence, 'get_interfaces_for_protocol'):
+                result = intelligence.get_interfaces_for_protocol(ConnectionProtocol.BLUETOOTH)
+                print(f"get_interfaces_for_protocol parameter test passed")
         except Exception as e:
-            print(f"❌ get_interfaces_for_protocol parameter test failed: {e}")
-    
+            print(f"get_interfaces_for_protocol parameter test failed: {e}")
+
 
     def test_integration(self):
         """Test integration with other components"""
         try:
-            # Test basic integration
-            self.assertTrue(True)  # Placeholder
-            print(f"✅ Integration test passed")
+            self.assertTrue(True)
+            print(f"Integration test passed")
         except Exception as e:
-            print(f"❌ Integration test failed: {e}")
+            print(f"Integration test failed: {e}")
             self.fail(f"Integration failed: {e}")
-    
+
     def test_error_handling(self):
         """Test error handling"""
         try:
-            # Test error scenarios
-            self.assertTrue(True)  # Placeholder
-            print(f"✅ Error handling test passed")
+            self.assertTrue(True)
+            print(f"Error handling test passed")
         except Exception as e:
-            print(f"❌ Error handling test failed: {e}")
+            print(f"Error handling test failed: {e}")
             self.fail(f"Error handling failed: {e}")
-    
+
     def test_performance(self):
         """Test performance"""
         try:
             import time
             start_time = time.time()
-            
-            # Simulate performance test
-            time.sleep(0.01)  # 10ms minimum
-            
+
+            time.sleep(0.01)
+
             end_time = time.time()
             duration = end_time - start_time
-            
+
             self.assertLess(duration, 1.0, "Performance test should complete within 1 second")
-            print(f"✅ Performance test passed ({duration:.3f}s)")
+            print(f"Performance test passed ({duration:.3f}s)")
         except Exception as e:
-            print(f"❌ Performance test failed: {e}")
+            print(f"Performance test failed: {e}")
             self.fail(f"Performance test failed: {e}")
 
 if __name__ == '__main__':

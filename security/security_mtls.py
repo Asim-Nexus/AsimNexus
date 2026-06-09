@@ -1,18 +1,25 @@
 
 """
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
+STATUS: REAL — mTLS Configuration Module with self-signed cert helpers and production load_cert_chain.
 
-"""
-mTLS Configuration Module - Mutual TLS Configuration
-Configures mutual TLS for secure service-to-service communication
+security/security_mtls.py
+AsimNexus — Mutual TLS Configuration
+=====================================
+Configures mutual TLS for secure service-to-service communication.
+Provides:
+  - mTLSConfig: full mTLS manager with certificate lifecycle
+  - create_self_signed_cert(): generate self-signed certs (test/dev)
+  - load_cert_chain(): load PEM cert chain for production
+  - create_self_signed_ssl_context(): convenience for tests
 """
 
 import asyncio
 import logging
 import ssl
-from datetime import datetime
-from typing import Dict, List, Optional, Any
+import os
+import tempfile
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 from pathlib import Path
@@ -264,9 +271,9 @@ class mTLSConfig:
         
         # Create SSL context
         if is_server:
-            context = ssl.create_server_context()
+            context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         else:
-            context = ssl.create_client_context()
+            context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         
         # Set TLS version
         context.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -452,5 +459,172 @@ class mTLSConfig:
             raise
 
 
-# Helper function
-from datetime import timedelta
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper Functions
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def create_self_signed_cert(
+    key_path: str,
+    cert_path: str,
+    common_name: str = "asimnexus.test",
+    organization: str = "ASIMNEXUS",
+    country: str = "US",
+    valid_days: int = 365,
+) -> None:
+    """
+    Generate a self-signed certificate for test/dev environments.
+    
+    Uses the ``cryptography`` library to generate an RSA-2048 key pair
+    and a self-signed X.509 certificate with SAN for localhost + 127.0.0.1.
+    
+    Args:
+        key_path:  Output path for the PEM-encoded private key.
+        cert_path: Output path for the PEM-encoded certificate.
+        common_name: CN for the certificate subject/issuer.
+        organization: O for the certificate subject/issuer.
+        country: C for the certificate subject/issuer.
+        valid_days: Number of days the certificate is valid.
+    
+    Raises:
+        ImportError: If the ``cryptography`` library is not installed.
+    """
+    import ipaddress
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, country),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization),
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(1000)
+        .not_valid_before(datetime.utcnow())
+        .not_valid_after(datetime.utcnow() + timedelta(days=valid_days))
+        .add_extension(
+            x509.SubjectAlternativeName([
+                x509.DNSName("localhost"),
+                x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+            ]),
+            critical=False,
+        )
+        .sign(key, hashes.SHA256())
+    )
+    with open(key_path, "wb") as f:
+        f.write(key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        ))
+    with open(cert_path, "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+
+def create_self_signed_ssl_context(
+    server_side: bool = True,
+) -> ssl.SSLContext:
+    """
+    Create a self-signed SSL context for testing/dev.
+    
+    Generates a temporary certificate, loads it into an SSL context,
+    and cleans up the temp files immediately after loading.
+    
+    Args:
+        server_side: If True, creates a server context (CERT_NONE client verify).
+                     If False, creates a client context that accepts self-signed
+                     server certs.
+    
+    Returns:
+        An SSLContext ready for use with P2PTransport or BootstrapService.
+    """
+    tmpdir = tempfile.mkdtemp()
+    key_path = os.path.join(tmpdir, "test.key")
+    cert_path = os.path.join(tmpdir, "test.crt")
+
+    create_self_signed_cert(key_path, cert_path)
+
+    if server_side:
+        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    else:
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+
+    ctx.load_cert_chain(cert_path, key_path)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    # Cleanup temp files after context is loaded
+    try:
+        os.remove(key_path)
+        os.remove(cert_path)
+        os.rmdir(tmpdir)
+    except Exception:
+        pass
+
+    return ctx
+
+
+def load_cert_chain(
+    cert_path: str,
+    key_path: str,
+    ca_cert_path: Optional[str] = None,
+    server_side: bool = True,
+    require_client_cert: bool = False,
+) -> ssl.SSLContext:
+    """
+    Load a PEM certificate chain and create a production SSL context.
+    
+    Args:
+        cert_path: Path to the PEM-encoded certificate file.
+        key_path:  Path to the PEM-encoded private key file.
+        ca_cert_path: Optional path to a CA certificate file for client
+                      verification (mTLS).
+        server_side: If True, creates a server context; otherwise client.
+        require_client_cert: If True and server_side, set verify_mode to
+                             CERT_REQUIRED (mutual TLS).
+    
+    Returns:
+        An SSLContext loaded with the provided certificate chain.
+    
+    Raises:
+        FileNotFoundError: If any of the provided file paths do not exist.
+        ssl.SSLError: If the certificate or key cannot be loaded.
+    """
+    if not os.path.exists(cert_path):
+        raise FileNotFoundError(f"Certificate file not found: {cert_path}")
+    if not os.path.exists(key_path):
+        raise FileNotFoundError(f"Key file not found: {key_path}")
+
+    if server_side:
+        ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    else:
+        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+
+    ctx.load_cert_chain(cert_path, key_path)
+    ctx.check_hostname = False
+
+    if server_side and require_client_cert:
+        ctx.verify_mode = ssl.CERT_REQUIRED
+        if ca_cert_path:
+            if not os.path.exists(ca_cert_path):
+                raise FileNotFoundError(f"CA cert file not found: {ca_cert_path}")
+            ctx.load_verify_locations(cafile=ca_cert_path)
+    else:
+        ctx.verify_mode = ssl.CERT_NONE
+
+    logger.info(
+        f"Certificate chain loaded: cert={cert_path}, key={key_path}, "
+        f"ca={ca_cert_path}, server_side={server_side}, "
+        f"require_client_cert={require_client_cert}"
+    )
+    return ctx

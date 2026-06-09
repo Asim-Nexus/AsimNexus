@@ -1,67 +1,58 @@
 import React, { useState, useEffect } from 'react';
+import { identityAPI, consensusAPI, svtAPI, hdtAPI } from '../../api/asimnexus';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
-const card = (extra={}) => ({
+const card = (extra = {}) => ({
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.08)',
   borderRadius: 14, padding: 16, ...extra,
 });
-const btn = (color='#667eea', extra={}) => ({
+const btn = (color = '#667eea', extra = {}) => ({
   background: `${color}22`, border: `1px solid ${color}44`,
-  color, borderRadius: 8, padding: '8px 16px', cursor:'pointer',
+  color, borderRadius: 8, padding: '8px 16px', cursor: 'pointer',
   fontSize: 13, fontWeight: 600, ...extra,
 });
 const input = {
   background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, width:'100%',
-  outline: 'none', boxSizing:'border-box',
+  borderRadius: 8, padding: '8px 12px', color: '#fff', fontSize: 13, width: '100%',
+  outline: 'none', boxSizing: 'border-box',
 };
 
 export default function IdentityPanel() {
-  const [tab,       setTab]       = useState('identity');
-  const [identity,  setIdentity]  = useState(null);
-  const [idList,    setIdList]    = useState([]);
-  const [stats,     setStats]     = useState(null);
+  const [tab, setTab] = useState('identity');
+  const [identity, setIdentity] = useState(null);
+  const [idList, setIdList] = useState([]);
+  const [stats, setStats] = useState(null);
   const [consStats, setConsStats] = useState(null);
-  const [consList,  setConsList]  = useState([]);
-  const [pending,   setPending]   = useState([]);
-  const [hdt,       setHdt]       = useState(null);
-  const [svtInfo,   setSvtInfo]   = useState(null);
-  const [loading,   setLoading]   = useState(false);
-  const [msg,       setMsg]       = useState('');
+  const [consList, setConsList] = useState([]);
+  const [pending, setPending] = useState([]);
+  const [hdt, setHdt] = useState(null);
+  const [svtInfo, setSvtInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
 
   const [form, setForm] = useState({
-    passphrase:'', display_name:'', universe:'personal', biometric_raw:''
+    passphrase: '', display_name: '', universe: 'personal', biometric_raw: ''
   });
-  const [verifyForm, setVerifyForm] = useState({ did:'', passphrase:'' });
-  const [voteForm,   setVoteForm]   = useState({ topic:'', description:'', level:'high' });
-  const [skillForm,  setSkillForm]  = useState({ name:'', level:'expert' });
-  const [mintForm,   setMintForm]   = useState({ amount: 100 });
-
-  const post = async (path, data) => {
-    const r = await fetch(`${API}${path}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(data),
-    });
-    return r.json();
-  };
+  const [verifyForm, setVerifyForm] = useState({ did: '', passphrase: '' });
+  const [voteForm, setVoteForm] = useState({ topic: '', description: '', level: 'high' });
+  const [skillForm, setSkillForm] = useState({ name: '', level: 'expert' });
+  const [mintForm, setMintForm] = useState({ amount: 100 });
 
   const load = async () => {
     try {
       const [st, li, cs, cl, pe] = await Promise.allSettled([
-        fetch(`${API}/api/identity/stats`).then(r=>r.json()),
-        fetch(`${API}/api/identity/list`).then(r=>r.json()),
-        fetch(`${API}/api/consensus/stats`).then(r=>r.json()),
-        fetch(`${API}/api/consensus/list`).then(r=>r.json()),
-        fetch(`${API}/api/consensus/pending`).then(r=>r.json()),
+        identityAPI.getStats().then(r => r.data),
+        identityAPI.getList().then(r => r.data),
+        consensusAPI.getStats().then(r => r.data),
+        consensusAPI.getList().then(r => r.data),
+        consensusAPI.getPending().then(r => r.data),
       ]);
       if (st.status === 'fulfilled') setStats(st.value);
       if (li.status === 'fulfilled') setIdList(li.value.identities || []);
       if (cs.status === 'fulfilled') setConsStats(cs.value);
-      if (cl.status === 'fulfilled') setConsList(cl.value.rounds?.slice(0,10) || []);
+      if (cl.status === 'fulfilled') setConsList(cl.value.rounds?.slice(0, 10) || []);
       if (pe.status === 'fulfilled') setPending(pe.value.rounds || []);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => { load(); }, [tab]);
@@ -72,19 +63,20 @@ export default function IdentityPanel() {
     }
     setLoading(true);
     try {
-      const res = await post('/api/identity/create', form);
+      const res = await identityAPI.create(form).then(r => r.data);
       if (res.did) {
         setIdentity(res);
-        setMsg(`✅ Identity created: ${res.did.slice(0,28)}…`);
+        setMsg(`✅ Identity created: ${res.did.slice(0, 28)}…`);
         await load();
         // Auto-create SVT wallet
-        await post('/api/svt/wallet', { did: res.did });
-        await post('/api/svt/mint', { did: res.did, amount: 500, memo: 'Welcome bonus' });
-        setSvtInfo(await fetch(`${API}/api/svt/wallet/${res.did}`).then(r=>r.json()));
+        await svtAPI.createWallet(res.did);
+        await svtAPI.mint(res.did, 500, 'Welcome bonus');
+        const w = await svtAPI.getWallet(res.did).then(r => r.data);
+        setSvtInfo(w);
         // Auto-create HDT
-        const h = await post('/api/hdt/create', {
+        const h = await hdtAPI.create({
           did: res.did, display_name: form.display_name, universe: form.universe
-        });
+        }).then(r => r.data);
         setHdt(h);
       } else {
         setMsg(`❌ ${res.detail || 'Error creating identity'}`);
@@ -96,7 +88,7 @@ export default function IdentityPanel() {
   const verifyIdentity = async () => {
     setLoading(true);
     try {
-      const res = await post('/api/identity/verify', verifyForm);
+      const res = await identityAPI.verify(verifyForm).then(r => r.data);
       setMsg(res.verified
         ? `✅ ${res.reason}`
         : `❌ ${res.reason}`);
@@ -109,9 +101,9 @@ export default function IdentityPanel() {
     if (!did) { setMsg('❌ Create identity first'); return; }
     setLoading(true);
     try {
-      const res = await post(`/api/hdt/${did}/skill`, skillForm);
+      const res = await hdtAPI.addSkill(did, skillForm).then(r => r.data);
       setMsg(`✅ Skill added: ${res.name} [${res.level}]`);
-      const h = await fetch(`${API}/api/hdt/${did}/status`).then(r=>r.json());
+      const h = await hdtAPI.getStatus(did).then(r => r.data);
       setHdt(h);
     } catch (e) { setMsg(`❌ ${e.message}`); }
     setLoading(false);
@@ -121,7 +113,7 @@ export default function IdentityPanel() {
     if (!voteForm.topic) { setMsg('❌ Topic required'); return; }
     setLoading(true);
     try {
-      const res = await post('/api/consensus/vote', voteForm);
+      const res = await consensusAPI.vote(voteForm.topic, voteForm.description, voteForm.level).then(r => r.data);
       setMsg(`${res.outcome === 'approved' ? '✅' : '❌'} ${res.summary}`);
       await load();
     } catch (e) { setMsg(`❌ ${e.message}`); }
@@ -131,9 +123,7 @@ export default function IdentityPanel() {
   const overrideConsensus = async (round_id, approved) => {
     setLoading(true);
     try {
-      const res = await post(`/api/consensus/${round_id}/override`, {
-        approved, reason: approved ? 'Human approved' : 'Human rejected'
-      });
+      const res = await consensusAPI.override(round_id, approved, approved ? 'Human approved' : 'Human rejected').then(r => r.data);
       setMsg(`👤 Override: ${res.outcome}`);
       await load();
     } catch (e) { setMsg(`❌ ${e.message}`); }
@@ -145,9 +135,9 @@ export default function IdentityPanel() {
     if (!did) { setMsg('❌ Create identity first'); return; }
     setLoading(true);
     try {
-      const res = await post('/api/svt/mint', { did, amount: Number(mintForm.amount), memo: 'Manual mint' });
+      const res = await svtAPI.mint(did, Number(mintForm.amount), 'Manual mint').then(r => r.data);
       setMsg(`✅ Minted ${mintForm.amount} SVT`);
-      const w = await fetch(`${API}/api/svt/wallet/${did}`).then(r=>r.json());
+      const w = await svtAPI.getWallet(did).then(r => r.data);
       setSvtInfo(w);
     } catch (e) { setMsg(`❌ ${e.message}`); }
     setLoading(false);
@@ -155,24 +145,24 @@ export default function IdentityPanel() {
 
   const activeDid = identity?.did || idList[0]?.did || '';
   const TABS = [
-    { id:'identity', label:'🔐 ZKP Identity' },
-    { id:'hdt',      label:'👤 Digital Twin' },
-    { id:'token',    label:'💰 SVT Token' },
-    { id:'consensus',label:'🗳️ Consensus' },
+    { id: 'identity', label: '🔐 ZKP Identity' },
+    { id: 'hdt', label: '👤 Digital Twin' },
+    { id: 'token', label: '💰 SVT Token' },
+    { id: 'consensus', label: '🗳️ Consensus' },
   ];
 
   return (
-    <div style={{ color:'#fff', fontFamily:'system-ui,sans-serif', maxWidth: 860 }}>
+    <div style={{ color: '#fff', fontFamily: 'system-ui,sans-serif', maxWidth: 860 }}>
 
-      <h2 style={{ margin:'0 0 4px', fontSize: 22, background:'linear-gradient(135deg,#667eea,#a78bfa)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-        🔐 Sovereign Identity &amp; Governance
+      <h2 style={{ margin: '0 0 4px', fontSize: 22, background: 'linear-gradient(135deg,#667eea,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        🔐 Sovereign Identity & Governance
       </h2>
-      <p style={{ color:'#64748b', fontSize: 13, margin:'0 0 20px' }}>
+      <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 20px' }}>
         Zero-Knowledge Proof · Human Digital Twin · 15-Clone Consensus · Sovereign Token
       </p>
 
       {/* Tabs */}
-      <div style={{ display:'flex', gap: 6, marginBottom: 20, flexWrap:'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             ...btn(tab === t.id ? '#667eea' : '#64748b'),
@@ -182,66 +172,67 @@ export default function IdentityPanel() {
       </div>
 
       {msg && (
-        <div style={{ padding:'10px 14px', borderRadius: 10, marginBottom: 16,
+        <div style={{
+          padding: '10px 14px', borderRadius: 10, marginBottom: 16,
           background: msg.startsWith('✅') ? 'rgba(52,211,153,0.12)' : 'rgba(239,68,68,0.12)',
           border: `1px solid ${msg.startsWith('✅') ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
           color: msg.startsWith('✅') ? '#34d399' : '#f87171', fontSize: 13,
         }}>
-          {msg} <button onClick={() => setMsg('')} style={{ marginLeft:8, cursor:'pointer', background:'none', border:'none', color:'inherit' }}>✕</button>
+          {msg} <button onClick={() => setMsg('')} style={{ marginLeft: 8, cursor: 'pointer', background: 'none', border: 'none', color: 'inherit' }}>✕</button>
         </div>
       )}
 
       {/* ── IDENTITY TAB ── */}
       {tab === 'identity' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Create ZKP Identity</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Create ZKP Identity</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input placeholder="Display name" style={input} value={form.display_name}
-                onChange={e=>setForm(f=>({...f,display_name:e.target.value}))} />
+                onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))} />
               <input type="password" placeholder="Passphrase (≥8 chars)" style={input}
                 value={form.passphrase}
-                onChange={e=>setForm(f=>({...f,passphrase:e.target.value}))} />
-              <select style={{...input,color:form.universe?'#fff':'#64748b'}}
-                value={form.universe} onChange={e=>setForm(f=>({...f,universe:e.target.value}))}>
-                {['personal','family','community','enterprise','sovereign'].map(u=>
+                onChange={e => setForm(f => ({ ...f, passphrase: e.target.value }))} />
+              <select style={{ ...input, color: form.universe ? '#fff' : '#64748b' }}
+                value={form.universe} onChange={e => setForm(f => ({ ...f, universe: e.target.value }))}>
+                {['personal', 'family', 'community', 'enterprise', 'sovereign'].map(u =>
                   <option key={u} value={u}>{u}</option>)}
               </select>
               <input placeholder="Biometric hash (optional)" style={input}
                 value={form.biometric_raw}
-                onChange={e=>setForm(f=>({...f,biometric_raw:e.target.value}))} />
-              <button onClick={createIdentity} disabled={loading} style={btn('#667eea',{width:'100%'})}>
+                onChange={e => setForm(f => ({ ...f, biometric_raw: e.target.value }))} />
+              <button onClick={createIdentity} disabled={loading} style={btn('#667eea', { width: '100%' })}>
                 {loading ? '…' : '🆔 Create Sovereign Identity'}
               </button>
             </div>
           </div>
 
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Verify ZKP Identity</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <select style={{...input,color:verifyForm.did?'#fff':'#64748b'}}
-                value={verifyForm.did} onChange={e=>setVerifyForm(f=>({...f,did:e.target.value}))}>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Verify ZKP Identity</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <select style={{ ...input, color: verifyForm.did ? '#fff' : '#64748b' }}
+                value={verifyForm.did} onChange={e => setVerifyForm(f => ({ ...f, did: e.target.value }))}>
                 <option value="">Select identity…</option>
-                {idList.map(i=><option key={i.did} value={i.did}>{i.display_name} ({i.did.slice(0,20)}…)</option>)}
+                {idList.map(i => <option key={i.did} value={i.did}>{i.display_name} ({i.did.slice(0, 20)}…)</option>)}
               </select>
               <input type="password" placeholder="Passphrase" style={input}
                 value={verifyForm.passphrase}
-                onChange={e=>setVerifyForm(f=>({...f,passphrase:e.target.value}))} />
-              <button onClick={verifyIdentity} disabled={loading} style={btn('#34d399',{width:'100%'})}>
+                onChange={e => setVerifyForm(f => ({ ...f, passphrase: e.target.value }))} />
+              <button onClick={verifyIdentity} disabled={loading} style={btn('#34d399', { width: '100%' })}>
                 {loading ? '…' : '🔍 Verify (Zero-Knowledge)'}
               </button>
             </div>
 
             {identity && (
-              <div style={{ marginTop:16, padding:12, borderRadius:10, background:'rgba(102,126,234,0.08)', border:'1px solid rgba(102,126,234,0.2)' }}>
-                <div style={{ fontSize:11, color:'#94a3b8', marginBottom:4 }}>Active Identity</div>
-                <div style={{ fontSize:12, color:'#a78bfa', wordBreak:'break-all' }}>{identity.did}</div>
-                <div style={{ fontSize:11, color:'#64748b', marginTop:4 }}>{identity.universe} · created {identity.created_at?.slice(0,10)}</div>
+              <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: 'rgba(102,126,234,0.08)', border: '1px solid rgba(102,126,234,0.2)' }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Active Identity</div>
+                <div style={{ fontSize: 12, color: '#a78bfa', wordBreak: 'break-all' }}>{identity.did}</div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{identity.universe} · created {identity.created_at?.slice(0, 10)}</div>
               </div>
             )}
 
             {stats && (
-              <div style={{ marginTop:12, fontSize:11, color:'#64748b' }}>
+              <div style={{ marginTop: 12, fontSize: 11, color: '#64748b' }}>
                 Total: {stats.total} · Active: {stats.active} · Algorithm: {stats.algorithm?.split('+')[0]}
               </div>
             )}
@@ -251,67 +242,67 @@ export default function IdentityPanel() {
 
       {/* ── HDT TAB ── */}
       {tab === 'hdt' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Add Skill to Digital Twin</div>
-            <div style={{ fontSize:11, color:'#64748b', marginBottom:10 }}>
-              DID: {activeDid ? activeDid.slice(0,28)+'…' : 'No identity yet'}
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Add Skill to Digital Twin</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>
+              DID: {activeDid ? activeDid.slice(0, 28) + '…' : 'No identity yet'}
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <input placeholder="Skill name (e.g. python, farming)" style={input}
                 value={skillForm.name}
-                onChange={e=>setSkillForm(f=>({...f,name:e.target.value}))} />
+                onChange={e => setSkillForm(f => ({ ...f, name: e.target.value }))} />
               <select style={input} value={skillForm.level}
-                onChange={e=>setSkillForm(f=>({...f,level:e.target.value}))}>
+                onChange={e => setSkillForm(f => ({ ...f, level: e.target.value }))}>
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="expert">Expert</option>
               </select>
-              <button onClick={addSkill} disabled={loading} style={btn('#10b981',{width:'100%'})}>
+              <button onClick={addSkill} disabled={loading} style={btn('#10b981', { width: '100%' })}>
                 {loading ? '…' : '➕ Add Skill'}
               </button>
             </div>
 
-            <button onClick={async()=>{
-              if(!activeDid)return;
-              const res = await post(`/api/hdt/${activeDid}/announce`,{});
-              setMsg(res.skills ? `✅ Announced ${res.skills} skills to DHT` : `❌ ${res.reason||'error'}`);
-            }} style={{...btn('#60a5fa',{width:'100%',marginTop:8})}}>
+            <button onClick={async () => {
+              if (!activeDid) return;
+              const res = await hdtAPI.announce(activeDid).then(r => r.data);
+              setMsg(res.skills ? `✅ Announced ${res.skills} skills to DHT` : `❌ ${res.reason || 'error'}`);
+            }} style={{ ...btn('#60a5fa', { width: '100%', marginTop: 8 }) }}>
               📢 Announce Skills to Mesh
             </button>
           </div>
 
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Digital Twin Status</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Digital Twin Status</div>
             {hdt ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Skills</span>
-                  <span style={{ color:'#fff', fontWeight:700 }}>{hdt.skills}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Skills</span>
+                  <span style={{ color: '#fff', fontWeight: 700 }}>{hdt.skills}</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Verified</span>
-                  <span style={{ color:'#34d399', fontWeight:700 }}>{hdt.verified_skills}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Verified</span>
+                  <span style={{ color: '#34d399', fontWeight: 700 }}>{hdt.verified_skills}</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Reputation</span>
-                  <span style={{ color:'#f59e0b', fontWeight:700 }}>{hdt.reputation}/5.0</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Reputation</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>{hdt.reputation}/5.0</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Dharma Score</span>
-                  <span style={{ color:'#a78bfa', fontWeight:700 }}>{hdt.dharma_score}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Dharma Score</span>
+                  <span style={{ color: '#a78bfa', fontWeight: 700 }}>{hdt.dharma_score}</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Autonomy Level</span>
-                  <span style={{ color:'#60a5fa', fontWeight:700 }}>{hdt.autonomy_level}/5</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Autonomy Level</span>
+                  <span style={{ color: '#60a5fa', fontWeight: 700 }}>{hdt.autonomy_level}/5</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Contracts Done</span>
-                  <span style={{ color:'#34d399', fontWeight:700 }}>{hdt.contracts_done}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Contracts Done</span>
+                  <span style={{ color: '#34d399', fontWeight: 700 }}>{hdt.contracts_done}</span>
                 </div>
               </div>
             ) : (
-              <div style={{ color:'#64748b', fontSize:12 }}>
+              <div style={{ color: '#64748b', fontSize: 12 }}>
                 Create an identity first to initialize your Digital Twin.
               </div>
             )}
@@ -321,60 +312,60 @@ export default function IdentityPanel() {
 
       {/* ── TOKEN TAB ── */}
       {tab === 'token' && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>💰 Mint SVT Tokens</div>
-            <div style={{ fontSize:11, color:'#64748b', marginBottom:10 }}>
-              Wallet: {activeDid ? activeDid.slice(0,24)+'…' : 'No identity'}
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>💰 Mint SVT Tokens</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>
+              Wallet: {activeDid ? activeDid.slice(0, 24) + '…' : 'No identity'}
             </div>
-            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <input type="number" min="1" max="10000" style={{...input,flex:1}}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="number" min="1" max="10000" style={{ ...input, flex: 1 }}
                 value={mintForm.amount}
-                onChange={e=>setMintForm({amount:e.target.value})} />
+                onChange={e => setMintForm({ amount: e.target.value })} />
               <button onClick={mintTokens} disabled={loading} style={btn('#fb923c')}>
                 {loading ? '…' : 'Mint'}
               </button>
             </div>
-            <div style={{ fontSize:11, color:'#64748b', marginTop:8 }}>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
               1% burned on every transfer · Max wallet: 1,000,000 SVT · Anti-concentration cap: 15%
             </div>
           </div>
 
           <div style={card()}>
-            <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Wallet Info</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Wallet Info</div>
             {svtInfo && svtInfo.exists ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Balance</span>
-                  <span style={{ color:'#fb923c', fontWeight:800, fontSize:18 }}>{Number(svtInfo.balance).toLocaleString()} SVT</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Balance</span>
+                  <span style={{ color: '#fb923c', fontWeight: 800, fontSize: 18 }}>{Number(svtInfo.balance).toLocaleString()} SVT</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Earned Total</span>
-                  <span style={{ color:'#34d399' }}>{Number(svtInfo.earned_total).toLocaleString()}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Earned Total</span>
+                  <span style={{ color: '#34d399' }}>{Number(svtInfo.earned_total).toLocaleString()}</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Staked (Escrow)</span>
-                  <span style={{ color:'#60a5fa' }}>{Number(svtInfo.staked).toLocaleString()}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Staked (Escrow)</span>
+                  <span style={{ color: '#60a5fa' }}>{Number(svtInfo.staked).toLocaleString()}</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>% of Supply</span>
-                  <span style={{ color:'#a78bfa' }}>{svtInfo.pct_of_supply}%</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>% of Supply</span>
+                  <span style={{ color: '#a78bfa' }}>{svtInfo.pct_of_supply}%</span>
                 </div>
-                <div style={{ display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ color:'#94a3b8', fontSize:12 }}>Transactions</span>
-                  <span style={{ color:'#fff' }}>{svtInfo.tx_count}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>Transactions</span>
+                  <span style={{ color: '#fff' }}>{svtInfo.tx_count}</span>
                 </div>
               </div>
             ) : (
-              <div style={{ color:'#64748b', fontSize:12 }}>
+              <div style={{ color: '#64748b', fontSize: 12 }}>
                 {activeDid ? 'Loading wallet…' : 'Create identity to get wallet'}
               </div>
             )}
             {activeDid && !svtInfo && (
-              <button onClick={async()=>{
-                const w = await fetch(`${API}/api/svt/wallet/${activeDid}`).then(r=>r.json());
+              <button onClick={async () => {
+                const w = await svtAPI.getWallet(activeDid).then(r => r.data);
                 setSvtInfo(w);
-              }} style={btn('#fb923c',{width:'100%',marginTop:8})}>
+              }} style={btn('#fb923c', { width: '100%', marginTop: 8 })}>
                 Load Wallet
               </button>
             )}
@@ -384,60 +375,60 @@ export default function IdentityPanel() {
 
       {/* ── CONSENSUS TAB ── */}
       {tab === 'consensus' && (
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div style={card()}>
-              <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>🗳️ Start Consensus Vote</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>🗳️ Start Consensus Vote</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <input placeholder="Decision topic…" style={input}
                   value={voteForm.topic}
-                  onChange={e=>setVoteForm(f=>({...f,topic:e.target.value}))} />
-                <textarea placeholder="Description…" style={{...input,minHeight:60,resize:'vertical'}}
+                  onChange={e => setVoteForm(f => ({ ...f, topic: e.target.value }))} />
+                <textarea placeholder="Description…" style={{ ...input, minHeight: 60, resize: 'vertical' }}
                   value={voteForm.description}
-                  onChange={e=>setVoteForm(f=>({...f,description:e.target.value}))} />
+                  onChange={e => setVoteForm(f => ({ ...f, description: e.target.value }))} />
                 <select style={input} value={voteForm.level}
-                  onChange={e=>setVoteForm(f=>({...f,level:e.target.value}))}>
+                  onChange={e => setVoteForm(f => ({ ...f, level: e.target.value }))}>
                   <option value="high">HIGH — 8/15 majority</option>
                   <option value="critical">CRITICAL — 11/15 supermajority</option>
                   <option value="sovereignty">SOVEREIGNTY — 15/15 + Human</option>
                 </select>
-                <button onClick={startVote} disabled={loading} style={btn('#a78bfa',{width:'100%'})}>
+                <button onClick={startVote} disabled={loading} style={btn('#a78bfa', { width: '100%' })}>
                   {loading ? '…' : '🗳️ Call 15-Clone Vote'}
                 </button>
               </div>
             </div>
 
             <div style={card()}>
-              <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Stats</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Stats</div>
               {consStats ? (
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
                     ['Total rounds', consStats.total, '#fff'],
                     ['Approved', consStats.approved, '#34d399'],
                     ['Rejected', consStats.rejected, '#f87171'],
                     ['Pending human', consStats.pending_human, '#fb923c'],
                     ['Clone count', consStats.clone_count, '#a78bfa'],
-                  ].map(([l,v,c]) => (
-                    <div key={l} style={{ display:'flex', justifyContent:'space-between' }}>
-                      <span style={{ color:'#94a3b8', fontSize:12 }}>{l}</span>
-                      <span style={{ color:c, fontWeight:700 }}>{v}</span>
+                  ].map(([l, v, c]) => (
+                    <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#94a3b8', fontSize: 12 }}>{l}</span>
+                      <span style={{ color: c, fontWeight: 700 }}>{v}</span>
                     </div>
                   ))}
                 </div>
-              ) : <div style={{ color:'#64748b', fontSize:12 }}>No votes yet</div>}
+              ) : <div style={{ color: '#64748b', fontSize: 12 }}>No votes yet</div>}
             </div>
           </div>
 
           {pending.length > 0 && (
-            <div style={card({ borderColor:'rgba(251,146,60,0.3)' })}>
-              <div style={{ fontWeight:700, fontSize:14, marginBottom:12, color:'#fb923c' }}>
+            <div style={card({ borderColor: 'rgba(251,146,60,0.3)' })}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#fb923c' }}>
                 ⚠️ Pending Human Override ({pending.length})
               </div>
               {pending.map(r => (
-                <div key={r.round_id} style={{ padding:10, borderRadius:8, background:'rgba(251,146,60,0.06)', border:'1px solid rgba(251,146,60,0.15)', marginBottom:8 }}>
-                  <div style={{ fontSize:13, fontWeight:600 }}>{r.topic}</div>
-                  <div style={{ fontSize:11, color:'#94a3b8', margin:'4px 0 8px' }}>{r.summary?.slice(0,100)}</div>
-                  <div style={{ display:'flex', gap:8 }}>
+                <div key={r.round_id} style={{ padding: 10, borderRadius: 8, background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.15)', marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{r.topic}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 8px' }}>{r.summary?.slice(0, 100)}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => overrideConsensus(r.round_id, true)}
                       style={btn('#34d399')}>✅ Approve</button>
                     <button onClick={() => overrideConsensus(r.round_id, false)}
@@ -450,20 +441,20 @@ export default function IdentityPanel() {
 
           {consList.length > 0 && (
             <div style={card()}>
-              <div style={{ fontWeight:700, fontSize:14, marginBottom:12 }}>Recent Votes</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Recent Votes</div>
               {consList.map(r => (
                 <div key={r.round_id} style={{
-                  padding:'8px 12px', borderRadius:8, marginBottom:6,
+                  padding: '8px 12px', borderRadius: 8, marginBottom: 6,
                   background: r.outcome === 'approved' ? 'rgba(52,211,153,0.06)' : 'rgba(239,68,68,0.06)',
                   border: `1px solid ${r.outcome === 'approved' ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                  display:'flex', justifyContent:'space-between', alignItems:'center',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                   <div>
-                    <div style={{ fontSize:12, fontWeight:600 }}>{r.topic}</div>
-                    <div style={{ fontSize:10, color:'#64748b' }}>{r.level} · {r.created_at?.slice(0,10)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600 }}>{r.topic}</div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>{r.level} · {r.created_at?.slice(0, 10)}</div>
                   </div>
                   <span style={{
-                    fontSize:11, padding:'3px 8px', borderRadius:6,
+                    fontSize: 11, padding: '3px 8px', borderRadius: 6,
                     background: r.outcome === 'approved' ? 'rgba(52,211,153,0.2)' : 'rgba(239,68,68,0.2)',
                     color: r.outcome === 'approved' ? '#34d399' : '#f87171',
                   }}>{r.outcome}</span>

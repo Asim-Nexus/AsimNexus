@@ -1,163 +1,150 @@
 /**
  * 🪝 ASIMNEXUS Socket Hook - Real-time Frontend Connectivity
- * Phase 1: WebSocket Integration with React
- * Real-time Frontend & Backend Sync - 100% WebSocket Support
+ * ==========================================================
+ * Uses WebSocketService.js (native WebSocket with exponential backoff reconnection).
+ * Provides room-based messaging, connection state tracking, and auto-reconnect.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { io } from 'socket.io-client';
-import { API_BASE_URL } from '../api/unified_api';
+import wsService from '../services/WebSocketService';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || API_BASE_URL || '';
-const RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY = 1000;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const WS_BASE = API_BASE_URL.replace(/^http/, 'ws');
 
 export const useSocket = (userId, room = 'default') => {
-  const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [roomUsers, setRoomUsers] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
-  const reconnectTimeoutRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
+  const cleanupRef = useRef([]);
+  const roomRef = useRef(room);
+  const userIdRef = useRef(userId);
 
-  // Connect to socket
+  // Keep refs in sync
+  roomRef.current = room;
+  userIdRef.current = userId;
+
+  // Connect to WebSocket
   const connectSocket = useCallback(() => {
-    if (socket && socket.connected) {
-      console.log('🪝 Socket already connected');
+    if (wsService.isSocketConnected()) {
+      setConnected(true);
+      setConnectionStatus('connected');
       return;
     }
 
-    console.log('🔌 Connecting to ASIMNEXUS Socket:', SOCKET_URL);
-    
-    const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      upgrade: false,
-      rememberUpgrade: false,
-      timeout: 20000,
-      forceNew: true,
-      reconnection: true,
-      reconnectionAttempts: RECONNECT_ATTEMPTS,
-      reconnectionDelay: RECONNECT_DELAY
-    });
+    setConnectionStatus('connecting');
 
-    newSocket.on('connect', () => {
-      console.log('✅ Connected to ASIMNEXUS Socket');
-      setConnected(true);
-      setConnectionStatus('connected');
-      reconnectAttemptsRef.current = 0;
-      
-      // Join room
-      newSocket.emit('join_room', {
-        room: room,
-        user_id: userId || 'anonymous'
-      });
-    });
+    const wsUrl = `${WS_BASE}/ws/chat`;
 
-    newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from ASIMNEXUS Socket');
-      setConnected(false);
-      setConnectionStatus('disconnected');
-      
-      // Attempt reconnection
-      if (reconnectAttemptsRef.current < RECONNECT_ATTEMPTS) {
-        setTimeout(() => {
-          reconnectAttemptsRef.current++;
-          connectSocket();
-        }, RECONNECT_DELAY);
+    wsService.connect(wsUrl).then((isConnected) => {
+      if (isConnected) {
+        setConnected(true);
+        setConnectionStatus('connected');
+
+        // Join room
+        wsService.send('join_room', {
+          room: roomRef.current,
+          user_id: userIdRef.current || 'anonymous',
+        });
       }
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('🚨 Socket connection error:', error);
+    // Register event listeners
+    const unsubConnected = wsService.on('connected', () => {
+      setConnected(true);
+      setConnectionStatus('connected');
+    });
+
+    const unsubDisconnected = wsService.on('disconnected', () => {
+      setConnected(false);
+      setConnectionStatus('disconnected');
+    });
+
+    const unsubError = wsService.on('error', () => {
       setConnectionStatus('error');
     });
 
+    const unsubFallback = wsService.on('fallback', () => {
+      setConnected(false);
+      setConnectionStatus('fallback');
+    });
+
     // Room events
-    newSocket.on('user_joined', (data) => {
-      console.log('👋 User joined:', data);
+    const unsubUserJoined = wsService.on('user_joined', (data) => {
       setRoomUsers(data.room_users || []);
     });
 
-    newSocket.on('user_left', (data) => {
-      console.log('👋 User left:', data);
+    const unsubUserLeft = wsService.on('user_left', (data) => {
       setRoomUsers(data.room_users || []);
     });
 
     // Message events
-    newSocket.on('new_message', (data) => {
-      console.log('💬 New message:', data);
+    const unsubNewMessage = wsService.on('new_message', (data) => {
       setMessages(prev => [...prev, data]);
     });
 
-    newSocket.on('ai_response', (data) => {
-      console.log('🤖 AI Response:', data);
+    const unsubAIResponse = wsService.on('ai_response', (data) => {
       setMessages(prev => [...prev, data]);
     });
 
     // Private messages
-    newSocket.on('private_message', (data) => {
-      console.log('🔒 Private message:', data);
+    const unsubPrivateMessage = wsService.on('private_message', (data) => {
       setMessages(prev => [...prev, data]);
     });
 
     // System events
-    newSocket.on('system_status', (status) => {
-      console.log('📊 System status:', status);
-    });
+    const unsubSystemStatus = wsService.on('system_status', () => { });
 
-    newSocket.on('timeout', (data) => {
-      console.log('⏰ Connection timeout:', data);
-      setConnectionStatus('timeout');
-    });
-
-    setSocket(newSocket);
-  }, [userId, room]);
+    cleanupRef.current = [
+      unsubConnected, unsubDisconnected, unsubError, unsubFallback,
+      unsubUserJoined, unsubUserLeft,
+      unsubNewMessage, unsubAIResponse, unsubPrivateMessage,
+      unsubSystemStatus,
+    ];
+  }, []);
 
   // Send message function
   const sendMessage = useCallback((message, isAI = false) => {
-    if (!socket || !connected) {
+    if (!wsService.isSocketConnected()) {
       console.warn('🚨 Socket not connected');
       return false;
     }
 
     const messageData = {
-      room: room,
-      user_id: userId || 'anonymous',
+      room: roomRef.current,
+      user_id: userIdRef.current || 'anonymous',
       message: message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     if (isAI) {
-      socket.emit('ai_response', messageData);
+      wsService.send('ai_response', messageData);
     } else {
-      socket.emit('send_message', messageData);
+      wsService.send('send_message', messageData);
     }
 
-    console.log('📤 Message sent:', messageData);
     return true;
-  }, [socket, connected, room, userId]);
+  }, []);
 
   // Join/Leave room functions
   const joinRoom = useCallback((newRoom) => {
-    if (socket && connected) {
-      socket.emit('leave_room', { room: room, user_id: userId });
-      socket.emit('join_room', { room: newRoom, user_id: userId });
+    if (wsService.isSocketConnected()) {
+      wsService.send('leave_room', { room: roomRef.current, user_id: userIdRef.current });
+      wsService.send('join_room', { room: newRoom, user_id: userIdRef.current });
+      roomRef.current = newRoom;
     }
-  }, [socket, connected, userId]);
+  }, []);
 
   const leaveRoom = useCallback(() => {
-    if (socket && connected) {
-      socket.emit('leave_room', { room: room, user_id: userId });
+    if (wsService.isSocketConnected()) {
+      wsService.send('leave_room', { room: roomRef.current, user_id: userIdRef.current });
     }
-  }, [socket, connected, room, userId]);
+  }, []);
 
   // Get connection status
   const getConnectionStatus = useCallback(() => {
-    if (socket && connected) {
-      socket.emit('get_status');
-    }
-  }, [socket, connected]);
+    return wsService.getConnectionState();
+  }, []);
 
   // Auto-connect on mount
   useEffect(() => {
@@ -165,30 +152,14 @@ export const useSocket = (userId, room = 'default') => {
 
     // Cleanup on unmount
     return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (socket) {
-        socket.disconnect();
-      }
+      cleanupRef.current.forEach((unsub) => {
+        if (typeof unsub === 'function') unsub();
+      });
+      cleanupRef.current = [];
     };
-  }, []);
-
-  // Auto-reconnect when connection lost
-  useEffect(() => {
-    if (!connected && connectionStatus !== 'connecting') {
-      const timer = setTimeout(() => {
-        if (reconnectAttemptsRef.current < RECONNECT_ATTEMPTS) {
-          connectSocket();
-        }
-      }, RECONNECT_DELAY * 2);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [connected, connectionStatus]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    socket,
     connected,
     messages,
     roomUsers,
@@ -196,7 +167,7 @@ export const useSocket = (userId, room = 'default') => {
     sendMessage,
     joinRoom,
     leaveRoom,
-    getConnectionStatus
+    getConnectionStatus,
   };
 };
 

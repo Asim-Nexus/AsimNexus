@@ -1,14 +1,19 @@
 /**
  * ASIMNEXUS Unified API Client
  * =============================
- * Centralized API client for all frontend components
- * Provides unified interface to all backend services
+ * Centralized API client for all frontend components.
+ * Provides unified interface to all backend services.
+ *
+ * IMPORTANT: Auth keys MUST match asimnexus.js for cross-file compatibility.
+ *   - localStorage keys: asimnexus_token / asimnexus_user
+ *   - Env var: REACT_APP_API_URL (falls back to http://localhost:8000)
  */
 
 import axios from 'axios';
 
-// API Configuration (use env vars or relative paths)
-const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+// API Configuration — single source of truth for base URL
+// NOTE: asimnexus.js also reads REACT_APP_API_URL with fallback http://localhost:8000
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 const WS_BASE_URL = process.env.REACT_APP_WS_URL || ((typeof window !== 'undefined' && window.location) ? ((window.location.protocol === 'https:') ? 'wss://' : 'ws://') + window.location.host : '');
 
 // Create axios instance with default config
@@ -20,11 +25,10 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor
+// Request interceptor — uses same localStorage keys as asimnexus.js
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('asim_token');
+    const token = localStorage.getItem('asimnexus_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -35,17 +39,16 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor — retry on timeout (max 3 retries)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Retry on timeout (max 3 retries)
     if (error.code === 'ECONNABORTED' && !originalRequest._retry) {
       originalRequest._retry = true;
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
-      
+
       if (originalRequest._retryCount < 3) {
         console.log(`Retrying request (${originalRequest._retryCount}/3)...`);
         return apiClient(originalRequest);
@@ -56,24 +59,22 @@ apiClient.interceptors.response.use(
   }
 );
 
-/**
- * Chat API
- */
 export { API_BASE_URL, WS_BASE_URL };
 
 // ─── AUTH HELPERS ──────────────────────────────────────
-export const getStoredToken = () => localStorage.getItem('asim_token');
-export const getStoredUser  = () => {
-  try { return JSON.parse(localStorage.getItem('asim_user') || 'null'); }
+// Keys MUST match asimnexus.js so both clients share the same auth session.
+export const getStoredToken = () => localStorage.getItem('asimnexus_token');
+export const getStoredUser = () => {
+  try { return JSON.parse(localStorage.getItem('asimnexus_user') || 'null'); }
   catch { return null; }
 };
 export const setAuth = (token, user) => {
-  localStorage.setItem('asim_token', token);
-  localStorage.setItem('asim_user', JSON.stringify(user));
+  localStorage.setItem('asimnexus_token', token);
+  localStorage.setItem('asimnexus_user', JSON.stringify(user));
 };
 export const clearAuth = () => {
-  localStorage.removeItem('asim_token');
-  localStorage.removeItem('asim_user');
+  localStorage.removeItem('asimnexus_token');
+  localStorage.removeItem('asimnexus_user');
 };
 
 // ─── AUTH API ──────────────────────────────────────────

@@ -4,19 +4,19 @@
  * 51%/49% agreement, policies, and Personal Universe creation.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { authAPI } from '../../api/unified_api';
+import { authAPI } from '../../api/asimnexus';
 
 const STEPS = [
-  { id: 'welcome',      title: 'Welcome to AsimNexus',        desc: 'Multiversal Autonomous Operating System' },
-  { id: 'language',     title: 'Language & Region',           desc: 'Choose your preferred language' },
-  { id: 'device_scan',  title: 'Device Intelligence Scan',    desc: 'Auto-detect hardware & software' },
-  { id: 'identity',     title: 'Identity Verification',       desc: 'Biometric + Document + ZKP' },
-  { id: 'role',         title: 'Role Selection',                desc: 'Personal / Company / Community / Government' },
-  { id: 'agreement',    title: '51% / 49% Partnership',         desc: 'Sovereign control & partnership agreement' },
-  { id: 'policies',     title: 'Policies & Permissions',      desc: 'Data, Mesh, Dharma rules' },
-  { id: 'universe',     title: 'Personal Universe',             desc: 'Import data, skills, preferences' },
-  { id: 'confirm',      title: 'Final 3 Confirmation',          desc: 'Review & biometric approve' },
-  { id: 'activation',   title: 'Activation',                    desc: 'Your Asim Orb is ready' },
+  { id: 'welcome', title: 'Welcome to AsimNexus', desc: 'Multiversal Autonomous Operating System' },
+  { id: 'language', title: 'Language & Region', desc: 'Choose your preferred language' },
+  { id: 'device_scan', title: 'Device Intelligence Scan', desc: 'Auto-detect hardware & software' },
+  { id: 'identity', title: 'Identity Verification', desc: 'Biometric + Document + ZKP' },
+  { id: 'role', title: 'Role Selection', desc: 'Personal / Company / Community / Government' },
+  { id: 'agreement', title: '51% / 49% Partnership', desc: 'Sovereign control & partnership agreement' },
+  { id: 'policies', title: 'Policies & Permissions', desc: 'Data, Mesh, Dharma rules' },
+  { id: 'universe', title: 'Personal Universe', desc: 'Import data, skills, preferences' },
+  { id: 'confirm', title: 'Final 3 Confirmation', desc: 'Review & biometric approve' },
+  { id: 'activation', title: 'Activation', desc: 'Your Asim Orb is ready' },
 ];
 
 const LANGUAGES = [
@@ -27,19 +27,19 @@ const LANGUAGES = [
 ];
 
 const ROLES = [
-  { id: 'personal',   icon: '👤', label: 'Personal',   desc: '100% control of your life & data',        color: '#667eea' },
-  { id: 'company',    icon: '🏢', label: 'Company',    desc: '49% Partnership — Enterprise Universe',   color: '#3b82f6' },
-  { id: 'community',  icon: '🏘️', label: 'Community',  desc: 'Shared Mesh — Village/Community level',    color: '#f59e0b' },
-  { id: 'government', icon: '🏛️', label: 'Government', desc: '51% Sovereign — National Layer',         color: '#c9a84c' },
+  { id: 'personal', icon: '👤', label: 'Personal', desc: '100% control of your life & data', color: '#667eea' },
+  { id: 'company', icon: '🏢', label: 'Company', desc: '49% Partnership — Enterprise Universe', color: '#3b82f6' },
+  { id: 'community', icon: '🏘️', label: 'Community', desc: 'Shared Mesh — Village/Community level', color: '#f59e0b' },
+  { id: 'government', icon: '🏛️', label: 'Government', desc: '51% Sovereign — National Layer', color: '#c9a84c' },
 ];
 
 const POLICIES = [
-  { id: 'local_first',    label: 'Local-First Data',      desc: 'My data stays on my device primarily' },
-  { id: 'mesh_share',     label: 'Mesh Resource Sharing', desc: 'Share 2-5% compute/storage with mesh' },
-  { id: 'dharma_bind',    label: 'Dharma-Chakra Bind',    desc: 'Accept immutable ethical constitution' },
-  { id: 'zkp_verify',     label: 'Zero-Knowledge Proof',  desc: 'Verify identity without exposing data' },
-  { id: 'final3_confirm', label: 'Final 3 Confirmation',    desc: 'Biometric approval for critical actions' },
-  { id: 'dream_learn',    label: 'Dreaming Engine Learn', desc: 'Allow background AI optimization' },
+  { id: 'local_first', label: 'Local-First Data', desc: 'My data stays on my device primarily' },
+  { id: 'mesh_share', label: 'Mesh Resource Sharing', desc: 'Share 2-5% compute/storage with mesh' },
+  { id: 'dharma_bind', label: 'Dharma-Chakra Bind', desc: 'Accept immutable ethical constitution' },
+  { id: 'zkp_verify', label: 'Zero-Knowledge Proof', desc: 'Verify identity without exposing data' },
+  { id: 'final3_confirm', label: 'Final 3 Confirmation', desc: 'Biometric approval for critical actions' },
+  { id: 'dream_learn', label: 'Dreaming Engine Learn', desc: 'Allow background AI optimization' },
 ];
 
 function simulateDeviceScan() {

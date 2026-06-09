@@ -274,6 +274,24 @@ class MultiHopRouter:
         self._store_retry_task: Optional[asyncio.Task] = None
         self._running = False
 
+        # Phase 1C: Single-machine detection — skip multi-hop on localhost
+        self._single_machine = self._is_localhost()
+
+    # Phase 1C: Helper to detect localhost
+    def _is_localhost(self) -> bool:
+        """Check if we appear to be running on localhost (single-machine mode)."""
+        import socket
+        try:
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            # If the IP is 127.x.x.x, ::1, or we can detect loopback
+            if local_ip.startswith("127.") or local_ip == "::1":
+                return True
+        except Exception:
+            pass
+        # Also check common localhost aliases
+        return False
+
     async def start(self) -> None:
         """Start the multi-hop router."""
         self._running = True
@@ -311,7 +329,27 @@ class MultiHopRouter:
         Uses controlled flooding: broadcast PATH_DISCOVERY with TTL.
         Each intermediate peer that has a path to the destination responds.
         Returns the best path found (lowest latency, then fewest hops).
+
+        Phase 1C: On single-machine, returns a direct single-hop path immediately
+        — no network flooding needed.
         """
+        # Phase 1C: Single-machine short-circuit — direct single-hop path
+        if self._single_machine:
+            direct_path = RoutePath(
+                source_id=self._node_id,
+                destination_id=destination_id,
+                hops=[HopInfo(node_id=self._node_id)],
+                total_latency_ms=0.5,  # Loopback latency
+            )
+            async with self._routes_lock:
+                self._routes[destination_id] = [direct_path]
+                self._update_forwarding_table(destination_id, direct_path)
+            logger.info(
+                f"Single-machine direct path to {destination_id[:8]}... "
+                f"(1 hop, ~0.5ms)"
+            )
+            return direct_path
+
         # Check if we already have a valid route
         existing = await self._get_best_route(destination_id)
         if existing and not existing.is_expired:

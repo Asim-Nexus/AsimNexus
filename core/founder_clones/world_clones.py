@@ -28,7 +28,7 @@ import unicodedata
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ─── Environment variable defaults ───────────────────────────────────────────
 _DEFAULT_TIMEOUT_SEC     = int(os.getenv("ASIM_WORLDCLONE_TIMEOUT", "15"))
@@ -722,6 +722,213 @@ class WorldCloneOrchestrator:
         if not self._consensus_engine:
             return {"error": "ConsensusEngine not available"}
         return self._consensus_engine.get_stats()
+
+    # ─── Human Override Escalation ─────────────────────────────────────────────
+
+    _escalated_proposals: Dict[str, Dict[str, Any]] = {}
+
+    async def escalate_to_human(
+        self,
+        proposal_id: str,
+        reason: str = "Consensus could not be reached automatically",
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Escalate a proposal to human override.
+        Used when clones cannot reach consensus or when a critical decision
+        requires human approval (Level-3 Human Confirmation).
+        """
+        if not self._consensus_engine:
+            return {"error": "ConsensusEngine not available"}
+
+        proposal = self._consensus_engine.get_proposal(proposal_id)
+        if not proposal:
+            return {"error": f"Proposal {proposal_id} not found"}
+
+        escalation = {
+            "proposal_id": proposal_id,
+            "title": proposal.title,
+            "description": proposal.description,
+            "reason": reason,
+            "context": context or {},
+            "status": "pending_human_review",
+            "escalated_at": datetime.utcnow().isoformat(),
+            "resolved_at": None,
+            "human_decision": None,
+            "human_reason": "",
+        }
+        self._escalated_proposals[proposal_id] = escalation
+        logger.info(
+            f"⚠️  Proposal '{proposal.title}' escalated to human override: {reason}"
+        )
+        return escalation
+
+    async def resolve_human_override(
+        self,
+        proposal_id: str,
+        approved: bool,
+        reason: str = "",
+    ) -> Dict[str, Any]:
+        """Resolve an escalated proposal with a human decision (approve or reject)."""
+        escalation = self._escalated_proposals.get(proposal_id)
+        if not escalation:
+            return {"error": f"Proposal {proposal_id} not escalated"}
+
+        escalation["status"] = "resolved_by_human"
+        escalation["resolved_at"] = datetime.utcnow().isoformat()
+        escalation["human_decision"] = approved
+        escalation["human_reason"] = reason
+
+        logger.info(
+            f"👤 Human override on '{escalation['title']}': "
+            f"{'APPROVED' if approved else 'REJECTED'} - {reason}"
+        )
+        return escalation
+
+    async def get_escalated_proposals(
+        self,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get all proposals pending or resolved by human override."""
+        if status:
+            return [
+                e for e in self._escalated_proposals.values()
+                if e["status"] == status
+            ]
+        return list(self._escalated_proposals.values())
+
+    async def auto_escalate_if_needed(
+        self,
+        proposal_id: str,
+        approval_pct: float,
+        threshold_low: float = 0.35,
+        threshold_high: float = 0.65,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Automatically escalate a proposal to human if the approval percentage
+        is between threshold_low and threshold_high (the 'grey zone' where
+        consensus is ambiguous).
+        """
+        if threshold_low <= approval_pct <= threshold_high:
+            return await self.escalate_to_human(
+                proposal_id=proposal_id,
+                reason=(
+                    f"Approval {approval_pct:.1%} falls in grey zone "
+                    f"({threshold_low:.0%}-{threshold_high:.0%}). "
+                    f"Escalating for human decision."
+                ),
+                context={"approval_percentage": approval_pct},
+            )
+        return None
+
+    # ─── Delegation Management ─────────────────────────────────────────────────
+
+    _delegations: Dict[str, Dict[str, Any]] = {}
+
+    async def delegate_vote(
+        self,
+        from_role: str,
+        to_role: str,
+        proposal_id: Optional[str] = None,
+        ttl_seconds: int = 3600,
+    ) -> Dict[str, Any]:
+        """
+        Delegate voting power from one clone to another.
+        - from_role: The clone role delegating their vote (e.g. "Tech Architect")
+        - to_role: The clone role receiving the delegation
+        - proposal_id: If specified, delegation applies only to this proposal.
+                       If None, applies to all proposals (global delegation).
+        - ttl_seconds: Time-to-live in seconds (default 1 hour).
+        """
+        if not self._consensus_engine:
+            return {"error": "ConsensusEngine not available"}
+
+        from_voter_id = from_role.lower().replace(" ", "_")
+        to_voter_id = to_role.lower().replace(" ", "_")
+
+        # Verify both voters exist
+        voters = self._consensus_engine.get_registered_voters()
+        voter_ids = {v["id"] for v in voters}
+
+        if from_voter_id not in voter_ids:
+            return {"error": f"Voter '{from_role}' not registered"}
+        if to_voter_id not in voter_ids:
+            return {"error": f"Voter '{to_role}' not registered"}
+        if from_voter_id == to_voter_id:
+            return {"error": "Cannot delegate to self"}
+
+        import secrets
+        delegation_id = secrets.token_hex(8)
+        expires_at = (
+            datetime.utcnow() + timedelta(seconds=ttl_seconds)
+        ).isoformat()
+
+        delegation = {
+            "delegation_id": delegation_id,
+            "from_role": from_role,
+            "to_role": to_role,
+            "from_voter_id": from_voter_id,
+            "to_voter_id": to_voter_id,
+            "proposal_id": proposal_id or "*",
+            "created_at": datetime.utcnow().isoformat(),
+            "expires_at": expires_at,
+            "active": True,
+        }
+        self._delegations[delegation_id] = delegation
+
+        logger.info(
+            f"📜 Delegation: {from_role} -> {to_role} "
+            f"(id={delegation_id}, expires={expires_at})"
+        )
+        return delegation
+
+    async def revoke_delegation(self, delegation_id: str) -> Dict[str, Any]:
+        """Revoke an active delegation by its ID."""
+        delegation = self._delegations.get(delegation_id)
+        if not delegation:
+            return {"error": f"Delegation {delegation_id} not found"}
+        if not delegation["active"]:
+            return {"error": f"Delegation {delegation_id} already revoked"}
+
+        delegation["active"] = False
+        logger.info(f"Revoked delegation {delegation_id}")
+        return delegation
+
+    async def get_delegations(
+        self,
+        proposal_id: Optional[str] = None,
+        active_only: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Get all delegations, optionally filtered by proposal."""
+        now = datetime.utcnow()
+        result = []
+        for d in self._delegations.values():
+            if active_only and not d["active"]:
+                continue
+            if active_only:
+                expires = datetime.fromisoformat(d["expires_at"])
+                if now > expires:
+                    continue
+            if proposal_id and d["proposal_id"] not in (proposal_id, "*"):
+                continue
+            result.append(d)
+        return result
+
+    async def get_delegation_stats(self) -> Dict[str, Any]:
+        """Get statistics about active delegations."""
+        active = [d for d in self._delegations.values() if d["active"]]
+        now = datetime.utcnow()
+        not_expired = [
+            d for d in active
+            if datetime.fromisoformat(d["expires_at"]) > now
+        ]
+        return {
+            "total_delegations": len(self._delegations),
+            "active": len(active),
+            "not_expired": len(not_expired),
+            "from_roles": list(set(d["from_role"] for d in not_expired)),
+            "to_roles": list(set(d["to_role"] for d in not_expired)),
+        }
 
     def select_clones_for_task(self, message: str) -> List[CloneRole]:
         """Intelligently select which clones to involve — supports Nepali + Unicode."""

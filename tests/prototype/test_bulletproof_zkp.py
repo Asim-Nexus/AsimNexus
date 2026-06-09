@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from core.security.bulletproof_zkp import commit, prove_knowledge, verify, BulletProofZKP
+from core.security.bulletproof_zkp import commit, prove_knowledge, verify, BulletProofZKP, P, G, H
 
 
 class TestPedersenCommitment:
@@ -19,11 +19,8 @@ class TestPedersenCommitment:
     def test_commit_verifies(self):
         v, r = 100, 12345
         c, _ = commit(v, r)
-        assert c == (pow(2, v, 170141183460469231731687303715884105727) *
-                     pow(pow(2, int(__import__('hashlib').sha256(b"asimnexus_trapdoor").hexdigest(), 16) %
-                              ((170141183460469231731687303715884105727 - 1) // 2),
-                         170141183460469231731687303715884105727), r,
-                         170141183460469231731687303715884105727)) % 170141183460469231731687303715884105727
+        expected = (pow(G, v, P) * pow(H, r, P)) % P
+        assert c == expected
 
 
 class TestSchnorrProof:

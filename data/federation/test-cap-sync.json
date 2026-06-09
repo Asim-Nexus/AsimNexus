@@ -10,7 +10,7 @@
       "did": "did:example:cap",
       "endpoint": "ws://10.0.0.1:9000",
       "trusted": true,
-      "last_sync": 1780510921.60337,
+      "last_sync": 1780996087.7036493,
       "sync_count": 1
     }
   },
@@ -24,7 +24,7 @@
     "active_peers": {
       "add": {
         "837476530aa9b17a": [
-          "test-cap-sync:1780510921602370600:34"
+          "test-cap-sync:1780996087700648600:41"
         ]
       },
       "rem": {}
@@ -32,10 +32,10 @@
     "capabilities": {
       "add": {
         "mesh-net": [
-          "remote-cap:1780510921603370100:35"
+          "remote-cap:1780996087703649200:42"
         ],
         "ai-orchestrator": [
-          "remote-cap:1780510921603370100:36"
+          "remote-cap:1780996087703649200:43"
         ]
       },
       "rem": {}
@@ -50,6 +50,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1780510921.60337
+    "ts": 1780996087.7036493
   }
 }

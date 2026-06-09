@@ -38,6 +38,12 @@ class ASIMLLMEngine:
         self.port = port
         self.llm: Optional[Llama] = None
         self.app = FastAPI(title="ASIMNEXUS LLM Engine", version="1.0.0")
+        try:
+            from core.rate_limiter_middleware import RateLimiterMiddleware
+            self.app.add_middleware(RateLimiterMiddleware)
+            logger.info("✅ RateLimiterMiddleware registered on LLM Engine")
+        except Exception:
+            pass
         self.config = self._load_config()
         self._setup_routes()
         

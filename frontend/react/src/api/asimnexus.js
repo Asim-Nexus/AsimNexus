@@ -15,10 +15,9 @@
  */
 
 import axios from 'axios';
-import { API_BASE_URL } from './unified_api';
 
-// Use centralized API base URL from unified_api (falls back to same-origin when empty)
-const BASE = API_BASE_URL || process.env.REACT_APP_API_URL || '';
+// API base URL from environment variable (falls back to localhost:8000)
+const BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: BASE,
@@ -37,14 +36,56 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for unified error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Normalize successful responses: wrap non-standard shapes
+    if (response.data && typeof response.data === 'object' && !response.data.success && !response.data.status) {
+      response.data = { success: true, ...response.data };
+    }
+    return response;
+  },
   (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
+    const status = error.response?.status;
+    const data = error.response?.data;
+
+    // Auth failures — clear token on 401
+    if (status === 401) {
+      console.warn('[API] Unauthorized — clearing auth token');
+      localStorage.removeItem('asimnexus_token');
+      localStorage.removeItem('asimnexus_user');
+    }
+
+    // Build a structured error object
+    const apiError = {
+      status,
+      message: data?.detail || data?.message || error.message || 'Unknown API error',
+      data: data || null,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+      },
+    };
+
+    console.warn(`[API] ${error.config?.method?.toUpperCase() || '??'} ${error.config?.url || '??'} → ${status || 'ERR'}`, apiError.message);
+    return Promise.reject(apiError);
   }
 );
+
+// ─── AUTH HELPERS ──────────────────────────────────────────────
+export const getStoredToken = () => localStorage.getItem('asimnexus_token');
+export const getStoredUser = () => {
+  try { return JSON.parse(localStorage.getItem('asimnexus_user') || 'null'); }
+  catch { return null; }
+};
+export const setAuth = (token, user) => {
+  localStorage.setItem('asimnexus_token', token);
+  localStorage.setItem('asimnexus_user', JSON.stringify(user));
+};
+export const clearAuth = () => {
+  localStorage.removeItem('asimnexus_token');
+  localStorage.removeItem('asimnexus_user');
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // AUTHENTICATION API
@@ -54,15 +95,27 @@ api.interceptors.response.use(
 export const authAPI = {
   /** POST /auth/login — expects JSON body {email, password} */
   login: (email, password) =>
-    api.post('/auth/login', { email, password }),
+    api.post('/auth/login', { email, password }).then(res => {
+      if (res.data?.success) {
+        setAuth(res.data.token, res.data.user);
+      }
+      return res.data;
+    }),
 
-  /** POST /auth/register — expects JSON body {email, password, display_name?, country_code?} */
-  register: (email, password, displayName = null, countryCode = 'NP') =>
+  /** POST /auth/register — expects JSON body {email, password, display_name?, phone?, country_code?, national_id?} */
+  register: (displayName, email, password, phone = null, countryCode = 'NP', nationalId = null) =>
     api.post('/auth/register', {
       email,
       password,
       display_name: displayName,
+      phone,
       country_code: countryCode,
+      national_id: nationalId,
+    }).then(res => {
+      if (res.data?.success) {
+        setAuth(res.data.token, res.data.user);
+      }
+      return res.data;
     }),
 
   /** GET /auth/me — returns user profile from Bearer token */
@@ -567,6 +620,90 @@ export const universalAPI = {
 //                 POST /api/dharma/cultural-check, etc.
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════
+// IDENTITY / ZKP API
+// Backend routes: GET /api/identity/stats, GET /api/identity/list,
+//                 POST /api/identity/create, POST /api/identity/verify
+// ═══════════════════════════════════════════════════════════════════
+
+export const identityAPI = {
+  /** GET /api/identity/stats — identity system statistics */
+  getStats: () => api.get('/api/identity/stats'),
+
+  /** GET /api/identity/list — list all identities */
+  getList: () => api.get('/api/identity/list'),
+
+  /** POST /api/identity/create — create a new ZKP identity */
+  create: (data) => api.post('/api/identity/create', data),
+
+  /** POST /api/identity/verify — verify a ZKP identity */
+  verify: (data) => api.post('/api/identity/verify', data),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SVT TOKEN API
+// Backend routes: GET /api/svt/stats, POST /api/svt/wallet,
+//                 POST /api/svt/mint, GET /api/svt/wallet/{did}
+// ═══════════════════════════════════════════════════════════════════
+
+export const svtAPI = {
+  /** GET /api/svt/stats — SVT token system statistics */
+  getStats: () => api.get('/api/svt/stats'),
+
+  /** POST /api/svt/wallet — create wallet for a DID */
+  createWallet: (did) => api.post('/api/svt/wallet', { did }),
+
+  /** POST /api/svt/mint — mint SVT tokens */
+  mint: (did, amount, memo = '') => api.post('/api/svt/mint', { did, amount, memo }),
+
+  /** GET /api/svt/wallet/{did} — get wallet info */
+  getWallet: (did) => api.get(`/api/svt/wallet/${did}`),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// HDT (HUMAN DIGITAL TWIN) API
+// Backend routes: POST /api/hdt/create, GET /api/hdt/{did}/status,
+//                 POST /api/hdt/{did}/skill, POST /api/hdt/{did}/announce
+// ═══════════════════════════════════════════════════════════════════
+
+export const hdtAPI = {
+  /** POST /api/hdt/create — create a Human Digital Twin */
+  create: (data) => api.post('/api/hdt/create', data),
+
+  /** GET /api/hdt/{did}/status — get HDT status */
+  getStatus: (did) => api.get(`/api/hdt/${did}/status`),
+
+  /** POST /api/hdt/{did}/skill — add a skill to HDT */
+  addSkill: (did, data) => api.post(`/api/hdt/${did}/skill`, data),
+
+  /** POST /api/hdt/{did}/announce — announce skills to DHT mesh */
+  announce: (did) => api.post(`/api/hdt/${did}/announce`, {}),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// WORLD OS / QUAD MESH API
+// Backend routes: GET /api/quad/status, GET /api/bugs/stats,
+//                 GET /api/dht/status, GET /api/firewall/status
+// ═══════════════════════════════════════════════════════════════════
+
+export const worldOSAPI = {
+  /** GET /api/quad/status — quad mesh layer status */
+  getQuadStatus: () => api.get('/api/quad/status'),
+
+  /** GET /api/bugs/stats — self-healing bug pipeline stats */
+  getBugStats: () => api.get('/api/bugs/stats'),
+
+  /** GET /api/dht/status — Kademlia DHT status */
+  getDHTStatus: () => api.get('/api/dht/status'),
+
+  /** GET /api/firewall/status — cognitive firewall status */
+  getFirewallStatus: () => api.get('/api/firewall/status'),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// DHARMA / ETHICS API
+// ═══════════════════════════════════════════════════════════════════
+
 export const dharmaAPI = {
   /** GET /api/dharma/status — ΔT engine status */
   getStatus: () => api.get('/api/dharma/status'),
@@ -776,9 +913,10 @@ export const osToolsAPI = {
   /** GET /api/os/tools — list available OS tools */
   listTools: () => api.get('/api/os/tools'),
 
-  /** POST /api/os/execute — execute an OS tool */
-  execute: (tool, params = {}) =>
-    api.post('/api/os/execute', { tool, params }),
+  /** POST /api/os/execute — execute an OS tool
+   *  Backend expects: { tool_name, parameters, agent_name? } */
+  execute: (toolName, params = {}, agentName = 'AutoModeAgent') =>
+    api.post('/api/os/execute', { tool_name: toolName, parameters: params, agent_name: agentName }),
 
   /** GET /api/os/status — OS control system status */
   getStatus: () => api.get('/api/os/status'),
@@ -800,6 +938,114 @@ export const osToolsAPI = {
 
   /** GET /api/os/clipboard/status — clipboard access status */
   getClipboardStatus: () => api.get('/api/os/clipboard/status'),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ECONOMY / MARKETPLACE EXPANDED API
+// Backend routes: /api/credits/*, /api/contracts/*, /api/hybrid-economy/*
+//                 /api/reputation/*, /api/task-bus/*, /api/bridge/*
+//                 /api/marketplace/*
+// ═══════════════════════════════════════════════════════════════════
+
+export const hybridEconomyAPI = {
+  getSummary: () => api.get('/api/hybrid-economy/summary'),
+  setMode: (mode) => api.post('/api/hybrid-economy/mode', { mode }),
+  createAccount: (ownerId, ownerType, initialBalance = 0) =>
+    api.post('/api/hybrid-economy/account', { owner_id: ownerId, owner_type: ownerType, initial_balance: initialBalance }),
+  getAccount: (ownerId) => api.get(`/api/hybrid-economy/account/${ownerId}`),
+  listAccounts: (ownerType) => api.get('/api/hybrid-economy/accounts', { params: { owner_type: ownerType } }),
+  deposit: (ownerId, amount, memo = '') => api.post('/api/hybrid-economy/deposit', { owner_id: ownerId, amount, memo }),
+  withdraw: (ownerId, amount, memo = '') => api.post('/api/hybrid-economy/withdraw', { owner_id: ownerId, amount, memo }),
+  transfer: (fromId, toId, amount, memo = '') => api.post('/api/hybrid-economy/transfer', { from_id: fromId, to_id: toId, amount, memo }),
+  createTask: (description, requesterId, reward, category = 'general') =>
+    api.post('/api/hybrid-economy/task', { description, requester_id: requesterId, reward, category }),
+  assignTask: (taskId, executorId) => api.post('/api/hybrid-economy/task/assign', { task_id: taskId, executor_id: executorId }),
+  listTasks: (params = {}) => api.get('/api/hybrid-economy/tasks', { params }),
+};
+
+export const reputationAPI = {
+  getStats: () => api.get('/api/reputation/stats'),
+  getLeaderboard: (limit = 10) => api.get('/api/reputation/leaderboard', { params: { limit } }),
+  register: (entityId, initialScore = 0) => api.post('/api/reputation/register', { entity_id: entityId, initial_score: initialScore }),
+  get: (entityId) => api.get(`/api/reputation/${entityId}`),
+  getEvents: (entityId, limit = 50) => api.get(`/api/reputation/${entityId}/events`, { params: { limit } }),
+  add: (entityId, amount, reason = '') => api.post('/api/reputation/add', { entity_id: entityId, amount, reason }),
+  remove: (entityId, amount, reason = '') => api.post('/api/reputation/remove', { entity_id: entityId, amount, reason }),
+  stake: (entityId, amount, reason = '') => api.post('/api/reputation/stake', { entity_id: entityId, amount, reason }),
+  unstake: (stakeId) => api.post('/api/reputation/unstake', { stake_id: stakeId }),
+  slash: (stakeId, penaltyPct = 1.0, reason = '') => api.post('/api/reputation/slash', { stake_id: stakeId, penalty_pct: penaltyPct, reason }),
+};
+
+export const taskBusAPI = {
+  getStatus: () => api.get('/api/task-bus/status'),
+  registerAgent: (agentId, capabilities = [], displayName = '', maxConcurrent = 5) =>
+    api.post('/api/task-bus/agent/register', { agent_id: agentId, capabilities, display_name: displayName, max_concurrent: maxConcurrent }),
+  unregisterAgent: (agentId) => api.post(`/api/task-bus/agent/${agentId}/unregister`),
+  listAgents: (onlineOnly = false) => api.get('/api/task-bus/agents', { params: { online_only: onlineOnly } }),
+  submitTask: (taskType, payload = {}, priority = 'medium', maxRetries = 3) =>
+    api.post('/api/task-bus/task/submit', { task_type: taskType, payload, priority, max_retries: maxRetries }),
+  assignNext: (agentId) => api.post('/api/task-bus/task/assign-next', { agent_id: agentId }),
+  listTasks: (params = {}) => api.get('/api/task-bus/tasks', { params }),
+  getTask: (taskId) => api.get(`/api/task-bus/task/${taskId}`),
+  startTask: (taskId, agentId) => api.post(`/api/task-bus/task/${taskId}/start`, null, { params: { agent_id: agentId } }),
+  completeTask: (taskId, agentId) => api.post(`/api/task-bus/task/${taskId}/complete`, { task_id: taskId, agent_id: agentId }),
+  failTask: (taskId, agentId, error) => api.post(`/api/task-bus/task/${taskId}/fail`, { task_id: taskId, agent_id: agentId, error }),
+  cancelTask: (taskId) => api.post(`/api/task-bus/task/${taskId}/cancel`),
+  heartbeat: (agentId) => api.post(`/api/task-bus/agent/${agentId}/heartbeat`),
+};
+
+export const bridgeAPI = {
+  getStats: () => api.get('/api/bridge/stats'),
+  createPool: (chain, tokenSymbol, initialBalance = 0) =>
+    api.post('/api/bridge/pool/create', { chain, token_symbol: tokenSymbol, initial_balance: initialBalance }),
+  listPools: (chain) => api.get('/api/bridge/pools', { params: { chain } }),
+  addLiquidity: (poolId, amount) => api.post('/api/bridge/pool/add-liquidity', { pool_id: poolId, amount }),
+  removeLiquidity: (poolId, amount) => api.post('/api/bridge/pool/remove-liquidity', { pool_id: poolId, amount }),
+  initiate: (fromChain, toChain, asset, amount, sender, recipient) =>
+    api.post('/api/bridge/initiate', { from_chain: fromChain, to_chain: toChain, asset, amount, sender, recipient }),
+  getTransaction: (txId) => api.get(`/api/bridge/tx/${txId}`),
+  listTransactions: (params = {}) => api.get('/api/bridge/transactions', { params }),
+  calculateFee: (fromChain, amount) => api.get('/api/bridge/fee', { params: { from_chain: fromChain, amount } }),
+};
+
+export const marketplaceAPI = {
+  getGlobalStats: () => api.get('/api/marketplace/global-stats'),
+  search: (q, module = null, limit = 10) => api.get('/api/marketplace/search', { params: { q, module, limit } }),
+
+  // ── Listings ──
+  createListing: (data, sellerId) => api.post('/api/marketplace/listings', data, { params: { seller_id: sellerId } }),
+  listListings: (params) => api.get('/api/marketplace/listings', { params }),
+  getListing: (id) => api.get(`/api/marketplace/listings/${id}`),
+  updateListing: (id, data, sellerId) => api.put(`/api/marketplace/listings/${id}`, data, { params: { seller_id: sellerId } }),
+  pauseListing: (id, sellerId) => api.post(`/api/marketplace/listings/${id}/pause`, {}, { params: { seller_id: sellerId } }),
+  activateListing: (id, sellerId) => api.post(`/api/marketplace/listings/${id}/activate`, {}, { params: { seller_id: sellerId } }),
+  cancelListing: (id, sellerId) => api.post(`/api/marketplace/listings/${id}/cancel`, {}, { params: { seller_id: sellerId } }),
+
+  // ── Cart ──
+  getCart: (userId) => api.get(`/api/marketplace/cart/${userId}`),
+  addToCart: (userId, listingId, quantity = 1) => api.post(`/api/marketplace/cart/${userId}/add`, { listing_id: listingId, quantity }),
+  removeFromCart: (userId, listingId) => api.post(`/api/marketplace/cart/${userId}/remove`, {}, { params: { listing_id: listingId } }),
+  updateCartItem: (userId, listingId, quantity) => api.post(`/api/marketplace/cart/${userId}/update`, { listing_id: listingId, quantity }),
+  clearCart: (userId) => api.post(`/api/marketplace/cart/${userId}/clear`),
+  checkout: (userId, data) => api.post(`/api/marketplace/cart/${userId}/checkout`, data),
+
+  // ── Orders ──
+  listOrders: (params) => api.get('/api/marketplace/orders', { params }),
+  getOrder: (id) => api.get(`/api/marketplace/orders/${id}`),
+  payOrder: (id, paymentTxId) => api.post(`/api/marketplace/orders/${id}/pay`, { payment_tx_id: paymentTxId }),
+  fulfillOrder: (id, sellerId) => api.post(`/api/marketplace/orders/${id}/fulfill`, {}, { params: { seller_id: sellerId } }),
+  completeOrder: (id, buyerId) => api.post(`/api/marketplace/orders/${id}/complete`, {}, { params: { buyer_id: buyerId } }),
+  cancelOrder: (id, userId) => api.post(`/api/marketplace/orders/${id}/cancel`, {}, { params: { user_id: userId } }),
+  disputeOrder: (id, userId, reason) => api.post(`/api/marketplace/orders/${id}/dispute`, { reason }, { params: { user_id: userId } }),
+  refundOrder: (id, resolverId) => api.post(`/api/marketplace/orders/${id}/refund`, {}, { params: { resolver_id: resolverId } }),
+
+  // ── Reviews ──
+  addReview: (orderId, reviewerId, rating, title = '', body = '') =>
+    api.post(`/api/marketplace/orders/${orderId}/review`, { rating, title, body }, { params: { reviewer_id: reviewerId } }),
+  listReviews: (params) => api.get('/api/marketplace/reviews', { params }),
+
+  // ── Stats ──
+  getEngineStats: () => api.get('/api/marketplace/stats'),
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -849,6 +1095,18 @@ export const asimnexusAPI = {
   // ── Universal (World OS) ──
   ...universalAPI,
 
+  // ── Identity / ZKP ──
+  ...identityAPI,
+
+  // ── SVT Token ──
+  ...svtAPI,
+
+  // ── HDT (Human Digital Twin) ──
+  ...hdtAPI,
+
+  // ── World OS / Quad Mesh ──
+  ...worldOSAPI,
+
   // ── Dharma / Ethics ──
   ...dharmaAPI,
 
@@ -863,6 +1121,21 @@ export const asimnexusAPI = {
 
   // ── Jobs / Marketplace ──
   ...jobsAPI,
+
+  // ── Hybrid Economy ──
+  ...hybridEconomyAPI,
+
+  // ── Reputation ──
+  ...reputationAPI,
+
+  // ── Task Bus ──
+  ...taskBusAPI,
+
+  // ── Token Bridge ──
+  ...bridgeAPI,
+
+  // ── Marketplace Search ──
+  ...marketplaceAPI,
 
   // ── Dreaming / AI Consciousness ──
   ...dreamingAPI,
@@ -1013,5 +1286,25 @@ export const asimnexusAPI = {
     return api.get('/status');
   },
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// STARTUP HEALTH CHECK
+// Call once on app init to verify backend connectivity.
+// ═══════════════════════════════════════════════════════════════════
+
+export async function checkBackendHealth() {
+  try {
+    const res = await api.get('/health');
+    const data = res.data || res;
+    const healthy = data?.status === 'ok' || data?.success || !!data;
+    if (healthy) {
+      console.log('[AsimNexus] ✅ Backend connected:', data?.status || 'healthy');
+    }
+    return { healthy, data };
+  } catch (err) {
+    console.warn('[AsimNexus] ⚠️ Backend unreachable — running in offline/fallback mode');
+    return { healthy: false, data: null };
+  }
+}
 
 export default api;

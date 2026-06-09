@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getStoredToken } from '../../api/unified_api';
+const getStoredToken = () => localStorage.getItem('asim_token');
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -54,7 +54,7 @@ export default function AgentMarketplacePanel({ user }) {
       const r = await fetch(`${API}/api/jobs/stats`, { headers: authHeaders() });
       const d = await r.json();
       setStats(d);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => { fetchJobs(); fetchStats(); }, [fetchJobs]);

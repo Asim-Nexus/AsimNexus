@@ -1,0 +1,24 @@
+# Secrets & Credentials
+secrets/
+*.p12
+*.p8
+*.jks
+*.keystore
+*.key
+google-play-service-account.json
+GoogleService-Info.plist
+apple-developer-cert.p12
+
+# Build artifacts
+release/
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.pkg
+
+# Temporary
+*.log
+.env.local

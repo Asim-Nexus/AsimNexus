@@ -183,6 +183,9 @@ class MeshNode:
         # Locks
         self._lock = asyncio.Lock()
 
+        # Startup timestamp
+        self._start_time = time.time()
+
     # ─── Lifecycle ────────────────────────────────────────────────────────────
 
     async def start(self) -> bool:
@@ -355,17 +358,21 @@ class MeshNode:
 
             # Run NAT classification
             try:
-                classification = await self._nat_detector.classify()
-                self._nat_type = classification.nat_type.value
-                if classification.public_address:
-                    self._public_address = (
-                        classification.public_address.ip_address,
-                        classification.public_address.port,
+                if self._nat_detector is None:
+                    logger.warning("NAT detector not available")
+                    self._nat_type = "unknown"
+                else:
+                    classification = await self._nat_detector.classify()
+                    self._nat_type = classification.nat_type.value
+                    if classification.public_address:
+                        self._public_address = (
+                            classification.public_address.ip_address,
+                            classification.public_address.port,
+                        )
+                    logger.info(
+                        f"NAT classification: {self._nat_type} "
+                        f"(public: {self._public_address})"
                     )
-                logger.info(
-                    f"NAT classification: {self._nat_type} "
-                    f"(public: {self._public_address})"
-                )
             except Exception as exc:
                 logger.warning(f"NAT classification failed: {exc}")
                 self._nat_type = "unknown"
@@ -419,13 +426,13 @@ class MeshNode:
     async def _start_dht(self) -> bool:
         """Start the Kademlia DHT."""
         try:
-            from mesh.kademlia_dht import get_kademlia_dht
+            from mesh.kademlia_dht import get_kademlia_dht, NodeID
 
+            dht_node_id = NodeID.from_string(self._config.node_id)
             self._dht = get_kademlia_dht(
-                node_id=self._config.node_id,
-                transport=self._transport,
+                node_id=dht_node_id,
             )
-            await self._dht.start()
+            await self._dht.start(transport=self._transport)
             self._register_health("dht", True)
             logger.info("Kademlia DHT started")
             return True
@@ -625,6 +632,9 @@ class MeshNode:
             from mesh.p2p_integration import get_p2p_integration
             self._p2p_integration = get_p2p_integration(
                 node_id=self._config.node_id,
+                kademlia_dht=self._dht,
+                crdt_store=self._crdt_store,
+                bootstrap_service=self._bootstrap,
             )
             await self._p2p_integration.start()
             self._register_health("p2p_integration", True)
@@ -856,7 +866,7 @@ class MeshNode:
         try:
             from mesh.p2p_transport import P2PMessage, RPCMessageType
             msg = P2PMessage(
-                msg_type=RPCMessageType.MULTIHOP_ROUTE.value,
+                msg_type=RPCMessageType.DIRECT_MESSAGE.value,
                 sender_id=self._config.node_id,
                 msg_id=str(uuid.uuid4()),
                 payload=payload,
@@ -879,7 +889,7 @@ class MeshNode:
         try:
             from mesh.p2p_transport import P2PMessage, RPCMessageType
             msg = P2PMessage(
-                msg_type=RPCMessageType.MULTIHOP_ROUTE.value,
+                msg_type=RPCMessageType.DIRECT_MESSAGE.value,
                 sender_id=self._config.node_id,
                 msg_id=str(uuid.uuid4()),
                 payload=payload,
@@ -1058,11 +1068,6 @@ class MeshNode:
         if self._start_time:
             return time.time() - self._start_time
         return 0.0
-
-    _start_time: float = 0.0
-
-    def __post_init__(self):
-        self._start_time = time.time()
 
     def get_known_peers(self) -> Dict[str, Dict[str, Any]]:
         """Get dictionary of known peers."""

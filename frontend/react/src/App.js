@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ApiService from './services/api';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
+// API — unified barrel import
+import { getStoredToken, getStoredUser, clearAuth, healthAPI, osToolsAPI, toolsAPI, checkBackendHealth } from './api';
+
 // Layout Components
 import AuthPage from './components/layout/AuthPage';
 import OnboardingPage from './components/layout/OnboardingPage';
@@ -23,8 +26,16 @@ import IdentityHub from './components/pages/IdentityHub';
 import NetworkHub from './components/pages/NetworkHub';
 import LifeHub from './components/pages/LifeHub';
 
+// Odysseus Agent Integration
+import AgentChat from './components/odysseus/AgentChat';
+import MCPServiceBrowser from './components/odysseus/MCPServiceBrowser';
+import AgentSessionPanel from './components/odysseus/AgentSessionPanel';
+import ToolAuditView from './components/odysseus/ToolAuditView';
+import ToolConfirmationDialog from './components/odysseus/ToolConfirmationDialog';
+import { ToolConfirmationProvider, useToolConfirmation } from './components/odysseus/ToolConfirmationContext';
+import './components/odysseus/odysseus.css';
+
 import useAIPersonalization from './hooks/useAIPersonalization';
-import { getStoredToken, getStoredUser, clearAuth } from './api/unified_api';
 import './App.css';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -88,21 +99,62 @@ function AppShell({ currentUser, onLogout }) {
   const [theme, setTheme] = useState(currentUser?.theme || 'deep-space');
   const [universeMode, setUniverseMode] = useState(currentUser?.universe_mode || 'personal');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingExecution, setPendingExecution] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { openDialog, closeDialog } = useToolConfirmation();
 
   useEffect(() => { applyTheme(theme); }, [theme]);
+
+  // Health check on app start — verify backend connectivity
+  useEffect(() => {
+    checkBackendHealth();
+  }, []);
+
+  // Poll for pending tool executions requiring human approval
+  useEffect(() => {
+    const checkPending = async () => {
+      try {
+        const res = await toolsAPI.pending();
+        const pendingList = res.data?.pending || res.data?.executions || [];
+        if (pendingList.length > 0) {
+          setPendingExecution(pendingList[0]);
+          setDialogOpen(true);
+        }
+      } catch {
+        // Silently handle — backend may not support this endpoint yet
+      }
+    };
+    const interval = setInterval(checkPending, 5000);
+    checkPending();
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleToolApproved = useCallback(() => {
+    setDialogOpen(false);
+    setPendingExecution(null);
+  }, []);
+
+  const handleToolRejected = useCallback(() => {
+    setDialogOpen(false);
+    setPendingExecution(null);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+    setPendingExecution(null);
+  }, []);
 
   const handleChatCommand = useCallback((cmd) => {
     if (!cmd) return;
     if (cmd.type === 'theme') { setTheme(cmd.value); applyTheme(cmd.value); }
     if (cmd.type === 'universe') setUniverseMode(cmd.value);
     if (cmd.type === 'os') {
-      const api = new ApiService();
       const toolName = cmd.tool_name || 'hw.status';
       const params = cmd.parameters || {};
-      api.executeOsTool(toolName, params).then(result => {
-        console.log(`🖥️ OS tool [${toolName}] executed:`, result);
+      osToolsAPI.execute(toolName, params).then(result => {
+        console.log(`[OS] tool [${toolName}] executed:`, result);
       }).catch(err => {
-        console.error(`⚠️ OS tool [${toolName}] error:`, err);
+        console.error(`[OS] tool [${toolName}] error:`, err);
       });
     }
   }, []);
@@ -295,9 +347,13 @@ function AppShell({ currentUser, onLogout }) {
           <div style={{ position: 'relative', zIndex: 2, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Routes>
               {/* Core Routes */}
-              <Route path="/" element={<UniversalChat user={currentUser} onCommand={handleChatCommand} />} />
+              <Route path="/" element={<AgentChat user={currentUser} onCommand={handleChatCommand} />} />
               <Route path="/chat" element={<UniversalChat user={currentUser} onCommand={handleChatCommand} />} />
               <Route path="/dashboard" element={<div style={{ flex: 1, overflow: 'auto', padding: 16 }}><Dashboard user={currentUser} universeMode={universeMode} theme={theme} /></div>} />
+
+              {/* Odysseus Agent Routes */}
+              <Route path="/agent" element={<AgentSessionPanel user={currentUser} />} />
+              <Route path="/audit" element={<ToolAuditView user={currentUser} />} />
 
               {/* Consolidated Hubs */}
               <Route path="/os" element={<OSHub user={currentUser} />} />
@@ -313,11 +369,13 @@ function AppShell({ currentUser, onLogout }) {
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage user={currentUser} />} />
 
+              {/* MCP Browser (before legacy redirect) */}
+              <Route path="/mcp" element={<MCPServiceBrowser user={currentUser} />} />
+
               {/* Legacy Redirects (backward compatibility) */}
               <Route path="/personal" element={<OSHub user={currentUser} />} />
               <Route path="/world-os" element={<OSHub user={currentUser} />} />
               <Route path="/os-panel" element={<OSHub user={currentUser} />} />
-              <Route path="/mcp" element={<EconomyHub user={currentUser} />} />
               <Route path="/contracts" element={<EconomyHub user={currentUser} />} />
               <Route path="/clones" element={<EconomyHub user={currentUser} />} />
               <Route path="/memory" element={<AIHub user={currentUser} />} />
@@ -325,7 +383,7 @@ function AppShell({ currentUser, onLogout }) {
               <Route path="/mesh" element={<NetworkHub user={currentUser} />} />
 
               {/* Onboarding */}
-              <Route path="/onboard" element={<OnboardingPage onComplete={(user, token) => { localStorage.setItem('token', token); localStorage.setItem('user', JSON.stringify(user)); window.location.href = '/'; }} />} />
+              <Route path="/onboard" element={<OnboardingPage onComplete={(user, token) => { localStorage.setItem('asimnexus_token', token); localStorage.setItem('asimnexus_user', JSON.stringify(user)); window.location.href = '/'; }} />} />
 
               {/* Catch All */}
               <Route path="*" element={<UniversalChat user={currentUser} onCommand={handleChatCommand} />} />
@@ -333,6 +391,14 @@ function AppShell({ currentUser, onLogout }) {
           </div>
         </main>
       </div>
+      {/* ── Global Tool Confirmation Dialog ── */}
+      <ToolConfirmationDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        execution={pendingExecution}
+        onApproved={handleToolApproved}
+        onRejected={handleToolRejected}
+      />
     </div>
   );
 }
@@ -381,14 +447,16 @@ function App() {
   return (
     <ErrorBoundary>
       <ChatProvider>
-        <Router>
-          <AppShell currentUser={currentUser} onLogout={handleLogout} />
-          <AsimOrb
-            user={currentUser}
-            onCommand={(cmd) => console.log('Orb command:', cmd)}
-            systemMetrics={{ health: 0.85, mesh_health: 0.9, work: 0.75, wallet: 0.7 }}
-          />
-        </Router>
+        <ToolConfirmationProvider>
+          <Router>
+            <AppShell currentUser={currentUser} onLogout={handleLogout} />
+            <AsimOrb
+              user={currentUser}
+              onCommand={(cmd) => console.log('Orb command:', cmd)}
+              systemMetrics={{ health: 0.85, mesh_health: 0.9, work: 0.75, wallet: 0.7 }}
+            />
+          </Router>
+        </ToolConfirmationProvider>
       </ChatProvider>
     </ErrorBoundary>
   );

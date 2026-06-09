@@ -3,7 +3,7 @@
  * Every person creates their own Personal OS here.
  */
 import React, { useState } from 'react';
-import { authAPI, getStoredUser } from '../../api/unified_api';
+import { authAPI, getStoredUser } from '../../api/asimnexus';
 
 const COUNTRIES = [
   { code: 'NP', name: 'Nepal 🇳🇵' },
@@ -161,11 +161,15 @@ const styles = {
   logoImage: { width: '100px', height: '100px', objectFit: 'contain', marginBottom: '16px', borderRadius: '50%', background: 'rgba(26, 26, 46, 0.3)', padding: '12px' },
   title: { color: '#fff', fontSize: '28px', fontWeight: '700', margin: '0 0 6px' },
   subtitle: { color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: 0 },
-  tabs: { display: 'flex', gap: '8px', marginBottom: '24px', background: 'rgba(0,0,0,0.3)',
-    borderRadius: '10px', padding: '4px' },
-  tab: { flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+  tabs: {
+    display: 'flex', gap: '8px', marginBottom: '24px', background: 'rgba(0,0,0,0.3)',
+    borderRadius: '10px', padding: '4px'
+  },
+  tab: {
+    flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
     cursor: 'pointer', fontSize: '14px', fontWeight: '600',
-    background: 'transparent', color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s' },
+    background: 'transparent', color: 'rgba(255,255,255,0.5)', transition: 'all 0.2s'
+  },
   tabActive: { background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff' },
   form: { display: 'flex', flexDirection: 'column', gap: '16px' },
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },

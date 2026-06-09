@@ -47,12 +47,26 @@ from core.digital_twin_system import Gender, get_digital_twin_system
 from core.agi_core import get_agi_core, ReasoningMode
 from core.quantum_bridge import get_quantum_bridge, QuantumAlgorithm, QuantumProvider
 from core.blockchain_identity_advanced import (
-    get_blockchain_identity_advanced, 
-    BlockchainNetwork, 
+    get_blockchain_identity_advanced,
+    BlockchainNetwork,
     AttestationType
 )
-from core.global_mesh import get_global_mesh_network, Region
-from core.life_protocol_automation import get_life_protocol_automation
+
+# Optional imports — these modules may not exist yet
+try:
+    from core.global_mesh import get_global_mesh_network, Region
+except ImportError:
+    get_global_mesh_network = None
+    Region = None
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ core.global_mesh not available — mesh endpoints will use fallback")
+
+try:
+    from core.life_protocol_automation import get_life_protocol_automation
+except ImportError:
+    get_life_protocol_automation = None
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ core.life_protocol_automation not available — life protocol endpoints will use fallback")
 
 # Setup logging
 logging.basicConfig(
@@ -221,6 +235,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting middleware
+try:
+    from core.rate_limiter_middleware import RateLimiterMiddleware
+    app.add_middleware(RateLimiterMiddleware)
+    logger.info("✅ RateLimiterMiddleware registered on unified API")
+except Exception as e:
+    logger.warning(f"⚠️ RateLimiterMiddleware registration skipped: {e}")
 
 # ============ HEALTH & STATS ENDPOINTS ============
 
@@ -683,24 +705,30 @@ async def get_life_tasks():
 
 # ============ LOCAL LLM ENDPOINTS ============
 
-from core.local_llm_manager import register_local_llm_routes, get_local_llm_manager
-
-# Register local LLM routes
-register_local_llm_routes(app)
+try:
+    from core.local_llm_manager import register_local_llm_routes, get_local_llm_manager
+    # Register local LLM routes
+    register_local_llm_routes(app)
+except ImportError:
+    register_local_llm_routes = None
+    get_local_llm_manager = None
 
 @app.get("/api/local-llm/health", tags=["Local LLM"])
 async def check_local_llm_health():
     """Check local LLM services health"""
-    manager = get_local_llm_manager()
-    
-    ollama_running = await manager.check_ollama()
-    lm_studio_running = await manager.check_lm_studio()
-    
-    return {
-        "ollama": "running" if ollama_running else "stopped",
-        "lm_studio": "running" if lm_studio_running else "stopped",
-        "status": "healthy" if ollama_running else "limited"
-    }
+    if get_local_llm_manager is None:
+        return {"status": "unavailable", "detail": "Local LLM manager not installed"}
+    try:
+        manager = get_local_llm_manager()
+        ollama_running = await manager.check_ollama()
+        lm_studio_running = await manager.check_lm_studio()
+        return {
+            "ollama": "running" if ollama_running else "stopped",
+            "lm_studio": "running" if lm_studio_running else "stopped",
+            "status": "healthy" if ollama_running else "limited"
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 # ============ ASIM BRAIN CHAT ENDPOINTS (Frontend Compatibility) ============
 
@@ -807,6 +835,53 @@ async def brain_stream(request: BrainProcessRequest):
         generate_stream(),
         media_type="text/event-stream"
     )
+
+# ============ REGISTER IDENTITY, SVT, HDT & WORLD OS ROUTES ============
+
+# Register the 16 new endpoints from identity_svt_hdt_api.py
+try:
+    from api.identity_svt_hdt_api import register_identity_svt_hdt_routes
+    register_identity_svt_hdt_routes(app)
+    logger.info("✅ Identity, SVT, HDT & World OS routes registered on main app")
+except Exception as e:
+    logger.warning(f"⚠️ Could not register identity/SVT/HDT/World OS routes: {e}")
+
+# ============ REGISTER CONSENSUS, MESH, CLONES, HEALING & OS TOOLS ROUTES ============
+
+# Register the new endpoints from consensus_mesh_clones_healing_ostools_api.py
+try:
+    from api.consensus_mesh_clones_healing_ostools_api import register_consensus_mesh_clones_healing_ostools_routes
+    register_consensus_mesh_clones_healing_ostools_routes(app)
+    logger.info("✅ Consensus, Mesh, Clones, Healing & OS Tools routes registered on main app")
+except Exception as e:
+    logger.warning(f"⚠️ Could not register Consensus/Mesh/Clones/Healing/OS Tools routes: {e}")
+
+# ============ REGISTER REMAINING MISSING ROUTES (Dharma, Dreaming, Analytics, Jobs, Sync) ============
+
+try:
+    from api.remaining_missing_api import register_remaining_routes
+    register_remaining_routes(app)
+    logger.info("✅ Dharma, Dreaming, Analytics, Jobs & Sync routes registered on main app")
+except Exception as e:
+    logger.warning(f"⚠️ Could not register remaining routes: {e}")
+
+# ============ REGISTER ECONOMY ROUTES (Contract Executor + Nexus Credits) ============
+
+try:
+    from core.api_endpoints import register_economy_routes
+    register_economy_routes(app)
+    logger.info("✅ Economy routes (Contract Executor + Nexus Credits) registered on main app")
+except Exception as e:
+    logger.warning(f"⚠️ Could not register economy routes: {e}")
+
+# ============ REGISTER UNIFIED ROUTES (Chat, Files, Codebase, Terminal, Automation, Security, etc.) ============
+
+try:
+    from api.unified_routes_api import register_unified_routes
+    register_unified_routes(app)
+    logger.info("✅ Unified routes (Chat, Files, Codebase, Terminal, Automation, Security, Virtual Office, Autonomous, HDT, ZKP, Clones, Identity, SVT, Quad, Bugs, DHT, Firewall, Universe, Universal) registered")
+except Exception as e:
+    logger.warning(f"⚠️ Could not register unified routes: {e}")
 
 # ============ MAIN ============
 

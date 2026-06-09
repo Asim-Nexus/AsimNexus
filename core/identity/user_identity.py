@@ -21,11 +21,15 @@ import hashlib
 import logging
 import secrets
 from enum import Enum
+from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
+
+# JSONL database path
+IDENTITY_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "identities.jsonl"
 
 
 class IdentityStatus(Enum):
@@ -94,6 +98,21 @@ class IdentityCredential:
             "valid": self.is_valid(),
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "IdentityCredential":
+        """Deserialize from dictionary"""
+        return cls(
+            credential_id=data["credential_id"],
+            identity_id=data["identity_id"],
+            issuer=data["issuer"],
+            type=data["type"],
+            claims=data.get("claims", {}),
+            issued_at=datetime.fromisoformat(data["issued_at"]) if data.get("issued_at") else datetime.now(),
+            expires_at=datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None,
+            proof=data.get("proof"),
+            revoked=data.get("revoked", False),
+        )
+
 
 @dataclass
 class IdentityRecord:
@@ -147,6 +166,34 @@ class IdentityRecord:
             "tags": self.tags,
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any],
+                  credentials: Optional[List[IdentityCredential]] = None,
+                  recovery_keys: Optional[List[str]] = None) -> "IdentityRecord":
+        """Deserialize from dictionary"""
+        status_map = {e.value: e for e in IdentityStatus}
+        level_map = {e.value: e for e in IdentityLevel}
+        method_map = {e.value: e for e in VerificationMethod}
+
+        return cls(
+            identity_id=data["identity_id"],
+            user_id=data["user_id"],
+            display_name=data["display_name"],
+            email=data["email"],
+            status=status_map.get(data.get("status", "pending"), IdentityStatus.PENDING),
+            level=level_map.get(data.get("level", 1), IdentityLevel.L1_SELF_ASSERTED),
+            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now(),
+            verified_at=datetime.fromisoformat(data["verified_at"]) if data.get("verified_at") else None,
+            did=data.get("did"),
+            did_document=data.get("did_document"),
+            verification_methods=[method_map.get(v, VerificationMethod.EMAIL) for v in data.get("verification_methods", [])],
+            credentials=credentials or [],
+            recovery_keys=recovery_keys or [],
+            tags=data.get("tags", {}),
+            attributes=data.get("attributes", {}),
+        )
+
 
 class UserIdentitySystem:
     """
@@ -168,6 +215,7 @@ class UserIdentitySystem:
         self._did_index: Dict[str, str] = {}  # did → identity_id
         self._recovery_codes: Dict[str, List[str]] = {}  # identity_id → recovery codes
         self._pending_verifications: Dict[str, Dict] = {}
+        self._load_from_db()
 
     def create_identity(self, user_id: str, display_name: str,
                         email: str, attributes: Optional[Dict] = None) -> IdentityRecord:
@@ -198,6 +246,7 @@ class UserIdentitySystem:
             secrets.token_hex(8) for _ in range(5)
         ]
 
+        self._persist_identity(identity_id)
         logger.info(f"🆔 Identity created: {identity_id} for {user_id} ({display_name})")
         return record
 
@@ -245,6 +294,8 @@ class UserIdentitySystem:
                 record.verification_data["email_verified"] = True
                 record.level = IdentityLevel.L2_EMAIL_VERIFIED
                 self._pending_verifications.pop(identity_id, None)
+                self._persist_identity(identity_id)
+                self._persist_event(identity_id, "verify", {"method": "email"})
                 logger.info(f"📧 Email verified for {identity_id}")
                 return True, "Email verified"
             return False, "Invalid verification code"
@@ -257,6 +308,8 @@ class UserIdentitySystem:
                 record.verification_data["gov_id_verified"] = True
                 record.verification_data["gov_id_type"] = doc_type
                 record.level = IdentityLevel.L3_ID_VERIFIED
+                self._persist_identity(identity_id)
+                self._persist_event(identity_id, "verify", {"method": "government_id"})
                 logger.info(f"🪪 Government ID verified for {identity_id}")
                 return True, "Government ID verified"
             return False, "Invalid government ID data"
@@ -267,6 +320,8 @@ class UserIdentitySystem:
                 record.verification_methods.append(VerificationMethod.BIOMETRIC)
                 record.verification_data["biometric_verified"] = True
                 record.level = IdentityLevel.L4_BIOMETRIC
+                self._persist_identity(identity_id)
+                self._persist_event(identity_id, "verify", {"method": "biometric"})
                 logger.info(f"🔐 Biometric verified for {identity_id}")
                 return True, "Biometric verified"
             return False, "Biometric verification failed"
@@ -306,6 +361,8 @@ class UserIdentitySystem:
             proof=self._generate_credential_proof(identity_id, cred_type, claims),
         )
         record.credentials.append(credential)
+        self._persist_identity(identity_id)
+        self._persist_credential(credential)
         logger.info(f"📜 Credential issued: {credential.credential_id} ({cred_type})")
         return credential
 
@@ -327,6 +384,7 @@ class UserIdentitySystem:
             for cred in record.credentials:
                 if cred.credential_id == credential_id:
                     cred.revoked = True
+                    self._persist_event(cred.identity_id, "credential_revoked", {"credential_id": credential_id})
                     logger.info(f"🚫 Credential revoked: {credential_id}")
                     return True
         return False
@@ -338,6 +396,8 @@ class UserIdentitySystem:
             return False
         record.status = IdentityStatus.ACTIVE
         record.updated_at = datetime.now()
+        self._persist_identity(identity_id)
+        self._persist_event(identity_id, "activate")
         logger.info(f"✅ Identity activated: {identity_id}")
         return True
 
@@ -349,6 +409,8 @@ class UserIdentitySystem:
         record.status = IdentityStatus.SUSPENDED
         record.updated_at = datetime.now()
         record.attributes["suspend_reason"] = reason
+        self._persist_identity(identity_id)
+        self._persist_event(identity_id, "suspend", {"reason": reason})
         logger.info(f"⏸️ Identity suspended: {identity_id} ({reason})")
         return True
 
@@ -360,6 +422,8 @@ class UserIdentitySystem:
         record.status = IdentityStatus.REVOKED
         record.updated_at = datetime.now()
         record.attributes["revoke_reason"] = reason
+        self._persist_identity(identity_id)
+        self._persist_event(identity_id, "revoke", {"reason": reason})
         logger.info(f"🚫 Identity revoked: {identity_id} ({reason})")
         return True
 
@@ -391,6 +455,9 @@ class UserIdentitySystem:
         record.updated_at = datetime.now()
         record.attributes["recovered_at"] = datetime.now().isoformat()
 
+        self._persist_identity(identity_id)
+        self._persist_event(identity_id, "recover", {"email": new_email})
+
         # Remove used recovery code
         self._recovery_codes[identity_id] = [
             c for c in codes if c != recovery_code
@@ -418,6 +485,10 @@ class UserIdentitySystem:
             record.tags.update(updates["tags"])
 
         record.updated_at = datetime.now()
+        self._persist_identity(identity_id)
+        self._persist_event(identity_id, "update", {
+            k: updates[k] for k in ("display_name", "email") if k in updates
+        })
         return True
 
     def search_identities(self, query: str) -> List[IdentityRecord]:
@@ -499,6 +570,141 @@ class UserIdentitySystem:
         data = f"{identity_id}:{cred_type}:{json.dumps(claims, sort_keys=True)}"
         return hashlib.sha256(data.encode()).hexdigest()
 
+    # ── JSONL Persistence ──────────────────────────────────────────────
+
+    def _persist_entry(self, entry_type: str, data: Dict[str, Any]) -> None:
+        """Append an entry to the JSONL ledger."""
+        try:
+            IDENTITY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            entry = {"__type__": entry_type, "timestamp": time.time(), **data}
+            with open(IDENTITY_DB_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to persist identity entry: {e}")
+
+    def _persist_identity(self, identity_id: str) -> None:
+        """Persist identity record snapshot."""
+        record = self.identities.get(identity_id)
+        if not record:
+            return
+        d = record.to_dict()
+        d["did_document"] = record.did_document
+        d["attributes"] = record.attributes
+        d["credentials"] = [c.to_dict() for c in record.credentials]
+        d["recovery_keys"] = self._recovery_codes.get(identity_id, [])
+        self._persist_entry("identity", d)
+
+    def _persist_credential(self, credential: IdentityCredential) -> None:
+        """Persist a credential issuance event."""
+        self._persist_entry("credential", credential.to_dict())
+
+    def _persist_event(self, identity_id: str, event: str, details: Dict = None) -> None:
+        """Persist a lifecycle event (activate, suspend, revoke, etc.)."""
+        self._persist_entry("event", {
+            "identity_id": identity_id,
+            "event": event,
+            "details": details or {},
+        })
+
+    def _load_from_db(self) -> None:
+        """Replay JSONL ledger to reconstruct state on startup."""
+        path = IDENTITY_DB_PATH
+        if not path.exists():
+            return
+
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    entry_type = entry.get("__type__")
+                    if entry_type == "identity":
+                        self._replay_identity(entry)
+                    elif entry_type == "credential":
+                        self._replay_credential(entry)
+                    elif entry_type == "event":
+                        self._replay_event(entry)
+        except Exception as e:
+            logger.error(f"Failed to load identity DB: {e}")
+
+    def _replay_identity(self, entry: Dict) -> None:
+        """Replay an identity record from JSONL."""
+        identity_id = entry.get("identity_id")
+        if not identity_id or identity_id in self.identities:
+            return
+
+        credentials = [
+            IdentityCredential.from_dict(c)
+            for c in entry.get("credentials", [])
+        ]
+        recovery_keys = entry.get("recovery_keys", [])
+
+        record = IdentityRecord.from_dict(entry, credentials=credentials, recovery_keys=recovery_keys)
+        record.did_document = entry.get("did_document")
+
+        self.identities[identity_id] = record
+        if record.user_id:
+            self._user_index[record.user_id] = identity_id
+        if record.email:
+            self._email_index[record.email] = identity_id
+        if record.did:
+            self._did_index[record.did] = identity_id
+        if recovery_keys:
+            self._recovery_codes[identity_id] = list(recovery_keys)
+
+    def _replay_credential(self, entry: Dict) -> None:
+        """Replay a credential from JSONL (redundant if identity was fully persisted)."""
+        identity_id = entry.get("identity_id")
+        if not identity_id or identity_id not in self.identities:
+            return
+        # Check if credential already exists
+        cred_id = entry.get("credential_id")
+        if cred_id:
+            for existing in self.identities[identity_id].credentials:
+                if existing.credential_id == cred_id:
+                    return
+        credential = IdentityCredential.from_dict(entry)
+        self.identities[identity_id].credentials.append(credential)
+
+    def _replay_event(self, entry: Dict) -> None:
+        """Replay a lifecycle event from JSONL."""
+        identity_id = entry.get("identity_id")
+        event = entry.get("event")
+        details = entry.get("details", {})
+
+        if identity_id not in self.identities:
+            return
+
+        record = self.identities[identity_id]
+        if event == "activate":
+            record.status = IdentityStatus.ACTIVE
+        elif event == "suspend":
+            record.status = IdentityStatus.SUSPENDED
+        elif event == "revoke":
+            record.status = IdentityStatus.REVOKED
+        elif event == "verify":
+            record.attributes.update(details)
+        elif event == "recover":
+            if "email" in details:
+                record.email = details["email"]
+        elif event == "update":
+            if "display_name" in details:
+                record.display_name = details["display_name"]
+            if "email" in details:
+                record.email = details["email"]
+
+        if "updated_at" in entry:
+            try:
+                record.updated_at = datetime.fromisoformat(entry["updated_at"])
+            except (ValueError, TypeError):
+                pass
+
 
 # Singleton
 _identity_system: Optional[UserIdentitySystem] = None
@@ -518,7 +724,7 @@ def reset_identity_system() -> None:
     _identity_system = None
 
 
-# Backward-compatible alias
+# Backward-compatible aliases
 UserIdentitySystem = UserIdentitySystem
 
 

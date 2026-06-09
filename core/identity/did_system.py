@@ -21,11 +21,15 @@ import hashlib
 import logging
 import secrets
 from enum import Enum
+from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
+
+# JSONL database path
+DID_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "dids.jsonl"
 
 
 class DIDMethod(Enum):
@@ -95,6 +99,25 @@ class DIDDocument:
             result["proof"] = self.proof
         return result
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DIDDocument":
+        """Deserialize from dictionary (camelCase keys from W3C spec)."""
+        return cls(
+            id=data.get("id", ""),
+            also_known_as=data.get("alsoKnownAs", []),
+            controller=data.get("controller"),
+            verification_method=data.get("verificationMethod", []),
+            authentication=data.get("authentication", []),
+            assertion_method=data.get("assertionMethod", []),
+            key_agreement=data.get("keyAgreement", []),
+            capability_invocation=data.get("capabilityInvocation", []),
+            capability_delegation=data.get("capabilityDelegation", []),
+            service=data.get("service", []),
+            created=data.get("created"),
+            updated=data.get("updated"),
+            proof=data.get("proof"),
+        )
+
 
 @dataclass
 class DIDRecord:
@@ -126,6 +149,29 @@ class DIDRecord:
             "tags": self.tags,
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "DIDRecord":
+        """Deserialize from dictionary"""
+        method_map = {e.value: e for e in DIDMethod}
+        status_map = {e.value: e for e in DIDStatus}
+
+        doc_data = data.get("document")
+        document = DIDDocument.from_dict(doc_data) if doc_data and isinstance(doc_data, dict) else None
+
+        return cls(
+            did=data["did"],
+            method=method_map.get(data.get("method", "asim"), DIDMethod.ASIM),
+            subject_id=data.get("subject_id", ""),
+            subject_type=data.get("subject_type", "user"),
+            status=status_map.get(data.get("status", "created"), DIDStatus.CREATED),
+            document=document,
+            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else datetime.now(),
+            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else datetime.now(),
+            expires_at=datetime.fromisoformat(data["expires_at"]) if data.get("expires_at") else None,
+            tags=data.get("tags", {}),
+            metadata=data.get("metadata", {}),
+        )
+
 
 class DIDSystem:
     """
@@ -142,6 +188,7 @@ class DIDSystem:
     def __init__(self):
         self.records: Dict[str, DIDRecord] = {}  # did → record
         self._subject_index: Dict[str, List[str]] = {}  # subject_id → [dids]
+        self._load_from_db()
 
     def create_did(self, subject_id: str, subject_type: str = "user",
                    method: DIDMethod = DIDMethod.ASIM,
@@ -195,6 +242,7 @@ class DIDSystem:
             self._subject_index[subject_id] = []
         self._subject_index[subject_id].append(did)
 
+        self._persist_record(record)
         logger.info(f"🔑 DID created: {did} for {subject_type}:{subject_id}")
         return record
 
@@ -236,6 +284,7 @@ class DIDSystem:
         record.document.verification_method.append(method)
         record.document.updated = datetime.now().isoformat()
         record.updated_at = datetime.now()
+        self._persist_record(record)
         return True
 
     def add_service_endpoint(self, did: str, service_type: str,
@@ -253,6 +302,7 @@ class DIDSystem:
         record.document.service.append(service)
         record.document.updated = datetime.now().isoformat()
         record.updated_at = datetime.now()
+        self._persist_record(record)
         return True
 
     def activate(self, did: str) -> bool:
@@ -264,6 +314,8 @@ class DIDSystem:
         record.updated_at = datetime.now()
         if record.document:
             record.document.updated = datetime.now().isoformat()
+        self._persist_record(record)
+        self._persist_event(did, "activate")
         logger.info(f"✅ DID activated: {did}")
         return True
 
@@ -277,6 +329,8 @@ class DIDSystem:
         record.metadata["suspend_reason"] = reason
         if record.document:
             record.document.updated = datetime.now().isoformat()
+        self._persist_record(record)
+        self._persist_event(did, "suspend", {"reason": reason})
         logger.info(f"⏸️ DID suspended: {did} ({reason})")
         return True
 
@@ -290,6 +344,8 @@ class DIDSystem:
         record.metadata["revoke_reason"] = reason
         if record.document:
             record.document.updated = datetime.now().isoformat()
+        self._persist_record(record)
+        self._persist_event(did, "revoke", {"reason": reason})
         logger.info(f"🚫 DID revoked: {did} ({reason})")
         return True
 
@@ -313,6 +369,7 @@ class DIDSystem:
 
         doc.updated = datetime.now().isoformat()
         record.updated_at = datetime.now()
+        self._persist_record(record)
         return True
 
     def verify_did(self, did: str) -> Tuple[bool, str]:
@@ -379,6 +436,96 @@ class DIDSystem:
             "by_subject_type": by_type,
             "active_dids": by_status.get("active", 0),
         }
+
+    # ── JSONL Persistence ──────────────────────────────────────────────
+
+    def _persist_entry(self, entry_type: str, data: Dict[str, Any]) -> None:
+        """Append an entry to the JSONL ledger."""
+        try:
+            DID_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            entry = {"__type__": entry_type, "timestamp": time.time(), **data}
+            with open(DID_DB_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to persist DID entry: {e}")
+
+    def _persist_record(self, record: DIDRecord) -> None:
+        """Persist a DID record snapshot."""
+        d = record.to_dict()
+        d["metadata"] = record.metadata
+        self._persist_entry("did", d)
+
+    def _persist_event(self, did: str, event: str, details: Dict = None) -> None:
+        """Persist a lifecycle event (activate, suspend, revoke, etc.)."""
+        self._persist_entry("event", {
+            "did": did,
+            "event": event,
+            "details": details or {},
+        })
+
+    def _load_from_db(self) -> None:
+        """Replay JSONL ledger to reconstruct state on startup."""
+        path = DID_DB_PATH
+        if not path.exists():
+            return
+
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    entry_type = entry.get("__type__")
+                    if entry_type == "did":
+                        self._replay_did(entry)
+                    elif entry_type == "event":
+                        self._replay_event(entry)
+        except Exception as e:
+            logger.error(f"Failed to load DID DB: {e}")
+
+    def _replay_did(self, entry: Dict) -> None:
+        """Replay a DID record from JSONL."""
+        did = entry.get("did")
+        if not did or did in self.records:
+            return
+
+        record = DIDRecord.from_dict(entry)
+        self.records[did] = record
+
+        # Index by subject
+        subject_id = entry.get("subject_id")
+        if subject_id:
+            if subject_id not in self._subject_index:
+                self._subject_index[subject_id] = []
+            self._subject_index[subject_id].append(did)
+
+    def _replay_event(self, entry: Dict) -> None:
+        """Replay a lifecycle event from JSONL."""
+        did = entry.get("did")
+        event = entry.get("event")
+        details = entry.get("details", {})
+
+        if not did or did not in self.records:
+            return
+
+        record = self.records[did]
+        if event == "activate":
+            record.status = DIDStatus.ACTIVE
+        elif event == "suspend":
+            record.status = DIDStatus.SUSPENDED
+        elif event == "revoke":
+            record.status = DIDStatus.REVOKED
+
+        if "updated_at" in entry:
+            try:
+                record.updated_at = datetime.fromisoformat(entry["updated_at"])
+            except (ValueError, TypeError):
+                pass
 
 
 # Singleton

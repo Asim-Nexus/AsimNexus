@@ -10,7 +10,7 @@
       "did": "did:bob",
       "endpoint": "ws://10.0.0.2:9000",
       "trusted": true,
-      "last_sync": 1780510924.2203999,
+      "last_sync": 1780996089.938396,
       "sync_count": 1
     }
   },
@@ -24,10 +24,10 @@
     "active_peers": {
       "add": {
         "b95d16fdea20a911": [
-          "test-alice:1780510924215409900:80"
+          "test-alice:1780996089934396900:87"
         ],
         "1ccdd793bec46f32": [
-          "test-bob:1780510924216403400:81"
+          "test-bob:1780996089935396700:88"
         ]
       },
       "rem": {}
@@ -35,21 +35,21 @@
     "capabilities": {
       "add": {
         "mesh": [
-          "test-alice:1780510924219397900:82"
+          "test-alice:1780996089938396000:89"
         ]
       },
       "rem": {}
     },
     "display_name": {
       "value": "Alice",
-      "ts": 1780510924.2193978,
+      "ts": 1780996089.938396,
       "node": "test-alice"
     },
     "universe_mode": {
       "value": "prod",
-      "ts": 1780510924.2203999,
+      "ts": 1780996089.938396,
       "node": "test-bob"
     },
-    "ts": 1780510924.2203999
+    "ts": 1780996089.9393966
   }
 }

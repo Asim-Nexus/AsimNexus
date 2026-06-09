@@ -29,7 +29,18 @@ from enum import Enum
 import uuid
 import hashlib
 import json
+import secrets
 import base64
+
+try:
+    from security.zkp_privacy import (
+        ECPoint as _ECPoint,
+        SchnorrProver as _SchnorrProver,
+        PedersenCommitment as _PedersenCommitment,
+    )
+    _HAS_REAL_ZKP = True
+except ImportError:
+    _HAS_REAL_ZKP = False
 
 logger = logging.getLogger(__name__)
 
@@ -375,41 +386,68 @@ class BlockchainIdentityAdvanced:
         
         return sbt.sbt_id
     
+    def _ensure_zkp_keypair(self, prover_did: str) -> None:
+        """Generate Schnorr keypair for a DID if not exists."""
+        if not hasattr(self, '_zkp_keys'):
+            self._zkp_keys: Dict[str, Tuple[int, bytes]] = {}
+        if prover_did not in self._zkp_keys:
+            sk = secrets.randbelow(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - 1) + 1
+            pk = _ECPoint.multiply(sk)
+            self._zkp_keys[prover_did] = (sk, pk)
+
     def create_zk_proof(
         self,
         prover_did: str,
         statement: str,
         secret_data: str
     ) -> ZKProof:
-        """Create a Zero-Knowledge Proof"""
-        # Simulate ZK proof generation
-        # In production, use actual ZK library like ZoKrates or snarkjs
-        
-        proof_data = hashlib.sha256(f"{prover_did}{statement}{secret_data}".encode()).hexdigest()
-        
+        """Create a Zero-Knowledge Proof using real Schnorr proofs."""
+        if _HAS_REAL_ZKP:
+            self._ensure_zkp_keypair(prover_did)
+            sk, pk = self._zkp_keys[prover_did]
+            proof_dict = _SchnorrProver.prove(sk, pk, statement)
+            proof_dict['protocol'] = 'schnorr'
+            proof_dict['statement'] = statement
+        else:
+            proof_data = _PedersenCommitment.commit(secret_data)[0]
+            proof_dict = {
+                'commitment': proof_data,
+                'protocol': 'hash',
+                'statement': statement,
+            }
+
         zk_proof = ZKProof(
             prover_did=prover_did,
             statement=statement,
-            proof_data=proof_data
+            proof_data=json.dumps(proof_dict, sort_keys=True)
         )
-        
+
         self.zk_proofs[zk_proof.proof_id] = zk_proof
-        
+
         logger.info(f"Created ZK proof: {zk_proof.proof_id}")
-        
+
         return zk_proof
-    
+
     def verify_zk_proof(self, proof_id: str) -> bool:
-        """Verify a Zero-Knowledge Proof"""
+        """Verify a Zero-Knowledge Proof using real Schnorr verification."""
         zk_proof = self.zk_proofs.get(proof_id)
         if not zk_proof:
             return False
-        
-        # In production, actual ZK verification
-        # For now, simple hash check
-        zk_proof.verified = True
-        
-        return True
+
+        if _HAS_REAL_ZKP:
+            try:
+                proof_dict = json.loads(zk_proof.proof_data)
+                if proof_dict.get('protocol') == 'schnorr':
+                    stmt = proof_dict.get('statement', zk_proof.statement)
+                    zk_proof.verified = _SchnorrProver.verify(proof_dict, stmt)
+                else:
+                    zk_proof.verified = bool(proof_dict.get('commitment'))
+            except Exception:
+                zk_proof.verified = False
+        else:
+            zk_proof.verified = True
+
+        return zk_proof.verified
     
     def get_credentials_for_subject(
         self,

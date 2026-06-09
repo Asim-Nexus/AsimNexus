@@ -453,18 +453,29 @@ class NATDetector:
     so NAT mapping is consistent with the P2PTransport's UDP socket.
     """
 
-    def __init__(self, timeout: float = _STUN_TIMEOUT_SEC, transport_port: Optional[int] = None):
+    def __init__(self, timeout: float = _STUN_TIMEOUT_SEC, transport_port: Optional[int] = None, local_ip: Optional[str] = None):
         self.client = STUNClient(timeout, transport_port=transport_port)
         self.timeout = timeout
         self.transport_port = transport_port
+        self.local_ip = local_ip
 
     async def classify(self) -> NATClassification:
         """
         Classify the NAT type behind this node.
-         
+
+        Short-circuits on localhost — no NAT detected on 127.0.0.1/::1.
+
         Returns:
             NATClassification with detected type and confidence.
         """
+        # Short-circuit on localhost — no NAT on loopback
+        if self.local_ip is not None and self.local_ip in ("127.0.0.1", "::1", "localhost", "0.0.0.0"):
+            return NATClassification(
+                nat_type=NATType.OPEN_INTERNET,
+                details={"reason": f"Localhost ({self.local_ip}) — no NAT"},
+                confidence=1.0,
+            )
+
         if not _STUN_SERVERS:
             return NATClassification(
                 nat_type=NATType.UNKNOWN,

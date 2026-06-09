@@ -181,6 +181,9 @@ class KademliaDHT:
     """
     Kademlia DHT implementation.
     Distributed hash table for peer discovery and data lookup.
+
+    Phase 1C: Single-machine optimizations — shorter refresh intervals,
+    direct node insertion from config peers, bypass network I/O on localhost.
     """
     
     def __init__(
@@ -204,7 +207,16 @@ class KademliaDHT:
         # Track which node IDs we already have in the routing table for O(1) dedup
         self._node_set: set = set()
         
+        # Phase 1C: Single-machine detection
+        self._single_machine = self._is_localhost()
+        
         logger.info(f"🌐 KademliaDHT initialized - NodeID: {self.node_id}")
+        if self._single_machine:
+            logger.info("📋 Single-machine mode: DHT refresh interval shortened")
+
+    def _is_localhost(self) -> bool:
+        """Check if we are running on localhost (single-machine mode)."""
+        return self.ip_address in ("127.0.0.1", "::1", "localhost", "0.0.0.0")
     
     # ------------------------------------------------------------------
     # Lifecycle — RPC handler registration on P2P transport
@@ -348,7 +360,9 @@ class KademliaDHT:
     
     async def _refresh_loop(self):
         """Periodic bucket refresh loop."""
-        interval = float(os.getenv("ASIM_MESH_DHT_REFRESH_INTERVAL", "3600"))
+        # Phase 1C: Shorter interval on single-machine (30s vs 3600s)
+        default_interval = "30" if self._single_machine else "3600"
+        interval = float(os.getenv("ASIM_MESH_DHT_REFRESH_INTERVAL", default_interval))
         while self._running:
             try:
                 await asyncio.sleep(interval)
@@ -719,6 +733,63 @@ class KademliaDHT:
                 continue
         if count > 0:
             logger.info(f"📡 Added {count} bootstrap peers to DHT routing table")
+        return count
+
+    def add_nodes_from_single_machine_peers(self, peer_spec: str = "") -> int:
+        """
+        Parse ASIM_SINGLE_MACHINE_PEERS format and add nodes to DHT routing table.
+        
+        Format: "node_id:host:port_udp:port_ws,..."
+        Port_ws is accepted but ignored for DHT routing (only port_udp is used).
+        
+        Args:
+            peer_spec: String in ASIM_SINGLE_MACHINE_PEERS format.
+                       If empty, reads from the ASIM_SINGLE_MACHINE_PEERS env var.
+        
+        Returns:
+            Number of nodes successfully added.
+        """
+        if not peer_spec:
+            peer_spec = os.getenv("ASIM_SINGLE_MACHINE_PEERS", "")
+        if not peer_spec:
+            return 0
+        
+        count = 0
+        for entry in peer_spec.split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            parts = entry.split(":")
+            if len(parts) < 4:
+                logger.warning(f"Malformed single-machine peer entry: {entry}")
+                continue
+            node_id_str = parts[0].strip()
+            host = parts[1].strip()
+            try:
+                port_udp = int(parts[2])
+            except ValueError:
+                logger.warning(f"Invalid port in single-machine peer entry: {entry}")
+                continue
+            
+            if not node_id_str or not host:
+                continue
+            
+            # Hash the string node_id to a 160-bit DHT ID
+            try:
+                node_id_bytes = bytes.fromhex(node_id_str)
+            except ValueError:
+                node_id_bytes = hashlib.sha1(node_id_str.encode()).digest()
+            
+            node = DHTNode(
+                node_id=NodeID(node_id_bytes),
+                ip_address=host,
+                port=port_udp,
+            )
+            if self.add_node(node):
+                count += 1
+        
+        if count > 0:
+            logger.info(f"📋 Added {count} single-machine peer(s) to DHT routing table")
         return count
 
     def get_stats(self) -> Dict[str, Any]:

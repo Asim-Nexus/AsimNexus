@@ -94,6 +94,14 @@ class AgentSwitchAPI:
         self.task_assignments: Dict[str, Dict[str, Any]] = {}
         self.earnings_ledger: Dict[str, List[Dict[str, Any]]] = {}
         
+        # Rate limiting
+        try:
+            from core.rate_limiter_middleware import RateLimiterMiddleware
+            self.app.add_middleware(RateLimiterMiddleware)
+            logger.info("✅ RateLimiterMiddleware registered on agent switch API")
+        except Exception:
+            pass
+        
         # Setup routes
         self._setup_routes()
         

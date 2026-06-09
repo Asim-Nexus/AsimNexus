@@ -16,6 +16,8 @@ import json
 import hashlib
 import secrets
 import os
+import time
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import jwt
@@ -24,9 +26,13 @@ from cryptography.fernet import Fernet
 
 logger = logging.getLogger("IdentityProvider")
 
+# JSONL database path
+AUTH_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "auth.jsonl"
+
+
 class ASIMNexusIdentityProvider:
     """Identity Provider for ASIMNEXUS"""
-    
+
     def __init__(self):
         self.jwt_config = {
             "secret_key": os.getenv("ASIM_JWT_SECRET", None),
@@ -36,7 +42,7 @@ class ASIMNexusIdentityProvider:
             "issuer": "asimnexus",
             "audience": "founder-clones"
         }
-        
+
         self.founder_clones = {
             "founder_01": {
                 "name": "Founder Prime",
@@ -48,7 +54,7 @@ class ASIMNexusIdentityProvider:
             },
             "founder_02": {
                 "name": "Founder Alpha",
-                "role": "operator", 
+                "role": "operator",
                 "permissions": ["read", "write", "execute"],
                 "created": "2024-01-02",
                 "status": "active",
@@ -159,11 +165,12 @@ class ASIMNexusIdentityProvider:
                 "last_access": None
             }
         }
-        
+
         self.active_sessions = {}
         self.access_logs = []
         self.failed_attempts = {}
         self.encryption_key = None
+        self._load_from_db()
         
     async def initialize_identity_provider(self, jwt_secret: str) -> bool:
         """Initialize identity provider"""
@@ -292,11 +299,15 @@ class ASIMNexusIdentityProvider:
             "clone_id": clone_id,
             "ip_address": ip_address,
             "token": token,
-            "created_at": datetime.utcnow(),
-            "last_activity": datetime.utcnow(),
+            "created_at": datetime.utcnow().isoformat(),
+            "last_activity": datetime.utcnow().isoformat(),
             "permissions": clone_info["permissions"]
         }
-        
+
+        self._persist_entry("session_created", {
+            "session_id": session_id, "clone_id": clone_id, "ip_address": ip_address
+        })
+
         return token
     
     async def verify_jwt_token(self, token: str, ip_address: str) -> Dict[str, Any]:
@@ -387,7 +398,8 @@ class ASIMNexusIdentityProvider:
         }
         
         self.access_logs.append(event)
-        
+        self._persist_entry("access_log", event)
+
         # Keep only last 1000 events
         if len(self.access_logs) > 1000:
             self.access_logs = self.access_logs[-1000:]
@@ -443,6 +455,9 @@ class ASIMNexusIdentityProvider:
             if session_id in self.active_sessions:
                 session = self.active_sessions[session_id]
                 await self._log_access_event("session_revoked", session["clone_id"], session["ip_address"])
+                self._persist_entry("session_revoked", {
+                    "session_id": session_id, "clone_id": session["clone_id"]
+                })
                 del self.active_sessions[session_id]
                 logger.info(f"🔒 Session revoked: {session_id}")
                 return True
@@ -527,6 +542,55 @@ class ASIMNexusIdentityProvider:
         except Exception as e:
             logger.error(f"❌ Failed to cleanup sessions: {e}")
             return 0
+
+    # ── JSONL Persistence ──────────────────────────────────────────────
+
+    def _persist_entry(self, entry_type: str, data: Dict[str, Any]) -> None:
+        """Append an entry to the JSONL ledger."""
+        try:
+            AUTH_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            entry = {"__type__": entry_type, "timestamp": time.time(), **data}
+            with open(AUTH_DB_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to persist auth entry: {e}")
+
+    def _load_from_db(self) -> None:
+        """Replay JSONL ledger to reconstruct state on startup."""
+        path = AUTH_DB_PATH
+        if not path.exists():
+            return
+
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    entry_type = entry.get("__type__")
+                    if entry_type == "session_created":
+                        sid = entry.get("session_id")
+                        if sid and sid not in self.active_sessions:
+                            self.active_sessions[sid] = {
+                                "clone_id": entry.get("clone_id", ""),
+                                "ip_address": entry.get("ip_address", ""),
+                                "created_at": entry.get("timestamp", ""),
+                                "last_activity": entry.get("timestamp", ""),
+                                "permissions": [],
+                            }
+                    elif entry_type in ("access_log",):
+                        self.access_logs.append({k: v for k, v in entry.items() if k != "__type__"})
+                    elif entry_type == "session_revoked":
+                        sid = entry.get("session_id")
+                        if sid and sid in self.active_sessions:
+                            del self.active_sessions[sid]
+        except Exception as e:
+            logger.error(f"Failed to load auth DB: {e}")
 
 # Global identity provider
 _identity_provider = ASIMNexusIdentityProvider()

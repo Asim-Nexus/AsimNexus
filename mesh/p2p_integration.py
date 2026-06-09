@@ -38,7 +38,7 @@ from mesh.p2p_transport import (
     get_p2p_transport,
 )
 from mesh.node_registry import NodeRegistry, TrustLevel, NodeStatus, get_node_registry
-from mesh.kademlia_dht import KademliaDHT, get_kademlia_dht
+from mesh.kademlia_dht import KademliaDHT, NodeID, DHTNode, get_kademlia_dht
 from mesh.crdt_sync import CRDTStore, get_crdt_store
 from mesh.bootstrap import BootstrapService, get_bootstrap_service
 from core.event_bus import event_bus, ASIMEvent, EventType
@@ -342,7 +342,8 @@ class P2PIntegration:
             await self._dht.stop()
             logger.info("📡 Kademlia DHT stopped")
 
-        await self._p2p.stop()
+        await self._p2p.stop()
+
         # Unsubscribe from transport events
         event_bus.unsubscribe(EventType.PEER_CONNECTED, self._on_peer_connected)
         event_bus.unsubscribe(EventType.PEER_DISCONNECTED, self._on_peer_disconnected)
@@ -397,11 +398,13 @@ class P2PIntegration:
         """
         Check if a specific mesh type is healthy by looking at peer count
         and connection status.
+        Uses self._p2p.peers (sync dict) instead of async get_peer() to avoid
+        creating unawaited coroutines in a sync callback context.
         """
         peers = self._mesh_peers.get(mesh_type, [])
         connected_count = sum(
             1 for pid in peers
-            if self._p2p.get_peer(pid) and self._p2p.get_peer(pid).is_connected
+            if pid in self._p2p.peers and self._p2p.peers[pid].is_connected()
         )
 
         # WebRTC peers
@@ -458,7 +461,7 @@ class P2PIntegration:
 
             # Add to P2P transport if not already known
             if node_id not in self._p2p.peers:
-                self._p2p.add_peer(
+                await self._p2p.add_peer(
                     node_id=node_id,
                     host=ip,
                     port_udp=record.port,
@@ -485,10 +488,11 @@ class P2PIntegration:
 
         # Update MultiMeshRouter with peer counts
         for mt, peers in self._mesh_peers.items():
-            connected = sum(
-                1 for pid in peers
-                if self._p2p.get_peer(pid) and self._p2p.get_peer(pid).is_connected
-            )
+            connected = 0
+            for pid in peers:
+                peer = await self._p2p.get_peer(pid)
+                if peer and peer.is_connected:
+                    connected += 1
             self._router.update_mesh_health(
                 mesh_type=mt,
                 is_connected=self._check_mesh_health(mt),
@@ -638,7 +642,7 @@ class P2PIntegration:
 
     # ─── Peer Management ──────────────────────────────────────────────────────
 
-    def add_peer_to_mesh(
+    async def add_peer_to_mesh(
         self,
         node_id: str,
         host: str,
@@ -647,7 +651,7 @@ class P2PIntegration:
         mesh_type: MeshType,
     ) -> None:
         """Add a peer to a specific mesh."""
-        self._p2p.add_peer(node_id, host, port_udp, port_ws)
+        await self._p2p.add_peer(node_id, host, port_udp, port_ws)
         self._peer_mesh_map[node_id] = mesh_type
         if node_id not in self._mesh_peers[mesh_type]:
             self._mesh_peers[mesh_type].append(node_id)
@@ -660,29 +664,30 @@ class P2PIntegration:
             port=port_udp,
         )
 
-    def remove_peer_from_mesh(self, node_id: str) -> None:
+    async def remove_peer_from_mesh(self, node_id: str) -> None:
         """Remove a peer from its mesh."""
         mesh_type = self._peer_mesh_map.pop(node_id, None)
         if mesh_type:
             peers = self._mesh_peers.get(mesh_type, [])
             if node_id in peers:
                 peers.remove(node_id)
-        self._p2p.remove_peer(node_id)
+        await self._p2p.remove_peer(node_id)
 
     # ─── Stats ────────────────────────────────────────────────────────────────
 
-    def get_p2p_stats(self) -> Dict[str, Any]:
+    async def get_p2p_stats(self) -> Dict[str, Any]:
         """Get comprehensive P2P integration statistics."""
         from mesh.multi_mesh_router import get_multi_mesh_router
         router = get_multi_mesh_router()
         mesh_stats = router.get_mesh_stats()
+        online_peers = await self._p2p.get_online_peers()
         return {
             "node_id": self.node_id,
             "transport": {
                 "udp_port": self._p2p.port_udp,
                 "ws_port": self._p2p.port_ws,
                 "peers_total": len(self._p2p.peers),
-                "peers_connected": len(self._p2p.get_online_peers()),
+                "peers_connected": len(online_peers),
             },
             "webrtc": self._webrtc.get_stats() if self._webrtc else {"available": False},
             "mesh_peers": {
@@ -747,10 +752,133 @@ def reset_p2p_integration():
     _p2p_integration = None
 
 
+# ─── Single-Machine Startup Helper ────────────────────────────────────────────
+
+@dataclass
+class LocalNode:
+    """
+    A fully wired local node for single-machine mesh testing.
+
+    Wraps P2PTransport + KademliaDHT + CRDTStore + P2PIntegration
+    so callers can start/stop the entire stack through one object.
+    """
+    node_id: str
+    transport: 'P2PTransport'
+    dht: 'KademliaDHT'
+    crdt: 'CRDTStore'
+    integration: 'P2PIntegration'
+    host: str = "127.0.0.1"
+    port_udp: int = 0
+    port_ws: int = 0
+
+    async def start(self) -> None:
+        """Start transport → DHT → CRDT → integration in order."""
+        await self.transport.start()
+        await self.dht.start(self.transport)
+        await self.crdt.start(self.transport)
+        await self.integration.start()
+
+    async def stop(self) -> None:
+        """Stop integration → CRDT → DHT → transport in reverse order."""
+        await self.integration.stop()
+        await self.crdt.stop()
+        await self.dht.stop()
+        await self.transport.stop()
+
+
+def create_local_node_set(
+    num_nodes: int = 3,
+    base_port: int = 22000,
+    host: str = "127.0.0.1",
+    include_bootstrap: bool = False,
+) -> List[LocalNode]:
+    """
+    Create *N* fully wired local nodes for single-machine full-stack testing.
+
+    Each node gets: P2PTransport + KademliaDHT + CRDTStore + P2PIntegration.
+    Nodes are pre-populated with each other's DHT routing entries so they
+    can find one another immediately without a bootstrap round-trip.
+
+    Parameters
+    ----------
+    num_nodes : int
+        Number of local nodes to create (default 3).
+    base_port : int
+        Starting UDP port; WS port = UDP + 1 (default 22000).
+    host : str
+        Host address (default 127.0.0.1).
+    include_bootstrap : bool
+        Whether to attach a BootstrapService to each node (default False).
+
+    Returns
+    -------
+    List[LocalNode]
+        Ordered list of created nodes.
+    """
+    nodes: List[LocalNode] = []
+
+    # ── 1. Create all nodes ──────────────────────────────────────────────
+    for i in range(num_nodes):
+        node_id = f"local-node-{i}"
+        port_udp = base_port + (i * 2)
+        port_ws = base_port + (i * 2) + 1
+
+        transport = P2PTransport(node_id, host, port_udp, port_ws)
+        dht = KademliaDHT(
+            node_id=NodeID.from_string(node_id),
+            port=port_udp,
+            transport=transport,
+        )
+        crdt = CRDTStore(node_id=node_id, transport=transport)
+
+        # BootstrapService optional (not needed for pre-wired tests)
+        bootstrap = None
+        if include_bootstrap:
+            from mesh.bootstrap import BootstrapService
+            bootstrap = BootstrapService(node_id=node_id)
+
+        integration = P2PIntegration(
+            node_id=node_id,
+            kademlia_dht=dht,
+            crdt_store=crdt,
+            bootstrap_service=bootstrap,
+        )
+
+        nodes.append(LocalNode(
+            node_id=node_id,
+            transport=transport,
+            dht=dht,
+            crdt=crdt,
+            integration=integration,
+            host=host,
+            port_udp=port_udp,
+            port_ws=port_ws,
+        ))
+
+    # ── 2. Pre-wire DHT routing tables ───────────────────────────────────
+    for i, src in enumerate(nodes):
+        for j, dst in enumerate(nodes):
+            if i == j:
+                continue
+            src.dht.add_node(DHTNode(
+                node_id=NodeID.from_string(dst.node_id),
+                ip_address=host,
+                port=dst.port_udp,
+            ))
+
+    logger.info(
+        f"🏗️ Created {num_nodes} local node(s) — "
+        f"base_port={base_port}, host={host}"
+    )
+    return nodes
+
+
 __all__ = [
     "P2PIntegration",
     "WebRTCTransport",
     "WebRTCPeerConnection",
+    "LocalNode",
+    "create_local_node_set",
     "get_p2p_integration",
     "reset_p2p_integration",
     "patch_route_through_mesh",

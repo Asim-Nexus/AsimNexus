@@ -57,16 +57,19 @@ except ImportError:
 
 # ── Constants ─────────────────────────────────────────────────────────────
 
-# secp256k1 curve order (used for all field operations)
+# secp256k1 curve parameters
+_SECP256K1_P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
+_SECP256K1_A = 0
+_SECP256K1_B = 7
 _SECP256K1_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
 # Standard generator point for secp256k1 (encoded as uncompressed point)
+_SECP256K1_GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+_SECP256K1_GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8
 _SECP256K1_G = (
     b"\x04"
-    b"\x79\xbe\x66\x7e\xf9\xdc\xbb\xac\x55\xa0\x62\x95\xce\x87\x0b\x07"
-    b"\x02\x9b\xfc\xdb\x2d\xce\x28\xd9\x59\xf2\x81\x5b\x16\xf8\x17\x98"
-    b"\x48\x3a\xda\x77\x26\xa3\xc4\x65\x5d\xa4\xfb\xfc\x0e\x11\x08\xa8"
-    b"\xfd\x17\xb4\x48\xa6\x85\x54\x19\x9c\x47\xd0\x8f\xfb\x10\xd4\xb8"
+    + _SECP256K1_GX.to_bytes(32, "big")
+    + _SECP256K1_GY.to_bytes(32, "big")
 )
 
 
@@ -179,11 +182,47 @@ def _scalar_to_bytes(s: int, length: int = 32) -> bytes:
 
 
 class ECPoint:
-    """Elliptic curve point operations (simplified for ZKP purposes).
+    """Elliptic curve point operations for secp256k1.
 
-    Uses the cryptography library for actual EC operations when available,
-    falling back to a hash-based simulation for compatibility.
+    Implements proper EC point arithmetic using the curve parameters.
+    Uses cryptography library for scalar multiplication when available,
+    and implements point addition/negation directly via field arithmetic.
     """
+
+    @staticmethod
+    def _decode_point(point: bytes) -> Tuple[int, int]:
+        """Decode an uncompressed point (0x04 || x || y) to (x, y)."""
+        if len(point) != 65 or point[0] != 4:
+            raise ValueError("Invalid uncompressed point")
+        x = int.from_bytes(point[1:33], "big")
+        y = int.from_bytes(point[33:65], "big")
+        return x, y
+
+    @staticmethod
+    def _encode_point(x: int, y: int) -> bytes:
+        """Encode (x, y) to uncompressed point bytes."""
+        return b"\x04" + x.to_bytes(32, "big") + y.to_bytes(32, "big")
+
+    @staticmethod
+    def _mod_inv(a: int, p: int) -> int:
+        """Modular inverse using Fermat's little theorem."""
+        return pow(a, p - 2, p)
+
+    @staticmethod
+    def _point_add(ax: int, ay: int, bx: int, by: int) -> Tuple[int, int]:
+        """Add two points on secp256k1: (ax, ay) + (bx, by)."""
+        p = _SECP256K1_P
+        if ax == bx and ay == by:
+            if ay == 0:
+                return (0, 0)
+            lam = (3 * ax * ax) * ECPoint._mod_inv(2 * ay, p) % p
+        else:
+            if ax == bx:
+                return (0, 0)
+            lam = (by - ay) * ECPoint._mod_inv(bx - ax, p) % p
+        x3 = (lam * lam - ax - bx) % p
+        y3 = (lam * (ax - x3) - ay) % p
+        return x3, y3
 
     @staticmethod
     def generator() -> bytes:
@@ -199,7 +238,7 @@ class ECPoint:
         if _HAS_EC:
             try:
                 private_key = ec.derive_private_key(
-                    scalar, ec.SECP256K1(), default_backend()
+                    scalar % _SECP256K1_ORDER, ec.SECP256K1(), default_backend()
                 )
                 public_key = private_key.public_key()
                 return public_key.public_bytes(
@@ -208,41 +247,75 @@ class ECPoint:
                 )
             except Exception:
                 pass
-        # Fallback: deterministic hash-based point simulation
-        # WARNING: This is NOT real EC arithmetic; it's a deterministic
-        # mapping for environments without the cryptography library.
-        h = hashlib.sha256(b"ECPoint_mul:" + _scalar_to_bytes(scalar)).digest()
+        # Fallback: double-and-add scalar multiplication
+        result_x, result_y, result_set = 0, 0, False
+        kx, ky = _SECP256K1_GX, _SECP256K1_GY
+        s = scalar % _SECP256K1_ORDER
+        while s > 0:
+            if s & 1:
+                if not result_set:
+                    result_x, result_y, result_set = kx, ky, True
+                else:
+                    result_x, result_y = ECPoint._point_add(result_x, result_y, kx, ky)
+            kx, ky = ECPoint._point_add(kx, ky, kx, ky)
+            s >>= 1
+        if not result_set:
+            return b"\x00"
+        return ECPoint._encode_point(result_x, result_y)
+
+    @staticmethod
+    def multiply_point(point: bytes, scalar: int) -> bytes:
+        """Multiply an arbitrary point by a scalar: Q = scalar * P.
+
+        Implements double-and-add for any input point.
+        """
+        try:
+            px, py = ECPoint._decode_point(point)
+            result_x, result_y, result_set = 0, 0, False
+            kx, ky = px, py
+            s = scalar % _SECP256K1_ORDER
+            while s > 0:
+                if s & 1:
+                    if not result_set:
+                        result_x, result_y, result_set = kx, ky, True
+                    else:
+                        result_x, result_y = ECPoint._point_add(result_x, result_y, kx, ky)
+                kx, ky = ECPoint._point_add(kx, ky, kx, ky)
+                s >>= 1
+            if not result_set:
+                return b"\x00"
+            return ECPoint._encode_point(result_x, result_y)
+        except Exception:
+            pass
+        h = hashlib.sha256(point + _scalar_to_bytes(scalar)).digest()
         return b"\x04" + h + hashlib.sha256(h).digest()[:32]
 
     @staticmethod
     def add(point_a: bytes, point_b: bytes) -> bytes:
         """Add two EC points: R = A + B.
 
-        When cryptography is available, performs real point addition.
-        Fallback: deterministic hash-based combination.
+        Implements proper secp256k1 point addition via field arithmetic.
         """
-        if _HAS_EC and len(point_a) == 65 and len(point_b) == 65:
-            try:
-                # Decode points
-                pub_a = ec.EllipticCurvePublicKey.from_encoded_point(
-                    ec.SECP256K1(), point_a
-                )
-                pub_b = ec.EllipticCurvePublicKey.from_encoded_point(
-                    ec.SECP256K1(), point_b
-                )
-                # We can't directly add points with cryptography library,
-                # so we use the combined hash approach.
-                pass
-            except Exception:
-                pass
-        # Fallback: deterministic combination
+        try:
+            ax, ay = ECPoint._decode_point(point_a)
+            bx, by = ECPoint._decode_point(point_b)
+            rx, ry = ECPoint._point_add(ax, ay, bx, by)
+            return ECPoint._encode_point(rx, ry)
+        except Exception:
+            pass
+        # Last-resort fallback
         h = hashlib.sha256(point_a + point_b).digest()
         return b"\x04" + h + hashlib.sha256(h).digest()[:32]
 
     @staticmethod
     def negate(point: bytes) -> bytes:
-        """Negate a point (for subtraction)."""
-        # Simplified: just hash again
+        """Negate a point on secp256k1: -P = (x, p - y)."""
+        try:
+            x, y = ECPoint._decode_point(point)
+            ny = (_SECP256K1_P - y) % _SECP256K1_P
+            return ECPoint._encode_point(x, ny)
+        except Exception:
+            pass
         h = hashlib.sha256(b"ECPoint_neg:" + point).digest()
         return b"\x04" + h + hashlib.sha256(h).digest()[:32]
 
@@ -318,13 +391,10 @@ class SchnorrProver:
 
             # Verify: s*G == R + c*PK
             sG = ECPoint.multiply(s)
-            cPK = ECPoint.multiply(c)
-            # In proper EC: cPK = c * PK, so we'd need point multiplication
-            # by scalar. Simplified check.
+            cPK = ECPoint.multiply_point(PK_bytes, c)
             R_plus_cPK = ECPoint.add(R_bytes, cPK)
 
-            # Compare (simplified: compare first 32 bytes)
-            return sG[:32] == R_plus_cPK[:32]
+            return sG == R_plus_cPK
         except Exception as e:
             logger.debug(f"Schnorr verify failed: {e}")
             return False

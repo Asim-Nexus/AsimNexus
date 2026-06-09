@@ -225,9 +225,11 @@ class MultiMeshRouter:
         [`auto_switch_loop()`](:520) — background connectivity monitor
         [`add_routing_rule()`](:580) — custom routing rules
         [`get_switch_history()`](:610) — audit trail
+
+    Phase 1C: On single-machine, all mesh types map to LOCAL.
     """
 
-    def __init__(self):
+    def __init__(self, single_machine: Optional[bool] = None):
         self._lock = threading.RLock()
         self._active_mesh: MeshType = MeshType(_DEFAULT_MESH)
         self._profiles: Dict[MeshType, MeshProfile] = {}
@@ -238,9 +240,24 @@ class MultiMeshRouter:
         self._auto_switch_thread: Optional[threading.Thread] = None
         self._stop_auto_switch: threading.Event = threading.Event()
 
+        # Phase 1C: Single-machine detection
+        if single_machine is not None:
+            self._single_machine = single_machine
+        else:
+            self._single_machine = self._is_localhost()
+
         # Initialize baseline profiles
         now = time.time()
         for mtype, baseline in _MESH_BASELINES.items():
+            # Phase 1C: On single-machine, all meshes are always "connected" as LOCAL
+            if self._single_machine:
+                is_connected = True
+                connection_state = MeshConnectionState.CONNECTED
+            else:
+                is_connected = (mtype == MeshType.LOCAL)
+                connection_state = MeshConnectionState.CONNECTED if mtype == MeshType.LOCAL \
+                    else MeshConnectionState.DISCONNECTED
+
             self._profiles[mtype] = MeshProfile(
                 mesh_type=mtype,
                 trust_level=baseline["trust_level"],
@@ -248,9 +265,8 @@ class MultiMeshRouter:
                 avg_latency_ms=baseline["avg_latency_ms"],
                 bandwidth_kbps=baseline["bandwidth_kbps"],
                 peers_available=0,
-                is_connected=(mtype == MeshType.LOCAL),  # LOCAL always available
-                connection_state=MeshConnectionState.CONNECTED if mtype == MeshType.LOCAL
-                else MeshConnectionState.DISCONNECTED,
+                is_connected=is_connected,
+                connection_state=connection_state,
                 priority=baseline["priority"],
                 last_health_check=now,
                 data_classifications_allowed=baseline["data_classifications_allowed"],
@@ -258,9 +274,28 @@ class MultiMeshRouter:
 
         # Default routing rules
         self._init_default_rules()
-        logger.info(
-            f"🌐 MultiMeshRouter initialized — active={self._active_mesh.value}"
-        )
+
+        if self._single_machine:
+            logger.info(
+                f"🌐 MultiMeshRouter initialized — single-machine mode, "
+                f"all meshes mapped to LOCAL"
+            )
+        else:
+            logger.info(
+                f"🌐 MultiMeshRouter initialized — active={self._active_mesh.value}"
+            )
+
+    def _is_localhost(self) -> bool:
+        """Check if running on localhost (single-machine mode)."""
+        import socket
+        try:
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            if local_ip.startswith("127.") or local_ip == "::1":
+                return True
+        except Exception:
+            pass
+        return False
 
     def _init_default_rules(self) -> None:
         """Set up default routing rules based on data classification."""
@@ -327,6 +362,8 @@ class MultiMeshRouter:
           4. Priority order (lower = better)
           5. Custom routing rules
 
+        Phase 1C: On single-machine, always returns LOCAL.
+
         Args:
             requirements: Optional routing requirements. If None, uses defaults
                           for PUBLIC data.
@@ -337,6 +374,12 @@ class MultiMeshRouter:
         Raises:
             RuntimeError: If no mesh meets the requirements.
         """
+        # Phase 1C: Single-machine — always return LOCAL
+        if self._single_machine:
+            local_profile = self._profiles.get(MeshType.LOCAL)
+            if local_profile:
+                return (MeshType.LOCAL, local_profile)
+
         req = requirements or MeshRequirements()
         with self._lock:
             candidates: List[Tuple[MeshType, MeshProfile]] = []

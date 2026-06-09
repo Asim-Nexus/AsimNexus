@@ -1,8 +1,8 @@
 {
   "node_id": "node_b",
   "consent": [
-    "did:example:node_a",
-    "0883d6cfb32b72fb"
+    "0883d6cfb32b72fb",
+    "did:example:node_a"
   ],
   "peers": {
     "0883d6cfb32b72fb": {
@@ -11,7 +11,7 @@
       "did": "did:example:node_a",
       "endpoint": "https://node.a/endpoint",
       "trusted": true,
-      "last_sync": 1780510927.0543625,
+      "last_sync": 1780996090.8428776,
       "sync_count": 1
     }
   },
@@ -25,10 +25,10 @@
     "active_peers": {
       "add": {
         "0883d6cfb32b72fb": [
-          "node_b:1780510927050302200:91"
+          "node_b:1780996090838876800:98"
         ],
         "e3ae959b7a571eec": [
-          "node_a:1780510927051295800:92"
+          "node_a:1780996090839875600:99"
         ]
       },
       "rem": {}
@@ -47,6 +47,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1780510927.0545459
+    "ts": 1780996090.8428776
   }
 }

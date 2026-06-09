@@ -28,6 +28,19 @@ from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
+# ── Optional: Upgrade to real cryptographic ZKP from zkp_privacy ──────────────
+try:
+    from security.zkp_privacy import (
+        ECPoint as _RealECPoint,
+        PedersenCommitment as _RealPedersenCommitment,
+        SchnorrProver as _RealSchnorrProver,
+    )
+    _HAS_REAL_ZKP = True
+    logger.info("🔐 ZKPLocal: Real cryptographic ZKP (Schnorr/Pedersen) available")
+except ImportError:
+    _HAS_REAL_ZKP = False
+    logger.info("ℹ️ ZKPLocal: Using hash-based ZKP (install cryptography library for real ZKP)")
+
 
 class ZKPStatus(Enum):
     """ZKP identity states"""
@@ -114,6 +127,7 @@ class ZKPStore:
         self._pending_challenges: Dict[str, Dict] = {}  # did → challenge data
         self._secrets: Dict[str, str] = {}  # did → secret (in-memory only)
         self._credentials: Dict[str, List[ZKPCredential]] = {}  # did → credentials
+        self._schnorr_keys: Dict[str, int] = {}  # did → sk_scalar (real ZKP only)
 
     def create(self, passphrase: str, display_name: str = "Sovereign User",
                universe: str = "personal", biometric_raw: str = "",
@@ -133,9 +147,24 @@ class ZKPStore:
         """Register a new ZKP identity"""
         salt = secrets.token_hex(16)
         secret = self._derive_secret(passphrase, salt)
+        metadata = metadata or {}
 
-        # Create public commitment (hash of secret)
-        commitment = self._hash_commitment(secret)
+        # Create public commitment — use PedersenCommitment for Schnorr protocol
+        if _HAS_REAL_ZKP and protocol == ZKPProtocol.SCHNORR:
+            # Use real cryptographic commitment from zkp_privacy
+            commitment, blinding = _RealPedersenCommitment.commit(secret, salt)
+            metadata["blinding_factor"] = blinding
+            metadata["commitment_type"] = "pedersen"
+
+            # Generate Schnorr keypair (sk, PK = sk * G)
+            sk_bytes = secrets.token_bytes(32)
+            sk_scalar = int.from_bytes(sk_bytes, "big")
+            pk_bytes = _RealECPoint.multiply(sk_scalar)
+            self._schnorr_keys[did] = sk_scalar
+            metadata["public_key"] = pk_bytes.hex()
+        else:
+            # Fall back to hash-based commitment
+            commitment = self._hash_commitment(secret)
 
         identity = ZKPIdentity(
             did=did,
@@ -172,10 +201,15 @@ class ZKPStore:
         # Derive secret from passphrase
         secret = self._derive_secret(passphrase, identity.salt)
 
-        # Verify commitment
-        expected_commitment = self._hash_commitment(secret)
-        if not hmac.compare_digest(identity.public_commitment, expected_commitment):
-            return False, "Invalid passphrase"
+        # Verify commitment — use PedersenCommitment.open() for Schnorr protocol
+        if _HAS_REAL_ZKP and identity.protocol == ZKPProtocol.SCHNORR:
+            blinding = identity.metadata.get("blinding_factor", identity.salt)
+            if not _RealPedersenCommitment.open(identity.public_commitment, secret, blinding):
+                return False, "Invalid passphrase"
+        else:
+            expected_commitment = self._hash_commitment(secret)
+            if not hmac.compare_digest(identity.public_commitment, expected_commitment):
+                return False, "Invalid passphrase"
 
         # If biometric data provided, verify it
         if bio:
@@ -216,12 +250,17 @@ class ZKPStore:
             "challenge": challenge,
             "created_at": time.time(),
             "expires_at": time.time() + 300,  # 5 minutes
+            "protocol": identity.protocol.value,
         }
         return challenge
 
     def verify_challenge(self, did: str, challenge: str,
                           response: str) -> Tuple[bool, str]:
         """Verify a ZKP challenge response"""
+        identity = self.identities.get(did)
+        if not identity:
+            return False, "Identity not found"
+
         pending = self._pending_challenges.get(did)
         if not pending:
             return False, "No pending challenge"
@@ -233,35 +272,101 @@ class ZKPStore:
             self._pending_challenges.pop(did, None)
             return False, "Challenge expired"
 
-        secret = self._secrets.get(did)
-        if not secret:
-            return False, "No secret found"
+        # ── Schnorr proof path ──────────────────────────────────────────────
+        if _HAS_REAL_ZKP and identity.protocol == ZKPProtocol.SCHNORR:
+            try:
+                # Parse the Schnorr proof from the response JSON
+                import json as _json
+                proof_dict = _json.loads(response)
 
-        expected_response = self._generate_response(challenge, secret)
-        if not hmac.compare_digest(response, expected_response):
-            return False, "Invalid response"
+                # Verify the Schnorr proof with challenge as statement
+                if not _RealSchnorrProver.verify(proof_dict, statement=challenge):
+                    self._pending_challenges.pop(did, None)
+                    return False, "Invalid Schnorr proof"
+            except (ValueError, KeyError, _json.JSONDecodeError) as e:
+                self._pending_challenges.pop(did, None)
+                return False, f"Invalid Schnorr proof format: {e}"
 
-        # Clean up
-        self._pending_challenges.pop(did, None)
+            # Clean up
+            self._pending_challenges.pop(did, None)
 
-        # Record proof
-        proof = ZKPProof(
-            proof_id=f"proof_{uuid.uuid4().hex[:12]}",
-            did=did,
-            challenge=challenge,
-            response=response,
-            verified=True,
-        )
+            # Record proof with Schnorr data
+            proof = ZKPProof(
+                proof_id=f"proof_{uuid.uuid4().hex[:12]}",
+                did=did,
+                challenge=challenge,
+                response=f"schnorr_proof:{response[:64]}...",
+                verified=True,
+                metadata={"proof_type": "schnorr", "protocol": "schnorr"},
+            )
+
+        # ── HMAC challenge-response path ────────────────────────────────────
+        else:
+            secret = self._secrets.get(did)
+            if not secret:
+                return False, "No secret found"
+
+            expected_response = self._generate_response(challenge, secret)
+            if not hmac.compare_digest(response, expected_response):
+                return False, "Invalid response"
+
+            # Clean up
+            self._pending_challenges.pop(did, None)
+
+            # Record proof
+            proof = ZKPProof(
+                proof_id=f"proof_{uuid.uuid4().hex[:12]}",
+                did=did,
+                challenge=challenge,
+                response=response,
+                verified=True,
+            )
+
         if did not in self.proofs:
             self.proofs[did] = []
         self.proofs[did].append(proof)
 
-        identity = self.identities.get(did)
-        if identity:
-            identity.proof_count += 1
+        identity.proof_count += 1
 
         logger.info(f"✅ ZKP challenge verified: {did}")
         return True, "Challenge verified"
+
+    def prove_challenge_schnorr(self, did: str, challenge: str) -> Optional[str]:
+        """Generate a Schnorr proof response for a challenge.
+
+        For identities using SCHNORR protocol with real ZKP available.
+        Returns a JSON-serialized Schnorr proof dict that verify_challenge accepts.
+
+        Args:
+            did: The identity DID
+            challenge: The challenge string from create_challenge()
+
+        Returns:
+            JSON string of the Schnorr proof, or None if not possible
+        """
+        if not _HAS_REAL_ZKP:
+            logger.warning("Real ZKP not available for Schnorr proof")
+            return None
+
+        identity = self.identities.get(did)
+        if not identity or identity.protocol != ZKPProtocol.SCHNORR:
+            return None
+
+        sk_scalar = self._schnorr_keys.get(did)
+        if sk_scalar is None:
+            return None
+
+        pk_hex = identity.metadata.get("public_key", "")
+        if not pk_hex:
+            return None
+
+        pk_bytes = bytes.fromhex(pk_hex)
+
+        # Generate Schnorr proof with challenge as statement
+        proof_dict = _RealSchnorrProver.prove(sk_scalar, pk_bytes, statement=challenge)
+
+        import json as _json
+        return _json.dumps(proof_dict)
 
     def add_biometric(self, did: str, bio_data: str) -> bool:
         """Add biometric hash to an identity"""
@@ -308,6 +413,7 @@ class ZKPStore:
         identity.status = ZKPStatus.REVOKED
         identity.metadata["revoke_reason"] = reason
         self._secrets.pop(did, None)
+        self._schnorr_keys.pop(did, None)
         logger.info(f"🚫 ZKP identity revoked: {did} ({reason})")
         return True
 
@@ -318,6 +424,7 @@ class ZKPStore:
             return False
         identity.status = ZKPStatus.COMPROMISED
         self._secrets.pop(did, None)
+        self._schnorr_keys.pop(did, None)
         logger.warning(f"⚠️ ZKP identity compromised: {did}")
         return True
 

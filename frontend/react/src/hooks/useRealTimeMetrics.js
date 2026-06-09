@@ -1,14 +1,16 @@
 /**
  * ASIMNEXUS Real-Time Metrics Hook
- * Connects to backend WebSocket for real-time system metrics
- * Following 2026 best practices for real-time data
- * Uses corrected API modules from asimnexus.js
+ * =================================
+ * Connects to backend WebSocket for real-time system metrics.
+ * Uses WebSocketService.js (native WebSocket with exponential backoff reconnection).
+ * Falls back to HTTP polling when WebSocket is unavailable.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { io } from 'socket.io-client';
-import { API_BASE_URL } from '../api/unified_api';
-import { analyticsAPI } from '../api/asimnexus';
+import wsService from '../services/WebSocketService';
+import { analyticsAPI } from '../api';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export const useRealTimeMetrics = () => {
   const [metrics, setMetrics] = useState({
@@ -24,52 +26,55 @@ export const useRealTimeMetrics = () => {
 
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
-  const socketRef = useRef(null);
+  const cleanupRef = useRef([]);
 
   const connectWebSocket = useCallback(() => {
     try {
-      const socketBase = process.env.REACT_APP_SOCKET_URL || API_BASE_URL || '';
-      socketRef.current = socketBase ? io(socketBase, {
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
-      }) : io({
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+      const wsUrl = `${API_BASE_URL.replace(/^http/, 'ws')}/ws/metrics`;
+
+      wsService.connect(wsUrl).then((connected) => {
+        if (connected) {
+          setIsConnected(true);
+        }
       });
 
-      socketRef.current.on('connect', () => {
-        console.log('WebSocket connected');
+      // Register event listeners
+      const unsubConnected = wsService.on('connected', () => {
         setIsConnected(true);
       });
 
-      socketRef.current.on('disconnect', () => {
-        console.log('WebSocket disconnected');
+      const unsubDisconnected = wsService.on('disconnected', () => {
         setIsConnected(false);
       });
 
-      socketRef.current.on('metrics_update', (data) => {
+      const unsubMetrics = wsService.on('metrics_update', (data) => {
         setMetrics(data);
         setLastUpdate(new Date());
       });
 
-      socketRef.current.on('error', (error) => {
-        console.error('WebSocket error:', error);
+      const unsubError = wsService.on('error', () => {
+        setIsConnected(false);
       });
+
+      const unsubFallback = wsService.on('fallback', () => {
+        setIsConnected(false);
+      });
+
+      cleanupRef.current = [unsubConnected, unsubDisconnected, unsubMetrics, unsubError, unsubFallback];
     } catch (error) {
       console.error('Failed to connect to WebSocket:', error);
     }
   }, []);
 
   const disconnectWebSocket = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-      setIsConnected(false);
-    }
+    // Clean up listeners
+    cleanupRef.current.forEach((unsub) => {
+      if (typeof unsub === 'function') unsub();
+    });
+    cleanupRef.current = [];
+
+    wsService.disconnect();
+    setIsConnected(false);
   }, []);
 
   useEffect(() => {
@@ -80,7 +85,7 @@ export const useRealTimeMetrics = () => {
     };
   }, [connectWebSocket, disconnectWebSocket]);
 
-  // Fetch real metrics from backend via corrected analyticsAPI
+  // Fetch real metrics from backend via analyticsAPI (HTTP fallback)
   const fetchMetrics = useCallback(async () => {
     try {
       const res = await analyticsAPI.getOverview();

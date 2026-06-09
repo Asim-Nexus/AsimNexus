@@ -1,0 +1,270 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 17%]
+........................................................................ [ 20%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 35%]
+........................................................................ [ 38%]
+............................................................FF..F.F..... [ 41%]
+...........F.......................FFF.F.FF.FF.......................... [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 62%]
+................F..................F..F.FFFF...F..........F.F.....F.F..F [ 64%]
+F....................................................................... [ 67%]
+........................................................................ [ 70%]
+........................................................................ [ 73%]
+........................................................................ [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 97%]
+.............................................................            [100%]
+================================== FAILURES ===================================
+E   assert False
+c:\AsimNexus\tests\real\test_launch_spine.py:56: assert False
+E   assert ('total' in {'error': "No module named 'core.universal'"} or 'currencies' in {'error': "No module named 'core.universal'"} or 'count' in {'error': "No module named 'core.universal'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:66: assert ('total' in {'error': "No module named 'core.universal'"} or 'currencies' in {'error': "No module named 'core.universal'"} or 'count' in {'error': "No module named 'core.universal'"})
+E   assert ('total' in {'error': "No module named 'core.universal'"} or 'countries' in {'error': "No module named 'core.universal'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:96: assert ('total' in {'error': "No module named 'core.universal'"} or 'countries' in {'error': "No module named 'core.universal'"})
+E   assert ('total' in {'error': "No module named 'core.universal'"} or 'languages' in {'error': "No module named 'core.universal'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:113: assert ('total' in {'error': "No module named 'core.universal'"} or 'languages' in {'error': "No module named 'core.universal'"})
+E   assert ('platforms' in {'error': "No module named 'core.platform'"} or 'downloads' in {'error': "No module named 'core.platform'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:295: assert ('platforms' in {'error': "No module named 'core.platform'"} or 'downloads' in {'error': "No module named 'core.platform'"})
+E   assert ('coverage' in {'error': "No module named 'core.government'"} or 'status' in {'error': "No module named 'core.government'"} or 'components' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:579: assert ('coverage' in {'error': "No module named 'core.government'"} or 'status' in {'error': "No module named 'core.government'"} or 'components' in {'error': "No module named 'core.government'"})
+E   assert ('total' in {'error': "No module named 'core.government'"} or 'countries' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:588: assert ('total' in {'error': "No module named 'core.government'"} or 'countries' in {'error': "No module named 'core.government'"})
+E   assert ('identity' in {'error': "No module named 'core.government'"} or 'id' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:605: assert ('identity' in {'error': "No module named 'core.government'"} or 'id' in {'error': "No module named 'core.government'"})
+E   assert ('total_programs' in {'error': "No module named 'core.government'"} or 'programs' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:626: assert ('total_programs' in {'error': "No module named 'core.government'"} or 'programs' in {'error': "No module named 'core.government'"})
+E   assert ('total' in {'error': "No module named 'core.government'"} or 'countries' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:651: assert ('total' in {'error': "No module named 'core.government'"} or 'countries' in {'error': "No module named 'core.government'"})
+E   assert ('tax_liability' in {'error': "No module named 'core.government'"} or 'taxable_income' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:668: assert ('tax_liability' in {'error': "No module named 'core.government'"} or 'taxable_income' in {'error': "No module named 'core.government'"})
+E   assert ('services' in {'error': "No module named 'core.government'"} or 'count' in {'error': "No module named 'core.government'"} or 'country' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:695: assert ('services' in {'error': "No module named 'core.government'"} or 'count' in {'error': "No module named 'core.government'"} or 'country' in {'error': "No module named 'core.government'"})
+E   assert ('regions' in {'error': "No module named 'core.government'"} or 'total' in {'error': "No module named 'core.government'"})
+c:\AsimNexus\tests\real\test_launch_spine.py:704: assert ('regions' in {'error': "No module named 'core.government'"} or 'total' in {'error': "No module named 'core.government'"})
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='node-B', host='127.0.0.1', port_udp=59398, port_ws=59395, version='1.0.0', last_seen=1780840006.1110...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_sync.py:310: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+     +  where <ConnectionState.INIT: 'init'> = PeerInfo(node_id='peer-1', host='127.0.0.1', port_udp=9991, port_ws=9992, version='1.0.0', last_seen=1780840007.097261...tive_failures=0, connection_state=<ConnectionState.INIT: 'init'>, retry_delay=1.0, capabilities=['storage', 'compute']).connection_state
+     +  and   <ConnectionState.INIT: 'init'> = ConnectionState.INIT
+c:\AsimNexus\tests\real\test_mesh_transport.py:181: AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='node-B', host='127.0.0.1', port_udp=10385, port_ws=12058, version='1.0.0', last_seen=1780840012.2108...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:325: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+     +  where <ConnectionState.INIT: 'init'> = PeerInfo(node_id='node-B', host='127.0.0.1', port_udp=13495, port_ws=11763, version='1.0.0', last_seen=1780840013.2326..._failures=0, consecutive_failures=0, connection_state=<ConnectionState.INIT: 'init'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.INIT: 'init'> = ConnectionState.INIT
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:377: AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+E   AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+     +  where <ConnectionState.INIT: 'init'> = PeerInfo(node_id='peer1', host='127.0.0.1', port_udp=1000, port_ws=1001, version='1.0.0', last_seen=1780840013.2376182..._failures=0, consecutive_failures=0, connection_state=<ConnectionState.INIT: 'init'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.INIT: 'init'> = ConnectionState.INIT
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:412: AssertionError: assert <ConnectionState.INIT: 'init'> == <ConnectionState.INIT: 'init'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='node-B', host='127.0.0.1', port_udp=12401, port_ws=38583, version='1.0.0', last_seen=1780840013.2438...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+ERROR    asyncio:base_events.py:1785 Task was destroyed but it is pending!
+task: <Task pending name='Task-1717' coro=<P2PTransport._reconnect_peer() done, defined at C:\AsimNexus\mesh\p2p_transport.py:855> wait_for=<Future pending cb=[Task.task_wakeup()]>>
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:475: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.TIMEOUT: 'timeout'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='ghost', host='127.0.0.1', port_udp=1000, port_ws=1001, version='1.0.0', last_seen=1780840013.250017,...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.TIMEOUT: 'timeout'> = ConnectionState.TIMEOUT
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:518: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.TIMEOUT: 'timeout'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='node-B', host='127.0.0.1', port_udp=28641, port_ws=26019, version='1.0.0', last_seen=1780840013.3082...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  AsimNexus.Mesh.Bootstrap:bootstrap.py:225 DNS resolution failed for bootstrap_global_1: [Errno 11001] getaddrinfo failed
+WARNING  AsimNexus.Mesh.Bootstrap:bootstrap.py:225 DNS resolution failed for bootstrap_asia_1: [Errno 11001] getaddrinfo failed
+WARNING  AsimNexus.Mesh.Bootstrap:bootstrap.py:225 DNS resolution failed for bootstrap_europe_1: [Errno 11001] getaddrinfo failed
+WARNING  AsimNexus.Mesh.Bootstrap:bootstrap.py:225 DNS resolution failed for bootstrap_americas_1: [Errno 11001] getaddrinfo failed
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:697: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='server-A', host='127.0.0.1', port_udp=31974, port_ws=32071, version='1.0.0', last_seen=1780840013.36...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:907: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   mesh.p2p_transport.RateLimitError: Connection rate limit exceeded: 30 connections in last 60s
+------------------------------ Captured log call ------------------------------
+WARNING  AsimNexus.Mesh.P2PTransport:p2p_transport.py:949 Rate limit exceeded: 30 connections in last 60s (max 30)
+C:\AsimNexus\mesh\p2p_transport.py:953: mesh.p2p_transport.RateLimitError: Connection rate limit exceeded: 30 connections in last 60s
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='conc-server', host='127.0.0.1', port_udp=43526, port_ws=34787, version='1.0.0', last_seen=1780840014...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport.py:1231: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='tls-server', host='127.0.0.1', port_udp=59572, port_ws=59571, version='1.0.0', last_seen=1780840015....0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport_tls.py:338: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='mtls-server', host='127.0.0.1', port_udp=59590, port_ws=59589, version='1.0.0', last_seen=1780840016...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport_tls.py:500: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+E   AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+     +  where <ConnectionState.CONNECTED: 'connected'> = PeerInfo(node_id='mtls-verify-server', host='127.0.0.1', port_udp=59597, port_ws=59596, version='1.0.0', last_seen=178...0, consecutive_failures=0, connection_state=<ConnectionState.CONNECTED: 'connected'>, retry_delay=1.0, capabilities=[]).connection_state
+     +  and   <ConnectionState.CONNECTED: 'connected'> = ConnectionState.CONNECTED
+------------------------------ Captured log call ------------------------------
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+WARNING  ASIMEventBus:event_bus.py:163 Event bus not active, event not published
+c:\AsimNexus\tests\real\test_mesh_transport_tls.py:555: AssertionError: assert <ConnectionState.CONNECTED: 'connected'> == <ConnectionState.CONNECTED: 'connected'>
+============================== warnings summary ===============================
+tests/real/test_backend_api.py::TestHealthEndpoints::test_health_check
+tests/real/test_backend_api.py::TestHealthEndpoints::test_health_check
+tests/real/test_deployment_spine_integration.py::TestHealthzEndpoint::test_healthz_returns_ok
+tests/real/test_observability_routes.py::TestTelemetryEndpoint::test_telemetry_returns_list
+  c:\AsimNexus\simple_backend.py:624: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+tests/real/test_backend_api.py::TestHealthEndpoints::test_health_check
+tests/real/test_backend_api.py::TestHealthEndpoints::test_health_check
+tests/real/test_deployment_spine_integration.py::TestHealthzEndpoint::test_healthz_returns_ok
+tests/real/test_observability_routes.py::TestTelemetryEndpoint::test_telemetry_returns_list
+  C:\Users\AsiM-Nexus\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:4580: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/real/test_biometric_hardware_gate.py::TestVerifyAndLock::test_verify_and_lock_rejection
+  c:\AsimNexus\tests\real\..\..\security\biometric_hardware_gate.py:408: RuntimeWarning: coroutine 'HardLockSecurity.verify_biometric' was never awaited
+    return self._verify_biometric_direct(user_id, biometric_data)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/real/test_mesh_sync.py: 8 warnings
+tests/real/test_mesh_v2_integration.py: 2 warnings
+  C:\AsimNexus\mesh\p2p_transport.py:816: RuntimeWarning: coroutine 'P2PTransport.get_peer' was never awaited
+    logger.error(f"WS handler error for {msg.msg_type}: {e}")
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/real/test_mesh_v2_integration.py::TestTwoNodeMeshIntegration::test_two_node_full_stack
+  C:\Users\AsiM-Nexus\AppData\Local\Programs\Python\Python311\Lib\asyncio\events.py:84: RuntimeWarning: coroutine 'P2PTransport.get_online_peers' was never awaited
+    self._context.run(self._callback, *self._args)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/real/test_launch_spine.py::TestUniversalSystems::test_universal_status
+FAILED tests/real/test_launch_spine.py::TestUniversalSystems::test_universal_currencies
+FAILED tests/real/test_launch_spine.py::TestUniversalSystems::test_universal_countries
+FAILED tests/real/test_launch_spine.py::TestUniversalSystems::test_universal_languages
+FAILED tests/real/test_launch_spine.py::TestPlatformMultiDevice::test_platform_downloads
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_government_status
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_identity_countries
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_create_identity
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_eresidency_programs
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_tax_countries
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_calculate_tax
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_gov_services
+FAILED tests/real/test_launch_spine.py::TestGovernmentSystem::test_signature_regions
+FAILED tests/real/test_mesh_sync.py::TestTwoNodeCRDTSync::test_push_operations_sync
+FAILED tests/real/test_mesh_transport.py::TestPeerManagement::test_add_get_remove_peer
+FAILED tests/real/test_mesh_transport.py::TestWebSocketHandshake::test_connect_peer_handshake
+FAILED tests/real/test_mesh_transport.py::TestSessionStateMachine::test_state_transitions
+FAILED tests/real/test_mesh_transport.py::TestSessionStateMachine::test_record_success_failure
+FAILED tests/real/test_mesh_transport.py::TestHealthPingPong::test_ping_pong_exchange
+FAILED tests/real/test_mesh_transport.py::TestHealthPingPong::test_check_pong_timeouts
+FAILED tests/real/test_mesh_transport.py::TestBootstrapIntegration::test_full_integration_flow
+FAILED tests/real/test_mesh_transport.py::TestAutoReconnect::test_reconnect_after_server_restart
+FAILED tests/real/test_mesh_transport.py::TestRateLimiting::test_rate_limit_exceeded
+FAILED tests/real/test_mesh_transport.py::TestConcurrentConnections::test_ten_peers_connect_concurrently
+FAILED tests/real/test_mesh_transport_tls.py::TestTLSConnection::test_tls_handshake_succeeds
+FAILED tests/real/test_mesh_transport_tls.py::TestTLSHandshake::test_mtls_handshake_succeeds
+FAILED tests/real/test_mesh_transport_tls.py::TestTLSHandshake::test_mtls_client_cert_verified
+27 failed, 2410 passed, 20 warnings in 702.52s (0:11:42)

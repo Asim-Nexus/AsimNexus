@@ -51,6 +51,13 @@ class UnifiedAPIBridge:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        try:
+            from core.rate_limiter_middleware import RateLimiterMiddleware
+            self.app.add_middleware(RateLimiterMiddleware)
+            logger = logging.getLogger(__name__)
+            logger.info("✅ RateLimiterMiddleware registered on unified bridge")
+        except Exception:
+            pass
     
     def _setup_routes(self):
         """Setup REST API routes"""

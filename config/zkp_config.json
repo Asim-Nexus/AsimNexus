@@ -1,0 +1,29 @@
+{
+  "_comment": "ZKP system configuration for AsimNexus World OS",
+  "version": "1.0.0",
+  "protocol": {
+    "default": "schnorr",
+    "available": ["schnorr", "pedersen", "bullet_proofs", "ring"],
+    "fallback": "hash_chain"
+  },
+  "curve": {
+    "name": "secp256k1",
+    "order": "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
+    "generator_x": "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
+    "generator_y": "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8"
+  },
+  "proof_types": {
+    "identity": {"protocol": "schnorr", "bits": 256},
+    "age": {"protocol": "bullet_proofs", "bits": 8},
+    "balance": {"protocol": "bullet_proofs", "bits": 48},
+    "membership": {"protocol": "ring", "bits": 256},
+    "range": {"protocol": "bullet_proofs", "bits": 32},
+    "statement": {"protocol": "schnorr", "bits": 256}
+  },
+  "prng": "secrets.SystemRandom",
+  "hash_iterations": 100000,
+  "proof_ttl_seconds": 3600,
+  "max_proof_size_bytes": 65536,
+  "enforce_real_zkp": false,
+  "audit_logging": true
+}

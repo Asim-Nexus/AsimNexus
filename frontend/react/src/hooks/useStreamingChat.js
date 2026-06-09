@@ -1,12 +1,13 @@
 /**
  * ASIMNEXUS Streaming Chat Hook
- * Handles real-time streaming responses from backend
- * Following 2026 best practices for streaming chat UI
+ * ==============================
+ * Handles real-time streaming responses from backend via fetch + ReadableStream.
+ * No external API dependency — uses local API_BASE_URL constant.
  */
 
 import { useState, useCallback, useRef } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../api/unified_api';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 export const useStreamingChat = () => {
   const [isStreaming, setIsStreaming] = useState(false);
@@ -19,11 +20,11 @@ export const useStreamingChat = () => {
       setIsStreaming(true);
       setStreamedContent('');
       setCurrentMessageId(null);
-      
+
       // Create new AbortController for this request
       abortControllerRef.current = new AbortController();
-      
-      const response = await fetch(`${API_BASE_URL || ''}/api/chat/stream`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +43,7 @@ export const useStreamingChat = () => {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           break;
         }
@@ -50,18 +51,18 @@ export const useStreamingChat = () => {
         const chunk = decoder.decode(value, { stream: true });
         accumulatedContent += chunk;
         setStreamedContent(accumulatedContent);
-        
+
         if (onChunk) {
           onChunk(accumulatedContent);
         }
       }
 
       setIsStreaming(false);
-      
+
       if (onComplete) {
         onComplete(accumulatedContent);
       }
-      
+
       return accumulatedContent;
     } catch (error) {
       setIsStreaming(false);

@@ -8,9 +8,13 @@ resources:
 - gemma4-nim-deployment.yaml
 - asim-api-service.yaml
 - gemma4-nim-service.yaml
+- sector-api-deployment.yaml
+- sector-api-hpa.yaml
 - configmap.yaml
 - secret.yaml
 - ingress.yaml
+- network-policy.yaml
+- backup-cronjob.yaml
 
 commonLabels:
   app.kubernetes.io/name: asimnexus

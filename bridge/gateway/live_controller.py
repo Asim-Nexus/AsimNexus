@@ -46,6 +46,12 @@ class LiveGatewayController:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        try:
+            from core.rate_limiter_middleware import RateLimiterMiddleware
+            self.app.add_middleware(RateLimiterMiddleware)
+            logger.info("✅ RateLimiterMiddleware registered on Live Gateway")
+        except Exception:
+            pass
     
     def _setup_routes(self):
         """Setup API routes"""

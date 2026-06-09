@@ -106,7 +106,19 @@ class NATDetector:
         """
         Detect NAT type by querying STUN servers.
         Returns the detected NAT type.
+
+        Short-circuits on localhost — no NAT behind 127.0.0.1/::1.
         """
+        # Short-circuit on localhost — no NAT on loopback
+        if self.local_ip in ("127.0.0.1", "::1", "localhost", "0.0.0.0"):
+            self._nat_type = NATType.OPEN
+            self._public_ip = self.local_ip
+            self._public_port = self.local_port
+            logger.info(
+                f"🔍 NAT detection skipped — localhost ({self.local_ip})"
+            )
+            return self._nat_type
+
         if self._nat_type != NATType.UNKNOWN:
             return self._nat_type
 
@@ -404,10 +416,27 @@ class NATTraversal:
         logger.info(f"🌍 NATTraversal initialized — Node: {node_id}")
 
     async def start(self):
-        """Start NAT traversal service."""
+        """Start NAT traversal service.
+
+        Short-circuits on localhost — no NAT operations needed
+        when running on 127.0.0.1/::1.
+        """
         if self._running:
             return
         self._running = True
+
+        # Short-circuit on localhost — skip STUN probing, hole-punching, relay
+        host = self.transport.host
+        if host in ("127.0.0.1", "::1", "localhost"):
+            self._nat_type = NATType.OPEN
+            self._public_ip = host
+            self._public_port = self.transport.port_udp
+            self._puncher = HolePuncher(self.node_id, self.transport)
+            logger.info(
+                f"🌍 NATTraversal skipped — localhost ({host}), "
+                f"NAT: {self._nat_type.value}"
+            )
+            return
 
         # Detect NAT type
         self._detector = NATDetector(

@@ -105,22 +105,29 @@ def _patched_import(name, *args, **kwargs):
         if not hasattr(mod, "PeerConnection"):
             from dataclasses import dataclass
             from enum import Enum
-            class ConnectionState(str, Enum):
-                INIT = "init"
-                CONNECTING = "connecting"
-                CONNECTED = "connected"
-                DISCONNECTED = "disconnected"
-                TIMEOUT = "timeout"
+            # Only create mock ConnectionState if the module doesn't already define it.
+            # The real module (mesh/p2p_transport.py) defines ConnectionState(Enum),
+            # so we must not overwrite it — otherwise test assertions comparing
+            # ConnectionState values from the real module will fail (different enum classes).
+            _conn_state = getattr(mod, "ConnectionState", None)
+            if _conn_state is None:
+                class ConnectionState(str, Enum):
+                    INIT = "init"
+                    CONNECTING = "connecting"
+                    CONNECTED = "connected"
+                    DISCONNECTED = "disconnected"
+                    TIMEOUT = "timeout"
+                mod.ConnectionState = ConnectionState
+                _conn_state = ConnectionState
             @dataclass
             class PeerConnection:
                 peer_id: str = ""
-                state: ConnectionState = ConnectionState.INIT
+                state: _conn_state = _conn_state.INIT  # type: ignore
                 host: str = ""
                 port: int = 0
                 last_seen: float = 0.0
                 failures: int = 0
             mod.PeerConnection = PeerConnection
-            mod.ConnectionState = ConnectionState
         return mod
     return _import_orig(name, *args, **kwargs)
 

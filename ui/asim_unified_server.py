@@ -19,6 +19,14 @@ from core.event_bus import event_bus, EventType
 
 logger = logging.getLogger("UnifiedServer")
 app = FastAPI(title="ASIMNEXUS Unified Server")
+
+try:
+    from core.rate_limiter_middleware import RateLimiterMiddleware
+    app.add_middleware(RateLimiterMiddleware)
+    logger.info("✅ RateLimiterMiddleware registered")
+except Exception:
+    pass
+
 context_router = get_context_router()
 
 

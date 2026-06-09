@@ -14,26 +14,26 @@
  * 10. ⚡ Slash commands (/help /clear /export /clone /search)
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { getStoredToken } from '../../api/unified_api';
+const getStoredToken = () => localStorage.getItem('asimnexus_token');
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const CLONES = [
-  { id: 'auto',    icon: '🌌', name: 'Auto (Smart Route)' },
-  { id: 'tech',    icon: '💻', name: 'Tech Architect' },
-  { id: 'health',  icon: '🏥', name: 'Health Sage' },
+  { id: 'auto', icon: '🌌', name: 'Auto (Smart Route)' },
+  { id: 'tech', icon: '💻', name: 'Tech Architect' },
+  { id: 'health', icon: '🏥', name: 'Health Sage' },
   { id: 'finance', icon: '💰', name: 'Financial Oracle' },
-  { id: 'legal',   icon: '⚖️', name: 'Legal Guardian' },
-  { id: 'edu',     icon: '📚', name: 'Education Mentor' },
-  { id: 'creative',icon: '🎨', name: 'Creative Muse' },
-  { id: 'strategy',icon: '🎯', name: 'Strategic Planner' },
+  { id: 'legal', icon: '⚖️', name: 'Legal Guardian' },
+  { id: 'edu', icon: '📚', name: 'Education Mentor' },
+  { id: 'creative', icon: '🎨', name: 'Creative Muse' },
+  { id: 'strategy', icon: '🎯', name: 'Strategic Planner' },
   { id: 'science', icon: '🔬', name: 'Research Explorer' },
-  { id: 'security',icon: '🔒', name: 'Security Sentinel' },
-  { id: 'ops',     icon: '🚀', name: 'Logistics Master' },
-  { id: 'env',     icon: '🌿', name: 'Env Steward' },
-  { id: 'social',  icon: '🤝', name: 'Social Harmonizer' },
-  { id: 'govt',    icon: '�️', name: 'Governance Advisor' },
-  { id: 'innov',   icon: '⚡', name: 'Innovation Catalyst' },
+  { id: 'security', icon: '🔒', name: 'Security Sentinel' },
+  { id: 'ops', icon: '🚀', name: 'Logistics Master' },
+  { id: 'env', icon: '🌿', name: 'Env Steward' },
+  { id: 'social', icon: '🤝', name: 'Social Harmonizer' },
+  { id: 'govt', icon: '�️', name: 'Governance Advisor' },
+  { id: 'innov', icon: '⚡', name: 'Innovation Catalyst' },
   { id: 'harmony', icon: '☯️', name: 'Harmony Keeper' },
 ];
 
@@ -49,12 +49,12 @@ const QUICK_PROMPTS = [
 const REACTIONS = ['👍', '❤️', '🔥', '😂', '🤯', '☯️'];
 
 const SLASH_COMMANDS = {
-  '/help':   '**Commands:** /clear · /export · /clone · /search · /pin · /voice\n\n**Chat commands:** `dark mode` · `light mode` · `family universe` · `company universe` · `resource sharing`',
-  '/clear':  '__CLEAR__',
+  '/help': '**Commands:** /clear · /export · /clone · /search · /pin · /voice\n\n**Chat commands:** `dark mode` · `light mode` · `family universe` · `company universe` · `resource sharing`',
+  '/clear': '__CLEAR__',
   '/export': '__EXPORT__',
-  '/clone':  '__SHOW_CLONE__',
+  '/clone': '__SHOW_CLONE__',
   '/search': '__SHOW_SEARCH__',
-  '/voice':  '__VOICE__',
+  '/voice': '__VOICE__',
 };
 
 const WELCOME_MSG = {
@@ -79,18 +79,22 @@ function renderContent(text) {
       const code = lines.slice(1).join('\n');
       return (
         <div key={i} style={{ position: 'relative', margin: '8px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: 'rgba(0,0,0,0.4)', borderRadius: '8px 8px 0 0', padding: '4px 10px',
-            fontSize: '0.68rem', color: '#888' }}>
+            fontSize: '0.68rem', color: '#888'
+          }}>
             <span>{lang}</span>
             <button onClick={() => navigator.clipboard?.writeText(code)}
               style={{ background: 'none', border: 'none', color: '#667eea', cursor: 'pointer', fontSize: '0.7rem' }}>
               📋 Copy
             </button>
           </div>
-          <pre style={{ margin: 0, background: 'rgba(0,0,0,0.35)', borderRadius: '0 0 8px 8px',
+          <pre style={{
+            margin: 0, background: 'rgba(0,0,0,0.35)', borderRadius: '0 0 8px 8px',
             padding: '12px', overflowX: 'auto', fontSize: '0.8rem', color: '#e2e8f0',
-            borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            borderTop: '1px solid rgba(255,255,255,0.06)'
+          }}>
             <code>{code}</code>
           </pre>
         </div>
@@ -147,8 +151,8 @@ export default function UniversalChat({ user, onCommand }) {
     if (token) {
       fetch(`${API}/api/apis/status`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
-        .then(d => setCloudProviders(Object.entries(d.providers || {}).filter(([,v]) => v === 'configured').map(([k]) => k)))
-        .catch(() => {});
+        .then(d => setCloudProviders(Object.entries(d.providers || {}).filter(([, v]) => v === 'configured').map(([k]) => k)))
+        .catch(() => { });
     }
   }, []);
 
@@ -257,7 +261,7 @@ export default function UniversalChat({ user, onCommand }) {
 
       let aiContent = data.response || 'No response';
       let fwAdvisory = '';
-      let fwVerdict  = 'clean';
+      let fwVerdict = 'clean';
       try {
         const fwRes = await fetch(`${API}/api/firewall/check`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -270,7 +274,7 @@ export default function UniversalChat({ user, onCommand }) {
         if (fwVerdict !== 'clean') {
           fwAdvisory = fwRes.advisory_msg || '';
         }
-      } catch {}
+      } catch { }
 
       setMessages(prev => [...prev, {
         id: Date.now() + 1, role: 'assistant',
@@ -279,7 +283,7 @@ export default function UniversalChat({ user, onCommand }) {
         source: data.source || 'unknown',
         model: data.model || '',
         intent: data.intent || '',
-        fw_verdict:  fwVerdict,
+        fw_verdict: fwVerdict,
         fw_advisory: fwAdvisory,
         reactions: {}, pinned: false, ts: Date.now(),
       }]);
@@ -437,9 +441,11 @@ export default function UniversalChat({ user, onCommand }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {QUICK_PROMPTS.map(qp => (
               <button key={qp.text} onClick={() => sendMessage(qp.text)}
-                style={{ padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(102,126,234,0.35)',
+                style={{
+                  padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(102,126,234,0.35)',
                   background: 'rgba(102,126,234,0.08)', color: 'rgba(255,255,255,0.7)',
-                  cursor: 'pointer', fontSize: '0.75rem' }}>
+                  cursor: 'pointer', fontSize: '0.75rem'
+                }}>
                 {qp.label}
               </button>
             ))}
@@ -458,8 +464,8 @@ export default function UniversalChat({ user, onCommand }) {
                   {REACTIONS.map(e => (
                     <span key={e} onClick={() => addReaction(msg.id, e)}
                       style={{ cursor: 'pointer', fontSize: '0.8rem', opacity: 0.5, transition: 'opacity 0.15s' }}
-                      onMouseEnter={ev => ev.target.style.opacity=1}
-                      onMouseLeave={ev => ev.target.style.opacity=0.5}>
+                      onMouseEnter={ev => ev.target.style.opacity = 1}
+                      onMouseLeave={ev => ev.target.style.opacity = 0.5}>
                       {e}{msg.reactions?.[e] ? ` ${msg.reactions[e]}` : ''}
                     </span>
                   ))}
@@ -482,13 +488,13 @@ export default function UniversalChat({ user, onCommand }) {
                     <div style={{
                       marginTop: 6, padding: '4px 10px', borderRadius: 8, fontSize: '0.7rem',
                       background: msg.fw_verdict === 'blocked' ? 'rgba(239,68,68,0.12)' :
-                                  msg.fw_verdict === 'filtered' ? 'rgba(251,146,60,0.12)' :
-                                  'rgba(234,179,8,0.12)',
+                        msg.fw_verdict === 'filtered' ? 'rgba(251,146,60,0.12)' :
+                          'rgba(234,179,8,0.12)',
                       border: `1px solid ${msg.fw_verdict === 'blocked' ? 'rgba(239,68,68,0.3)' :
-                                           msg.fw_verdict === 'filtered' ? 'rgba(251,146,60,0.3)' :
-                                           'rgba(234,179,8,0.3)'}`,
+                        msg.fw_verdict === 'filtered' ? 'rgba(251,146,60,0.3)' :
+                          'rgba(234,179,8,0.3)'}`,
                       color: msg.fw_verdict === 'blocked' ? '#f87171' :
-                             msg.fw_verdict === 'filtered' ? '#fb923c' : '#fbbf24',
+                        msg.fw_verdict === 'filtered' ? '#fb923c' : '#fbbf24',
                     }}>
                       🧠 Firewall: <strong>{msg.fw_verdict.toUpperCase()}</strong>
                       {msg.fw_advisory && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {msg.fw_advisory}</span>}
@@ -499,16 +505,20 @@ export default function UniversalChat({ user, onCommand }) {
                   <div style={s.reactionRow}>
                     {REACTIONS.map(e => (
                       <span key={e} onClick={() => addReaction(msg.id, e)}
-                        style={{ cursor: 'pointer', fontSize: '0.82rem', padding: '1px 5px',
+                        style={{
+                          cursor: 'pointer', fontSize: '0.82rem', padding: '1px 5px',
                           borderRadius: 10, background: msg.reactions?.[e] ? 'rgba(102,126,234,0.2)' : 'transparent',
-                          border: `1px solid ${msg.reactions?.[e] ? 'rgba(102,126,234,0.4)' : 'transparent'}` }}>
+                          border: `1px solid ${msg.reactions?.[e] ? 'rgba(102,126,234,0.4)' : 'transparent'}`
+                        }}>
                         {e}{msg.reactions?.[e] ? ` ${msg.reactions[e]}` : ''}
                       </span>
                     ))}
                     {/* Feature 5: Pin */}
                     <span onClick={() => togglePin(msg.id)}
-                      style={{ cursor: 'pointer', fontSize: '0.75rem', marginLeft: 4, opacity: 0.5,
-                        color: msg.pinned ? '#667eea' : 'inherit' }}>
+                      style={{
+                        cursor: 'pointer', fontSize: '0.75rem', marginLeft: 4, opacity: 0.5,
+                        color: msg.pinned ? '#667eea' : 'inherit'
+                      }}>
                       {msg.pinned ? '📌 Unpin' : '📌 Pin'}
                     </span>
                   </div>
@@ -520,10 +530,12 @@ export default function UniversalChat({ user, onCommand }) {
 
         {loading && (
           <div style={s.typing}>
-            {[0,1,2].map(i => (
-              <span key={i} style={{ width: 6, height: 6, borderRadius: '50%',
+            {[0, 1, 2].map(i => (
+              <span key={i} style={{
+                width: 6, height: 6, borderRadius: '50%',
                 background: '#667eea', display: 'inline-block',
-                animation: `bounce 1.2s ${i*0.2}s ease-in-out infinite` }} />
+                animation: `bounce 1.2s ${i * 0.2}s ease-in-out infinite`
+              }} />
             ))}
             {selectedClone.icon} {selectedClone.name} सोच्दैछ…
           </div>
@@ -557,7 +569,7 @@ export default function UniversalChat({ user, onCommand }) {
 
           {/* Clear */}
           <button style={{ ...s.toolBtn(false), marginLeft: 'auto', color: 'rgba(239,68,68,0.7)' }}
-            onClick={() => { if(window.confirm('Chat clear गर्ने?')) setMessages([WELCOME_MSG]); }}>
+            onClick={() => { if (window.confirm('Chat clear गर्ने?')) setMessages([WELCOME_MSG]); }}>
             🗑️ Clear
           </button>
         </div>
@@ -589,9 +601,11 @@ export default function UniversalChat({ user, onCommand }) {
               {CLONES.map(c => (
                 <button key={c.id}
                   onClick={() => { setSelectedClone(c); setShowCloneMenu(false); }}
-                  style={{ padding: '8px 12px', borderRadius: 10, border: `1px solid ${selectedClone.id === c.id ? 'rgba(102,126,234,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                  style={{
+                    padding: '8px 12px', borderRadius: 10, border: `1px solid ${selectedClone.id === c.id ? 'rgba(102,126,234,0.6)' : 'rgba(255,255,255,0.08)'}`,
                     background: selectedClone.id === c.id ? 'rgba(102,126,234,0.15)' : 'rgba(255,255,255,0.03)',
-                    color: '#fff', cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem' }}>
+                    color: '#fff', cursor: 'pointer', textAlign: 'left', fontSize: '0.82rem'
+                  }}>
                   {c.icon} {c.name}
                 </button>
               ))}

@@ -311,5 +311,66 @@ class ImmutableConstitution:
         }
 
 
-# Global instance
+# ─── Integration Hooks ─────────────────────────────────────────────────────
+
+
+def get_compliance_checker() -> ImmutableConstitution:
+    """
+    Get the global ImmutableConstitution instance for integration with
+    the Dharma VETO pipeline.
+
+    Returns the singleton so that callers (e.g. ``DharmaVeto``) can invoke
+    ``check_compliance(action, context)`` as Layer 0 — before all other
+    veto layers.
+    """
+    return immutable_constitution
+
+
+def check_constitution(action: str, context: Optional[Dict] = None) -> Dict:
+    """
+    Convenience wrapper that checks an action against the constitution
+    and returns a result dict compatible with DharmaVeto's layer interface.
+
+    Args:
+        action: Description of the action being checked.
+        context: Optional context dict.
+
+    Returns:
+        A dict with keys:
+          - ``passed`` (bool): True if no violations.
+          - ``severity`` (str): "pass" | "warn" | "block" | "critical"
+          - ``detail`` (str): Human-readable explanation.
+          - ``violations`` (list): List of violation dicts.
+    """
+    result = immutable_constitution.check_compliance(action, context)
+    if result["compliant"]:
+        return {
+            "passed": True,
+            "severity": "pass",
+            "detail": "✅ Constitution check passed — all principles satisfied.",
+            "violations": [],
+        }
+
+    # Determine worst severity among violations
+    severities = [v["severity"] for v in result["violations"]]
+    if "critical" in severities:
+        worst = "critical"
+    elif "high" in severities:
+        worst = "block"
+    else:
+        worst = "warn"
+
+    violation_names = [v["principle_name"] for v in result["violations"]]
+    return {
+        "passed": False,
+        "severity": worst,
+        "detail": (
+            f"Constitution violation(s): {', '.join(violation_names)}. "
+            f"Action '{action}' conflicts with immutable principles."
+        ),
+        "violations": result["violations"],
+    }
+
+
+# Global instance (singleton)
 immutable_constitution = ImmutableConstitution()

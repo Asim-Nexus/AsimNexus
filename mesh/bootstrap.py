@@ -161,8 +161,18 @@ class BootstrapService:
         self._running = False
         self._cleanup_task: Optional[asyncio.Task] = None
         
-        # Lock for thread/async safety
+        # SSL/TLS contexts
         self._ssl_context = ssl_context
+        # Client-side SSL context derived from server context for outbound connections.
+        # A PROTOCOL_TLS_SERVER context cannot be reused as a client context in Python.
+        self._ssl_client_context: Optional[ssl.SSLContext] = None
+        if ssl_context is not None:
+            try:
+                self._ssl_client_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                self._ssl_client_context.check_hostname = False
+                self._ssl_client_context.verify_mode = ssl.CERT_NONE
+            except Exception:
+                self._ssl_client_context = None
         self._bootstrap_cache: Dict[str, Tuple[BootstrapResponse, float]] = {}
         self._bootstrap_cache_ttl = self.BOOTSTRAP_CACHE_TTL
         self._lock = asyncio.Lock()
@@ -457,7 +467,7 @@ class BootstrapService:
 
             reader, writer = await asyncio.open_connection(
                 bootstrap_address, bootstrap_port,
-                ssl=self._ssl_context,
+                ssl=self._ssl_client_context if self._ssl_client_context is not None else self._ssl_context,
             )
             
             # Send request
@@ -776,11 +786,11 @@ class BootstrapService:
 _bootstrap_service: Optional[BootstrapService] = None
 
 
-def get_bootstrap_service(node_id: str, is_bootstrap: bool = False, port: Optional[int] = None) -> BootstrapService:
+def get_bootstrap_service(node_id: str, is_bootstrap: bool = False, port: Optional[int] = None, ssl_context: Optional[ssl.SSLContext] = None) -> BootstrapService:
     """Get or create global bootstrap service instance."""
     global _bootstrap_service
     if _bootstrap_service is None:
-        _bootstrap_service = BootstrapService(node_id, is_bootstrap, port)
+        _bootstrap_service = BootstrapService(node_id, is_bootstrap, port, ssl_context=ssl_context)
     return _bootstrap_service
 
 

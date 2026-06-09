@@ -40,10 +40,11 @@ module.exports = defineConfig({
         },
     ],
 
-    webServer: process.env.CI ? {
+    webServer: {
         command: 'npm start',
         port: 3000,
         timeout: 120 * 1000,
-        reuseExistingServer: !process.env.CI,
-    } : undefined,
+        reuseExistingServer: true,
+        cwd: './',
+    },
 });

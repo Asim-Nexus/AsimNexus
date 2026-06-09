@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 """
 STATUS: REAL — Auto-labeled by batch_label.py
 """
@@ -19,7 +21,6 @@ Implements the full AsimNexus bug handling architecture:
 
 "AI proposes. ΔT simulates. Dharma checks. Human decides critical."
 """
-from __future__ import annotations
 
 import hashlib
 import json
