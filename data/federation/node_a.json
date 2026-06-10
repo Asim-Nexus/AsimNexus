@@ -1,8 +1,8 @@
 {
   "node_id": "node_a",
   "consent": [
-    "did:example:node_b",
-    "e3ae959b7a571eec"
+    "e3ae959b7a571eec",
+    "did:example:node_b"
   ],
   "peers": {
     "e3ae959b7a571eec": {
@@ -24,7 +24,7 @@
     "active_peers": {
       "add": {
         "e3ae959b7a571eec": [
-          "node_a:1780996090839875600:99"
+          "node_a:1781108930481223100:99"
         ]
       },
       "rem": {}
@@ -43,6 +43,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1780996090.840875
+    "ts": 1781108930.4822254
   }
 }

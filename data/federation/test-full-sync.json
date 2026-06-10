@@ -10,7 +10,7 @@
       "did": "did:example:fullsync",
       "endpoint": "ws://10.0.0.1:9000",
       "trusted": true,
-      "last_sync": 1780996087.2680624,
+      "last_sync": 1781108929.0759463,
       "sync_count": 1
     }
   },
@@ -24,10 +24,10 @@
     "active_peers": {
       "add": {
         "cd7795fb6fa46f5b": [
-          "test-full-sync:1780996087265053500:37"
+          "test-full-sync:1781108929074946400:37"
         ],
         "peer-alpha": [
-          "remote-full:1780996087268062400:38"
+          "remote-full:1781108929075946300:38"
         ]
       },
       "rem": {}
@@ -35,14 +35,14 @@
     "capabilities": {
       "add": {
         "crypto": [
-          "remote-full:1780996087268062400:39"
+          "remote-full:1781108929075946300:39"
         ]
       },
       "rem": {}
     },
     "display_name": {
       "value": "FullNode",
-      "ts": 1780996087.2680624,
+      "ts": 1781108929.0759463,
       "node": "remote-full"
     },
     "universe_mode": {
@@ -50,6 +50,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1780996087.2680624
+    "ts": 1781108929.0759463
   }
 }

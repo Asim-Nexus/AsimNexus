@@ -10,7 +10,7 @@
       "did": "did:example:um",
       "endpoint": "ws://10.0.0.1:9000",
       "trusted": true,
-      "last_sync": 1780996087.798648,
+      "last_sync": 1781108929.332685,
       "sync_count": 1
     }
   },
@@ -24,7 +24,7 @@
     "active_peers": {
       "add": {
         "6a0e5fd1719b78c8": [
-          "test-um-sync:1780996087796649400:44"
+          "test-um-sync:1781108929331684900:44"
         ]
       },
       "rem": {}
@@ -40,9 +40,9 @@
     },
     "universe_mode": {
       "value": "developer",
-      "ts": 1780996087.798648,
+      "ts": 1781108929.332685,
       "node": "remote-um"
     },
-    "ts": 1780996087.798648
+    "ts": 1781108929.332685
   }
 }

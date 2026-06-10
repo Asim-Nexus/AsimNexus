@@ -70,3 +70,4 @@
 {"action": "rollback", "target": "docker", "from_version": "2.0.0", "to_version": "1.0.0", "timestamp": "2026-06-07T19:41:30.997101Z"}
 {"action": "rollback", "target": "docker", "from_version": "2.0.0", "to_version": "1.0.0", "timestamp": "2026-06-07T21:20:32.433638Z"}
 {"action": "rollback", "target": "docker", "from_version": "2.0.0", "to_version": "1.0.0", "timestamp": "2026-06-07T21:25:30.040153Z"}
+{"action": "rollback", "target": "docker", "from_version": "2.0.0", "to_version": "1.0.0", "timestamp": "2026-06-10T16:31:34.896203Z"}

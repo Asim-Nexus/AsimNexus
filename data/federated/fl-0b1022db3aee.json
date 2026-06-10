@@ -1,0 +1,43 @@
+{
+  "round_id": "fl-0b1022db3aee",
+  "status": "COMPLETED",
+  "model_config": {},
+  "strategy": "DATA_VOLUME",
+  "min_nodes": 2,
+  "timeout_seconds": 300,
+  "created_at": "2026-06-10T16:31:02.579591",
+  "completed_at": "2026-06-10T16:31:02.579591",
+  "submissions": {
+    "node-1": {
+      "node_id": "node-1",
+      "round_id": "fl-0b1022db3aee",
+      "weights": {
+        "w1": 0.0
+      },
+      "data_volume": 100,
+      "validation_score": 0.0,
+      "timestamp": "2026-06-10T16:31:02.579591",
+      "metadata": {}
+    },
+    "node-2": {
+      "node_id": "node-2",
+      "round_id": "fl-0b1022db3aee",
+      "weights": {
+        "w1": 1.0
+      },
+      "data_volume": 300,
+      "validation_score": 0.0,
+      "timestamp": "2026-06-10T16:31:02.579591",
+      "metadata": {}
+    }
+  },
+  "global_weights": {
+    "w1": 0.75
+  },
+  "aggregated_metrics": {
+    "mean_validation_score": 0.0,
+    "total_data_volume": 400,
+    "participant_count": 2,
+    "aggregation_strategy": "DATA_VOLUME"
+  }
+}
