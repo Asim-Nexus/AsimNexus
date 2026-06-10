@@ -1,0 +1,1934 @@
+[
+  {
+    "checksum": "rc-1-freeze-snapshot-2026-05-31",
+    "is_current": false,
+    "published_at": "2026-05-31T11:08:49.778123Z",
+    "target": "docker",
+    "version": "1.0.0+build42"
+  },
+  {
+    "checksum": "git-sha:82018c0666c34447412c06d96392e17f12b1a603",
+    "is_current": false,
+    "published_at": "2026-05-31T16:53:39.332057Z",
+    "target": "docker",
+    "version": "1.0.0+build42-rc2"
+  },
+  {
+    "checksum": "git-sha:82018c0666c34447412c06d96392e17f12b1a603",
+    "is_current": false,
+    "published_at": "2026-05-31T17:59:55.987590Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": true,
+    "published_at": "2026-06-01T12:38:01.726208Z",
+    "target": "production",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "def456",
+    "is_current": false,
+    "published_at": "2026-06-01T12:38:01.734206Z",
+    "target": "production",
+    "version": "1.1.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-12345",
+    "is_current": false,
+    "published_at": "2026-06-01T19:12:13.838949Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e"
+  },
+  {
+    "checksum": "e2e-test-checksum-83e766da",
+    "is_current": false,
+    "published_at": "2026-06-01T19:17:54.821302Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-83e766da"
+  },
+  {
+    "checksum": "e2e-test-checksum-95dc91d9",
+    "is_current": false,
+    "published_at": "2026-06-01T19:18:57.977570Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-95dc91d9"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-01T19:20:54.065094Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-01T19:25:03.986215Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-01T19:25:03.995333Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-01T19:25:05.332235Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "e2e-test-checksum-6466dff2",
+    "is_current": false,
+    "published_at": "2026-06-01T19:52:58.816409Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-6466dff2"
+  },
+  {
+    "checksum": "e2e-test-checksum-c770f053",
+    "is_current": false,
+    "published_at": "2026-06-01T19:52:59.996207Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-c770f053"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-01T19:53:17.182826Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-01T19:53:18.482405Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-01T19:53:18.495636Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-01T19:56:10.221314Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-01T19:56:12.775269Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-01T19:56:12.787405Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-01T19:58:27.144921Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-01T19:58:28.575696Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-01T19:58:28.588827Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-5d77f25c",
+    "is_current": false,
+    "published_at": "2026-06-01T20:05:00.519689Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-5d77f25c"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-01T20:08:00.393842Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-01T20:08:01.596121Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-01T20:08:01.605819Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T00:08:21.521931Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T03:57:35.697923Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T07:59:51.370019Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T08:01:45.319850Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:17.639591Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:18.934549Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:29.095363Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:29.110991Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:29.126618Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T08:48:29.142245Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:35:41.961700Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:42:20.793874Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T09:42:22.252714Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T09:42:22.268712Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:52:07.123152Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:54:17.231051Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:58:38.719344Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T09:58:41.512594Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T09:58:41.523703Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T09:59:54.485928Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:00:28.746732Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T10:00:30.038708Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T10:00:30.047830Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:03:54.665839Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:07:29.213161Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T10:07:30.569658Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T10:07:30.583728Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:07:45.086592Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:10:37.582673Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T10:10:38.706557Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T10:10:38.721729Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:12:52.924450Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:14:39.372367Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T10:14:40.631891Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T10:14:40.647246Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T10:18:55.161888Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T10:18:56.448386Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T10:18:56.460545Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:02:22.022765Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:04:55.477973Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:09:36.369762Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:09:41.626052Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:09:41.640056Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:09:45.203204Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:13:06.157564Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:13:12.720289Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:13:12.732582Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:15:55.189386Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:15:56.422513Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:15:56.432654Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:21:52.805766Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:28:09.889836Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:28:12.595628Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:28:12.621614Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-d69e433e",
+    "is_current": false,
+    "published_at": "2026-06-02T11:41:11.008166Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-d69e433e"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:42:49.026629Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "e2e-test-checksum-c2408e63",
+    "is_current": false,
+    "published_at": "2026-06-02T11:43:44.192216Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-c2408e63"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:45:30.098371Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:50:52.498167Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:50:57.702698Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:50:57.712857Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-d7ff927a",
+    "is_current": false,
+    "published_at": "2026-06-02T11:51:38.118377Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-d7ff927a"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:54:16.864070Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T11:55:09.012685Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T11:55:17.190499Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T11:55:17.202663Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-ede2db1a",
+    "is_current": false,
+    "published_at": "2026-06-02T12:00:59.670032Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-ede2db1a"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:03:17.176705Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:05:52.133947Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:05:59.047780Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:05:59.059986Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:15:24.078940Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:15:25.485151Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:15:25.496144Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:26:51.550981Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:29:33.962209Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:36:24.468720Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:36:25.403058Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:36:28.404418Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:36:28.417282Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:38:51.464238Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:44:10.811252Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:44:52.354027Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:44:54.572611Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:44:55.196222Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:49:27.627995Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:31.202747Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:32.452557Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:32.463796Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:34.162381Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:35.627099Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:54:35.638272Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:55:36.931867Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:55:38.190822Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:55:38.200961Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:57:51.030658Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T12:59:06.554631Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T12:59:08.154583Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T12:59:08.168789Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:07:10.021447Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T13:07:11.309716Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T13:07:11.322850Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:07:55.946372Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:17:05.568937Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T13:17:06.813477Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T13:17:06.826617Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:29:16.942599Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:31:51.205266Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:36:18.201540Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T13:36:19.759902Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T13:36:19.772052Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:38:17.744119Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T13:38:19.124781Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T13:38:19.135780Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:44:36.057035Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T13:50:38.645453Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T13:50:39.347199Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T13:50:39.358351Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T14:00:40.782298Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-02T14:03:10.481258Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T14:07:06.826711Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T14:07:09.373674Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T14:07:09.383791Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-02T14:09:13.933769Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-02T14:09:14.855921Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-02T14:09:14.867066Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:11:01.640578Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:15:45.326477Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:18:40.996788Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T15:18:44.164639Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T15:18:44.179642Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:21:54.184843Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T15:21:56.806095Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T15:21:56.818421Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T15:27:07.337302Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T15:27:07.350545Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:27:08.389731Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:33:02.183001Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T15:39:39.600939Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T15:39:39.623937Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:39:40.820402Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T15:44:28.114880Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T16:37:08.005317Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T16:37:08.016433Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T16:37:13.963863Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T16:42:16.243612Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T16:49:22.267668Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T16:49:22.279807Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T16:49:23.449015Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T16:54:04.984017Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:18:08.619418Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:24:38.772652Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T17:24:41.599481Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T17:24:41.609625Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:33:38.352927Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:40:39.757441Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T17:40:40.918331Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T17:40:40.930104Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:49:06.697780Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T17:54:40.944321Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T17:54:42.125147Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T17:54:42.136270Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T18:06:20.072497Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T18:12:44.007057Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T18:12:45.172703Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T18:12:45.185085Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-03T18:22:00.410034Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-03T18:29:01.129038Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-03T18:29:02.405055Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-03T18:29:02.417197Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "3e49bdf8a00369ecccf314d381e338ccb49b2d064d64d7b54d54d321d5f71321",
+    "is_current": false,
+    "published_at": "2026-06-06T14:11:52.005614Z",
+    "target": "docker",
+    "version": "0.1.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T11:34:18.643356Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T11:41:30.533423Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T11:41:31.203028Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:00.111416Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:09.588165Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:09.602575Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:09.768624Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:10.648887Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T11:49:10.661035Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:06:43.025841Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:12:33.278438Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T12:12:36.015677Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T12:12:36.027164Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:21:56.893004Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:27:37.433730Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T12:27:38.648329Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T12:27:38.664832Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:42:09.826477Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:47:41.922280Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T12:47:43.027379Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T12:47:43.040555Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T12:57:57.376016Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:03:49.525598Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T13:03:53.362657Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T13:03:53.374406Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:13:44.789871Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:19:55.398159Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T13:19:56.568990Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T13:19:56.580992Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:25:53.958720Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:31:06.892168Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:36:53.562107Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T13:36:54.204179Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T13:36:54.217050Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:42:45.158206Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T13:48:54.379479Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T13:48:55.098072Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T13:48:55.109771Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T14:04:34.712331Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T14:10:21.725775Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T14:10:25.394820Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T14:10:25.409211Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "rc-1-freeze",
+    "is_current": false,
+    "published_at": "2026-06-07T16:43:30.638258Z",
+    "target": "docker",
+    "version": "1.1.0-rc.1"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T16:50:55.399979Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T17:00:31.009668Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T17:00:33.482553Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T17:00:33.494553Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T17:10:08.798056Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T17:16:48.500831Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T17:16:51.727298Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T17:16:51.738867Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T18:57:25.267106Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "stable-release-2026-06-07",
+    "is_current": true,
+    "published_at": "2026-06-07T19:04:59.664561Z",
+    "target": "stable",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T19:06:38.679373Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T19:06:39.681550Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T19:06:39.701550Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T19:32:22.640745Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T19:41:29.660780Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T19:41:30.958883Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T19:41:30.973693Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-ae39a5b3",
+    "is_current": false,
+    "published_at": "2026-06-07T21:09:39.668381Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-ae39a5b3"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T21:12:23.008952Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-07T21:16:13.367002Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T21:20:30.616481Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T21:20:32.400154Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T21:20:32.413342Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "dummychecksum123",
+    "is_current": false,
+    "published_at": "2026-06-07T21:25:28.308155Z",
+    "target": "pwa",
+    "version": "99.9.9"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-07T21:25:29.989983Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-07T21:25:30.003161Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "e2e-test-checksum-6a81c5ff",
+    "is_current": false,
+    "published_at": "2026-06-07T21:30:10.821005Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-6a81c5ff"
+  },
+  {
+    "checksum": "e2e-test-checksum-1aeb642f",
+    "is_current": false,
+    "published_at": "2026-06-09T09:00:33.462887Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-1aeb642f"
+  },
+  {
+    "checksum": "e2e-test-checksum-fd15cc5f",
+    "is_current": true,
+    "published_at": "2026-06-09T09:02:55.350528Z",
+    "target": "pwa",
+    "version": "99.99.99-e2e-fd15cc5f"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-09T09:04:02.341740Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "abc123",
+    "is_current": false,
+    "published_at": "2026-06-09T09:08:02.481031Z",
+    "target": "docker",
+    "version": "9.9.9-test"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-09T09:15:30.834794Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": false,
+    "published_at": "2026-06-09T09:15:30.850965Z",
+    "target": "docker",
+    "version": "2.0.0"
+  },
+  {
+    "checksum": "checksum111",
+    "is_current": false,
+    "published_at": "2026-06-09T09:16:26.685175Z",
+    "target": "docker",
+    "version": "1.0.0"
+  },
+  {
+    "checksum": "checksum222",
+    "is_current": true,
+    "published_at": "2026-06-09T09:16:26.699168Z",
+    "target": "docker",
+    "version": "2.0.0"
+  }
+]

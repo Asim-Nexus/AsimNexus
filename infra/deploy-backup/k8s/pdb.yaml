@@ -1,0 +1,14 @@
+# ─── AsimNexus PodDisruptionBudget ───────────────────────────────────────────
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: asimnexus-pdb
+  namespace: asimnexus
+  labels:
+    app: asimnexus
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: asimnexus
+      component: backend

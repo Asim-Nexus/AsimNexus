@@ -597,7 +597,7 @@ tests/
 | **Frontend** | React, React Native, Electron, Tauri |
 | **Auth** | JWT (HS256), bcrypt, mTLS, OAuth2 |
 | **Crypto** | PyCryptodome, cryptography, pyjwt, passlib |
-| **GPU** | CUDA 12.x, PyTorch, cupy, cudf, OpenCV with CUDA |
+| **GPU** | CUDA 12.x, PyTorch, cupy, OpenCV with CUDA |
 | **Messaging** | In-memory event bus, WebSocket, RabbitMQ (optional) |
 | **P2P/Mesh** | websockets, Kademlia DHT, STUN/TURN, CRDT |
 | **Orchestration** | Docker, Docker Compose, Kubernetes |

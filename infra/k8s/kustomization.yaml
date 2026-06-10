@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: asimnexus
+
+resources:
+- asim-api-deployment.yaml
+- gemma4-nim-deployment.yaml
+- asim-api-service.yaml
+- gemma4-nim-service.yaml
+- sector-api-deployment.yaml
+- sector-api-hpa.yaml
+- configmap.yaml
+- secret.yaml
+- ingress.yaml
+- network-policy.yaml
+- backup-cronjob.yaml
+
+commonLabels:
+  app.kubernetes.io/name: asimnexus
+  app.kubernetes.io/version: "2.0"
+  app.kubernetes.io/component: core
+
+images:
+- name: asimnexus/api
+  newTag: latest
+- name: nvcr.io/nim/meta/llama-3.1-405b-instruct
+  newTag: latest
+
+replicas:
+- name: asimnexus-api
+  count: 3
+- name: gemma4-nim
+  count: 2

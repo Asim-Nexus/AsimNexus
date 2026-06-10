@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma4-nim
+  namespace: asimnexus
+  labels:
+    app: gemma4-nim
+    version: 27b
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gemma4-nim
+  template:
+    metadata:
+      labels:
+        app: gemma4-nim
+        version: 27b
+    spec:
+      containers:
+      - name: gemma4-nim
+        image: nvcr.io/nim/meta/llama-3.1-405b-instruct:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: NIM_MODEL_PATH
+          value: "/models"
+        - name: NIM_HTTP_PORT
+          value: "8000"
+        - name: NIM_MAX_BATCH_SIZE
+          value: "32"
+        - name: NIM_MAX_SEQUENCE_LENGTH
+          value: "4096"
+        - name: NGC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: asimnexus-secrets
+              key: ngc-api-key
+        resources:
+          requests:
+            memory: "32Gi"
+            cpu: "8000m"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "64Gi"
+            cpu: "16000m"
+            nvidia.com/gpu: 2
+        volumeMounts:
+        - name: model-cache
+          mountPath: /models
+      volumes:
+      - name: model-cache
+        emptyDir:
+          sizeLimit: 100Gi
+      nodeSelector:
+        accelerator: nvidia-tesla-gpu
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

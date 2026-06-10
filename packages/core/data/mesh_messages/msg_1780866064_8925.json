@@ -1,0 +1,9 @@
+{
+  "message_id": "msg_1780866064_8925",
+  "from_node": "node_asim_default",
+  "to_node": "n2",
+  "message": "hello everyone",
+  "message_type": "text",
+  "timestamp": "2026-06-07T21:01:04.652344",
+  "status": "queued"
+}

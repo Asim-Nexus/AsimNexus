@@ -1,0 +1,26 @@
+# ─── AsimNexus Kubernetes Ingress ────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: asimnexus-ingress
+  namespace: asimnexus
+  labels:
+    app: asimnexus
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+    - hosts:
+        - asimnexus.local
+      secretName: asimnexus-tls
+  rules:
+    - host: asimnexus.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: asimnexus-backend
+                port:
+                  number: 80

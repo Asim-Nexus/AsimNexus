@@ -1,0 +1,235 @@
+# ASIMNEXUS Enterprise Docker Compose Configuration
+# Based on industry best practices for AI OS deployment
+
+version: '3.8'
+
+services:
+  # ASIMNEXUS AI Kernel
+  asim-kernel:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: asimnexus-kernel
+    ports:
+      - "8000:8000"
+    environment:
+      - ASIM_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://asimnexus:password@postgres:5432/asimnexus
+      - LOG_LEVEL=info
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - asimnexus-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: Dockerfile.gateway
+    container_name: asimnexus-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - RATE_LIMIT=1000
+      - LOG_LEVEL=info
+    depends_on:
+      - redis
+      - asim-kernel
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - asimnexus-network
+
+  # Vector Memory Service
+  vector-memory:
+    build:
+      context: ..
+      dockerfile: Dockerfile.memory
+    container_name: asimnexus-memory
+    ports:
+      - "8001:8001"
+    environment:
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - MODEL_NAME=all-MiniLM-L6-v2
+    volumes:
+      - chromadb-data:/data
+    depends_on:
+      - chromadb
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+    networks:
+      - asimnexus-network
+
+  # Agent Orchestrator
+  agent-orchestrator:
+    build:
+      context: ..
+      dockerfile: Dockerfile.agents
+    container_name: asimnexus-agents
+    ports:
+      - "8002:8002"
+    environment:
+      - KERNEL_URL=http://asim-kernel:8000
+      - MAX_AGENTS=15
+      - LOG_LEVEL=info
+    depends_on:
+      - asim-kernel
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    networks:
+      - asimnexus-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: asimnexus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 2G
+    networks:
+      - asimnexus-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: asimnexus-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=asimnexus
+      - POSTGRES_USER=asimnexus
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../deployment/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - asimnexus-network
+
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: asimnexus-chromadb
+    ports:
+      - "8003:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+    volumes:
+      - chromadb-data:/chroma/chroma
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+    networks:
+      - asimnexus-network
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: asimnexus-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - asimnexus-network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: asimnexus-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+    networks:
+      - asimnexus-network
+
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: asimnexus-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ../frontend/react/build:/usr/share/nginx/html
+    depends_on:
+      - api-gateway
+      - asim-kernel
+    restart: unless-stopped
+    networks:
+      - asimnexus-network
+
+volumes:
+  redis-data:
+  postgres-data:
+  chromadb-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  asimnexus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

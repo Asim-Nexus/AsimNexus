@@ -1,49 +1,44 @@
-version: '3.8'
+# ASIMNEXUS — Docker Compose (Root Entry Point)
+# ==============================================
+# This file is the root entry point. It includes the main compose file from infra/docker/.
+# All variant compose files are consolidated in infra/docker/.
+#
+# Usage:
+#   Development: docker compose up -d
+#   Production:  docker compose -f infra/docker/docker-compose.prod.yml up -d
+#   Storage:     docker compose -f infra/docker/docker-compose.storage.yml up -d
+#
+# For the complete and most up-to-date configuration, see:
+#   infra/docker/docker-compose.yml
 
 services:
-  # ASIMNEXUS Master Terminal
   asimnexus:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: asimnexus-master
     ports:
-      - "8000:8000" # Main API endpoint
-      - "8080:8080" # Alternative API endpoint
-      - "3000:3000" # Web UI (if available)
-      # Mesh Networking Ports
-      - "7331:7331/udp" # LAN Discovery (UDP)
-      - "7332:7332/udp" # Kademlia DHT (UDP)
-      - "7333:7333" # WebSocket P2P
-      - "7334:7334" # Relay Service
-      - "7335:7335" # Bootstrap Service (TCP)
-      - "7336:7336/udp" # Rendezvous Service (UDP)
+      - "8000:8000"
+      - "8080:8080"
+      - "3000:3000"
+      - "7331:7331/udp"
+      - "7332:7332/udp"
+      - "7333:7333"
+      - "7334:7334"
+      - "7335:7335"
+      - "7336:7336/udp"
     volumes:
-      # Persistent data storage
       - ./data:/app/data
       - ./memory:/app/memory
       - ./logs:/app/logs
       - ./config:/app/config
-      - ./tests:/app/tests
-      # Optional: Mount models directory
-      # - ./models:/app/models
     environment:
-      - ASIM_ENV=production
-      - LOG_LEVEL=INFO
+      - ASIM_ENV=${ASIM_ENV:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PYTHONUNBUFFERED=1
-      # Critical: JWT Secret (must be set in .env)
       - ASIM_JWT_SECRET=${ASIM_JWT_SECRET}
-      # Critical: CORS allowed origins (comma-separated, no wildcards in prod)
       - ASIM_ALLOWED_ORIGINS=${ASIM_ALLOWED_ORIGINS:-http://localhost:3000}
-      # Data directory
       - ASIM_DATA_DIR=/app/data
-      # Optional: API keys (use .env file)
-      # - GITHUB_TOKEN=${GITHUB_TOKEN}
-      # - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      # - DOCKER_USERNAME=${DOCKER_USERNAME}
-      # - DOCKER_PASSWORD=${DOCKER_PASSWORD}
-      # - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
-      # - GOVT_API_KEY=${GOVT_API_KEY}
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
@@ -54,7 +49,6 @@ services:
     networks:
       - asimnexus-network
 
-  # Optional: Redis for caching
   redis:
     image: redis:7-alpine
     container_name: asimnexus-redis
@@ -68,7 +62,6 @@ services:
     profiles:
       - cache
 
-  # Optional: PostgreSQL for persistent storage
   postgres:
     image: postgres:15-alpine
     container_name: asimnexus-postgres
@@ -86,57 +79,7 @@ services:
     profiles:
       - database
 
-  # Frontend: React Development Server
-  frontend:
-    build:
-      context: ./frontend/react
-      dockerfile: Dockerfile
-    container_name: asimnexus-frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend/react:/app
-      - /app/node_modules
-    environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - CHOKIDAR_USEPOLLING=true
-    depends_on:
-      - asimnexus
-    command: npm start
-    restart: unless-stopped
-    networks:
-      - asimnexus-network
-    profiles:
-      - frontend
-
-  # Optional: Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: asimnexus-nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - asimnexus
-      - frontend
-    restart: unless-stopped
-    networks:
-      - asimnexus-network
-    profiles:
-      - proxy
-
 volumes:
-  data:
-    driver: local
-  memory:
-    driver: local
-  logs:
-    driver: local
-  config:
-    driver: local
   redis-data:
     driver: local
   postgres-data:

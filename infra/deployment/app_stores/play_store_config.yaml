@@ -1,0 +1,131 @@
+# ASIMNEXUS Android App - Google Play Store
+# ==========================================
+
+app_name: "ASIMNEXUS"
+package_name: "com.asimnexus.app"
+version: "1.0.0"
+version_code: 1
+
+# App Configuration
+min_sdk: 24  # Android 7.0
+target_sdk: 34  # Android 14
+
+# Features
+features:
+  - "AI Personal Assistant"
+  - "Device Control"
+  - "Task Automation"
+  - "Nepali Language Support"
+
+# Permissions
+permissions:
+  - "INTERNET"
+  - "ACCESS_NETWORK_STATE"
+  - "FOREGROUND_SERVICE"
+  - "RECEIVE_BOOT_COMPLETED"
+  - "SYSTEM_ALERT_WINDOW"  # For floating AI assistant
+
+# Optional permissions (requested at runtime)
+optional_permissions:
+  - "READ_CALENDAR"       # For scheduling
+  - "WRITE_CALENDAR"
+  - "READ_CONTACTS"       # For communication
+  - "READ_SMS"            # For message reading
+  - "SEND_SMS"            # For message sending
+  - "READ_EXTERNAL_STORAGE"  # For file access
+  - "WRITE_EXTERNAL_STORAGE"
+  - "ACCESS_FINE_LOCATION"  # For location-aware tasks
+  - "RECORD_AUDIO"        # For voice commands
+  - "CAMERA"              # For vision tasks
+
+# App Sizes (with quantized models)
+apk_sizes:
+  arm64_v8a: "45MB"      # Main app + Q4_K_M model
+  armeabi_v7a: "42MB"    # 32-bit version
+  universal: "85MB"      # All architectures
+
+# Play Store Listing
+play_store:
+  title: "ASIMNEXUS - Your AI Companion"
+  short_description: "Personal AI assistant that learns and adapts to you"
+  full_description: |
+    ASIMNEXUS is a revolutionary AI companion that:
+    
+    🧠 Learns from every interaction
+    🏠 Controls your smart devices
+    📅 Manages your schedule
+    💰 Tracks your finances
+    🌾 Helps with agriculture (Nepal)
+    🔒 Keeps your data private
+    
+    Features:
+    - Offline AI (works without internet)
+    - Nepali language support
+    - Voice commands
+    - Smart home integration
+    - Task automation
+    
+    ASIMNEXUS grows smarter every day,
+    becoming truly yours.
+  
+  category: "PRODUCTIVITY"
+  content_rating: "EVERYONE"
+  
+  screenshots:
+    - "screenshots/home.png"
+    - "screenshots/chat.png"
+    - "screenshots/tasks.png"
+    - "screenshots/settings.png"
+  
+  icon: "assets/icon_512x512.png"
+  feature_graphic: "assets/feature_graphic.png"
+
+# Supported Languages
+languages:
+  - "en"  # English
+  - "ne"  # Nepali
+  - "hi"  # Hindi
+
+# Pricing
+pricing:
+  free: true
+  in_app_purchases: true
+  subscription_tiers:
+    free:
+      name: "Free"
+      features:
+        - "Basic AI assistant"
+        - "Local processing"
+        - "100 requests/day"
+    
+    premium:
+      name: "Premium"
+      price: "$4.99/month"
+      features:
+        - "Advanced AI models"
+        - "Unlimited requests"
+        - "Cloud sync"
+        - "Priority support"
+    
+    family:
+      name: "Family"
+      price: "$9.99/month"
+      features:
+        - "Up to 6 family members"
+        - "Shared calendar"
+        - "Home automation"
+        - "Everything in Premium"
+
+# Rollout Strategy
+rollout:
+  phase_1:
+    countries: ["NP", "IN", "BD"]  # Nepal, India, Bangladesh
+    percentage: 10
+  
+  phase_2:
+    countries: ["US", "GB", "CA", "AU"]
+    percentage: 25
+  
+  phase_3:
+    worldwide: true
+    percentage: 100
