@@ -185,3 +185,5 @@ data/*.key
 data/*.secret
 data/*.jsonl
 data/**/*.jsonl
+data/federated/*.json
+core/data/mesh_messages/*.json
