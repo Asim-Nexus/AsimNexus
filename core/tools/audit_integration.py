@@ -338,11 +338,40 @@ def reset_tool_auditor() -> None:
     logger.info("ToolAuditor singleton reset")
 
 
+class AuditIntegration:
+    """Wrapper around ToolAuditor for backwards compatibility.
+
+    Provides the same interface expected by code that imports
+    ``AuditIntegration`` from this module.  Delegates all operations
+    to a ``ToolAuditor`` instance.
+    """
+
+    def __init__(self, max_entries: int = 1000):
+        self._auditor = ToolAuditor(max_entries=max_entries)
+
+    def record(self, entry: ToolAuditEntry):
+        return self._auditor.record(entry)
+
+    def get_recent(self, limit: int = 50):
+        return self._auditor.get_recent(limit)
+
+    def get_stats(self):
+        return self._auditor.get_stats()
+
+    def query(self, **kwargs):
+        return self._auditor.query(**kwargs)
+
+    @property
+    def entries(self):
+        return self._auditor._entries
+
+
 # ─── Module Exports ─────────────────────────────────────────────────────────────
 
 __all__ = [
     "ToolAuditEntry",
     "ToolAuditor",
+    "AuditIntegration",
     "get_tool_auditor",
     "reset_tool_auditor",
 ]

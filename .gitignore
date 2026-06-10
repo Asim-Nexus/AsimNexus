@@ -183,3 +183,5 @@ ui/static/js/*.map
 data/api_keys.json
 data/*.key
 data/*.secret
+data/*.jsonl
+data/**/*.jsonl
