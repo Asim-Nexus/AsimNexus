@@ -255,7 +255,7 @@ class ContractExecutor:
 
     # ── DHARMA VETO HOOK ──────────────────────────────────────────────────
 
-    def _dharma_check(self, action: str, contract: Contract, actor_id: str) -> Optional[str]:
+    def _dharma_check(self, action: str, contract: Optional[Contract], actor_id: str) -> Optional[str]:
         """
         Check action against Dharma Veto ethical rules.
         Returns None if allowed, or a reason string if blocked.
@@ -267,13 +267,14 @@ class ContractExecutor:
             # Build context for veto check
             context = {
                 "action": action,
-                "contract_id": contract.id,
-                "client_id": contract.client_id,
-                "worker_id": contract.worker_id,
-                "amount": contract.payment_amount,
+                "contract_id": contract.id if contract else "N/A",
+                "client_id": contract.client_id if contract else actor_id,
+                "worker_id": contract.worker_id if contract else "N/A",
+                "amount": contract.payment_amount if contract else 0.0,
                 "actor_id": actor_id,
             }
-            result = veto.check(action, contract.client_id, context)
+            client_id = contract.client_id if contract else actor_id
+            result = veto.check(action, client_id, context)
             if result and result.blocked:
                 return result.reason
         except ImportError:

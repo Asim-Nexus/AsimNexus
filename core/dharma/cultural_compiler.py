@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 """
 STATUS: CONCEPT — Auto-labeled by batch_label.py
@@ -23,7 +24,6 @@ Checks:
 
 "प्रविधि मानिसको दास हो, मालिक होइन।"
 """
-from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
