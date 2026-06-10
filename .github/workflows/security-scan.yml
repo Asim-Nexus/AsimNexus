@@ -36,12 +36,12 @@ jobs:
         run: python -m pip_audit --format json > pip_audit.json || true
 
       - name: Run pre-commit
-        uses: pre-commit/action@v4.4.0
-        # Specific version pinned — good
+        uses: pre-commit/action@v3.0.0
+        # Fixed: v4.4.0 → v3.0.0 (available version)
 
       - name: Run gitleaks (secrets scan)
-        uses: zricethezav/gitleaks-action@v2.10.3
-        # Specific version pinned — good
+        uses: zricethezav/gitleaks-action@v2.10.1
+        # Fixed: v2.10.3 → v2.10.1 (available version)
         with:
           args: '--path=. --redact --config=.gitleaks.toml'
 
