@@ -99,10 +99,11 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v1
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-and-push.outputs.digest }}
           dockerfile: infra/docker/Dockerfile
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3

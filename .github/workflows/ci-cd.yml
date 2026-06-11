@@ -64,8 +64,11 @@ jobs:
         name: codecov-umbrella
 
   # ── Build and Push Docker Image ──────────────────────────────────────────
+  # NOTE: Only runs on PRs and workflow_dispatch for validation.
+  # On main/develop branch pushes, Docker Publish workflow handles building + publishing.
   build:
     needs: test
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       digest: ${{ steps.build-and-push.outputs.digest }}
@@ -115,8 +118,11 @@ jobs:
         platforms: linux/amd64
 
   # ── Security Scanning ────────────────────────────────────────────────────
+  # Runs only when build ran (PRs / workflow_dispatch). For main pushes,
+  # the Security Scan and Docker Publish workflows handle security scanning.
   security:
     needs: build
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -182,8 +188,10 @@ jobs:
         path: safety-report.json
 
   # ── Deploy to Production ─────────────────────────────────────────────────
+  # Depends only on test (not build) because on push events Docker Publish
+  # handles building, and deploy pulls the already-published image from GHCR.
   deploy:
-    needs: [build, security]
+    needs: [test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
