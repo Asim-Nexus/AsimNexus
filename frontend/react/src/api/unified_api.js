@@ -13,7 +13,7 @@ import axios from 'axios';
 
 // API Configuration — single source of truth for base URL
 // NOTE: asimnexus.js also reads REACT_APP_API_URL with fallback http://localhost:8000
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8081';
 const WS_BASE_URL = process.env.REACT_APP_WS_URL || ((typeof window !== 'undefined' && window.location) ? ((window.location.protocol === 'https:') ? 'wss://' : 'ws://') + window.location.host : '');
 
 // Create axios instance with default config
