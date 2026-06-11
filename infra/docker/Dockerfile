@@ -28,7 +28,7 @@ COPY requirements.txt .
 # and install the rest — GPU packages can be added manually if CUDA is available
 # Filter out GPU-only packages: cudf (conda), cupy-cuda (CUDA runtime), torch (~2GB, no GPU in Docker)
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    grep -vi "cudf\|cupy-cuda\|^torch" requirements.txt > /tmp/requirements-docker.txt && \
+    grep -vi "cudf\|cupy-cuda\|^torch\|sentence-transformers" requirements.txt > /tmp/requirements-docker.txt && \
     pip install --no-cache-dir --use-deprecated=legacy-resolver -r /tmp/requirements-docker.txt
 
 # ─── Stage 2: Runtime ──────────────────────────────────────────────────────────
