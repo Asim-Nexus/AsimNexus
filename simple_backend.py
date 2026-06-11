@@ -4185,11 +4185,24 @@ def create_app():
 
     @app.get("/api/offline/data")
     async def offline_data():
-        """Get data for offline mode"""
+        """Get offline-mode data from the real sync engine."""
         try:
-            # Return essential data for offline operation
+            from core.sync.offline_sync import get_sync_engine
+
+            engine = get_sync_engine()
+            st = engine.status()
+            pending = engine.queue_list()
+            conflicts = engine.conflicts()
+            stats = engine.stats()
+
             return JSONResponse({
                 "offline_ready": True,
+                "sync_engine": st,
+                "pending_operations": pending,
+                "pending_count": len(pending),
+                "conflicts": conflicts,
+                "conflict_count": len(conflicts),
+                "stats": stats,
                 "cached_endpoints": [
                     "/api/universal/status",
                     "/api/universal/countries",
@@ -4200,25 +4213,36 @@ def create_app():
                 "sync_strategy": "background_sync",
                 "conflict_resolution": "last_write_wins",
                 "max_offline_duration_hours": 72,
-                "last_sync": datetime.now().isoformat()
+                "last_sync": st.get("last_sync", datetime.now().isoformat())
             })
         except Exception as e:
-            return JSONResponse({"error": str(e)})
+            return JSONResponse({"offline_ready": True, "error": str(e)})
 
     @app.post("/api/offline/sync")
     async def offline_sync(request: Request):
-        """Trigger offline data sync"""
+        """Trigger offline sync via the real sync engine."""
         try:
+            from core.sync.offline_sync import get_sync_engine
+
             body = await request.json()
-            
+            engine = get_sync_engine()
+
+            # Flush — trigger immediate sync
+            flush_result = engine.flush()
+            pending = engine.queue_list()
+            conflicts = engine.conflicts()
+
             return JSONResponse({
                 "success": True,
-                "synced_items": body.get('items', []),
-                "conflicts": [],
+                "flush_result": flush_result,
+                "synced_items": body.get('items', pending),
+                "remaining_pending": len(pending),
+                "conflicts": conflicts,
+                "conflict_count": len(conflicts),
                 "timestamp": datetime.now().isoformat()
             })
         except Exception as e:
-            return JSONResponse({"error": str(e)})
+            return JSONResponse({"success": False, "error": str(e)})
 
     # ─── FINANCIAL UNIVERSAL SYSTEM ───────────────────────────────────────────
     @app.get("/api/finance/status")
