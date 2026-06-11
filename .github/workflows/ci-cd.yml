@@ -123,8 +123,15 @@ jobs:
 
     - name: Run Trivy vulnerability scanner
       run: |
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} || true
-        docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL --format sarif --output trivy-results.sarif ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} || echo "Trivy scan completed (or image not found)"
+        IMAGE_DIGEST="${{ steps.build-and-push.outputs.digest }}"
+        if [ -n "$IMAGE_DIGEST" ]; then
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@$IMAGE_DIGEST || true
+          docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL --format sarif --output trivy-results.sarif ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@$IMAGE_DIGEST || echo "Trivy scan completed"
+        else
+          echo "⚠️ No image digest available — pulling by tag"
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || true
+          docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL --format sarif --output trivy-results.sarif ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest || echo "Trivy scan completed"
+        fi
 
     - name: Upload Trivy results to GitHub Security
       if: hashFiles('trivy-results.sarif') != ''
@@ -203,4 +210,8 @@ jobs:
     - name: Health check
       run: |
         sleep 30
-        curl -f http://localhost:8000/health || echo "⚠️ Health check warning (deploy may still be starting)"
+        if [ -n "$SSH_HOST" ]; then
+          ssh "$SSH_USER@$SSH_HOST" "curl -f http://localhost:8000/health" || echo "⚠️ Health check warning (deploy may still be starting)"
+        else
+          echo "⚠️ No SSH host configured — skipping health check"
+        fi
