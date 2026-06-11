@@ -1799,6 +1799,133 @@ def create_app():
                                   "cultural_compiler": _cultural_compiler.status() if _cultural_compiler else None})
         return JSONResponse({"active": False})
 
+    # ─── DHARMA-CHAKRA INTEGRATION HUB (Phase 40-60%) ─────────────────────────
+    # Identity → Dharma → Approve → Audit full pipeline.
+    # See core/dharma_chakra/integration.py for the underlying logic.
+    # ------------------------------------------------------------------
+    @app.get("/api/integration/health")
+    async def integration_health():
+        """Health check for all integrated components."""
+        try:
+            from core.dharma_chakra.integration import get_integrator
+            integrator = get_integrator()
+            health = await integrator.get_system_health()
+            return JSONResponse(health)
+        except Exception as e:
+            return JSONResponse({"error": str(e), "initialized": False})
+
+    @app.post("/api/integration/evaluate")
+    async def integration_evaluate(request: Request):
+        """
+        Evaluate an action through the full Identity → Dharma → Approve → Audit pipeline.
+
+        Body:
+          user_id (str): The user/agent performing the action.
+          action (str): Natural-language description of the action.
+          sector (str, optional): Domain sector. Default: "general".
+          context (dict, optional): Extra metadata (amount, user_consent, etc.).
+
+        Returns:
+          FlowResult with all stage results and confirmation_token if human approval needed.
+        """
+        try:
+            body = await request.json()
+            user_id = body.get("user_id", "anonymous")
+            action = body.get("action", "")
+            sector = body.get("sector", "general")
+            context = body.get("context", {})
+
+            if not action:
+                return JSONResponse({"error": "action is required"}, status_code=400)
+
+            from core.dharma_chakra.integration import get_integrator
+            integrator = get_integrator()
+            result = await integrator.evaluate_and_approve(
+                user_id=user_id,
+                action=action,
+                sector=sector,
+                context=context,
+            )
+            return JSONResponse(result.to_dict())
+        except Exception as e:
+            return JSONResponse({"error": f"Integration evaluation failed: {e}"}, status_code=500)
+
+    @app.post("/api/integration/confirm")
+    async def integration_confirm(request: Request):
+        """
+        Confirm (approve) a pending Level-3 human approval.
+
+        Body:
+          token (str): The confirmation token from evaluate response.
+
+        Returns:
+          Confirmation result with ZK validity proof.
+        """
+        try:
+            body = await request.json()
+            token = body.get("token", "")
+            if not token:
+                return JSONResponse({"error": "token is required"}, status_code=400)
+
+            from core.dharma_chakra.veto_engine import get_zkp_manager
+            zkp = get_zkp_manager()
+            result = zkp.confirm(token)
+            return JSONResponse(result)
+        except Exception as e:
+            return JSONResponse({"error": f"Confirmation failed: {e}"}, status_code=500)
+
+    @app.post("/api/integration/reject")
+    async def integration_reject(request: Request):
+        """
+        Reject a pending Level-3 human approval.
+
+        Body:
+          token (str): The confirmation token from evaluate response.
+        """
+        try:
+            body = await request.json()
+            token = body.get("token", "")
+            if not token:
+                return JSONResponse({"error": "token is required"}, status_code=400)
+
+            from core.dharma_chakra.veto_engine import get_zkp_manager
+            zkp = get_zkp_manager()
+            result = zkp.reject(token)
+            return JSONResponse(result)
+        except Exception as e:
+            return JSONResponse({"error": f"Rejection failed: {e}"}, status_code=500)
+
+    @app.get("/api/integration/pending")
+    async def integration_pending():
+        """List all pending Level-3 human approvals."""
+        try:
+            from core.dharma_chakra.veto_engine import get_zkp_manager
+            zkp = get_zkp_manager()
+            pending = zkp.list_pending()
+            return JSONResponse({"pending": pending, "count": len(pending)})
+        except Exception as e:
+            return JSONResponse({"error": str(e)})
+
+    @app.get("/api/integration/veto-stats")
+    async def integration_veto_stats():
+        """Get veto engine statistics."""
+        try:
+            from core.dharma_chakra.veto_engine import get_veto_engine
+            veto = get_veto_engine()
+            return JSONResponse(veto.get_stats())
+        except Exception as e:
+            return JSONResponse({"error": str(e)})
+
+    @app.get("/api/integration/audit-log")
+    async def integration_audit_log(limit: int = 20):
+        """Get the last N entries from the immutable audit log."""
+        try:
+            from core.dharma_chakra.veto_engine import get_veto_engine
+            veto = get_veto_engine()
+            return JSONResponse({"entries": veto.get_audit_log(limit), "count": limit})
+        except Exception as e:
+            return JSONResponse({"error": str(e)})
+
     # ─── MESH / LAN DISCOVERY + AIR-GAP ──────────────────────────────────────
     @app.get("/api/mesh/discovery/status")
     async def mesh_discovery_status():

@@ -1,6 +1,14 @@
 
 """
-STATUS: CONCEPT — Auto-labeled by batch_label.py
+STATUS: DEPRECATED — Use core.dharma_chakra.integration.DharmaChakraIntegrator instead.
+
+This module's functionality has been consolidated into:
+  - core.dharma_chakra.veto_engine.DharmaVetoEngine  (fast veto checks)
+  - core.dharma_chakra.constitution.DharmaChakraConstitution  (constitutional rules)
+  - core.dharma_chakra.integration.DharmaChakraIntegrator  (unified entry point)
+
+Importing from agent_veto_policy is preserved temporarily for backward compatibility
+but all new code should use the integration hub.
 """
 
 """
