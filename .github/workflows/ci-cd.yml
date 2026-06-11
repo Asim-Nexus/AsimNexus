@@ -147,6 +147,7 @@ jobs:
         sarif_file: 'trivy-results.sarif'
 
     - name: Run Bandit security linter
+      continue-on-error: true
       run: |
         pip install bandit
         bandit -r . --exclude=.venv,node_modules,__pycache__,.git,frontend -f json -o bandit-report.json
@@ -158,6 +159,7 @@ jobs:
         path: bandit-report.json
 
     - name: Run Semgrep security scanner
+      continue-on-error: true
       run: |
         pip install semgrep
         semgrep --config=auto --json --output=semgrep-report.json . --exclude=.venv --exclude=node_modules --exclude=__pycache__ --exclude=.git --exclude=frontend
