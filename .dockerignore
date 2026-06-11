@@ -1,80 +1,68 @@
-# Git
-.git
+# Version control
+.git/
+.gitattributes
 .gitignore
-.github
 
 # Python
-__pycache__
-*.pyc
+__pycache__/
+*.py[cod]
 *.pyo
-*.pyd
-.Python
-*.so
+*.egg-info/
+.venv/
+venv/
+env/
 *.egg
-*.egg-info
-dist
-build
-.venv
-venv
-ENV
-env
+dist/
+build/
 
-# ASIMNEXUS specific
-.asim-worktrees
-.crush
-.deprecated
-logs
-data
-memory
-.asim_nexus.log
-.asim_unified_server.log
+# Node.js
+node_modules/
+frontend/node_modules/
+frontend/react/node_modules/
+frontend/build/
+frontend/react/build/
 
-# Documentation
-*.md
-docs/
-
-# Large files (exclude local models, but allow Docker build to download)
-# models/  # Commented out to allow Docker build to download models
-
-# IDE
-.vscode
-.idea
+# IDE & OS
+.idea/
+.vscode/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Docker
-docker-compose.yml
-docker-compose.local.yml
-Dockerfile
-.dockerignore
+# Data
+data/*.db
+data/*.sqlite
+data/*.jsonl
+*.log
 
-# Config files
+# Models (LLM weights are too large for Docker)
+models/
+*.gguf
+*.ggml
+*.bin
+
+# Secrets & Config
 .env
-.env.example
-local-config.yaml
-asim_brain_config.json
-asim_hash_config.json
-asim_nexus_complete_report.json
+.env.*
+*.key
+*.pem
+*.cert
+config/secrets*.yml
 
-# Tests
-tests/
-pytest.ini
-.coverage
+# Test & temp
+tests/results/
+test-results/
+*.report.json
+coverage/
 htmlcov/
+.coverage
+.plans/
+worktree_sandbox/
 
-# Training
-training/
-
-# Hardware abstraction
-hardware_abstraction/
-
-# Universal language merger
-universal_language_merger/
-
-# Scripts (keep essential scripts)
-# scripts/*.sh  # Commented out to allow download script for Docker build
+# Documentation
+docs/
+plans/
+README.md
+STATUS.md
