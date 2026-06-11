@@ -56,30 +56,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code — organized by new structure
+# Copy application code
 COPY main.py .
 COPY simple_backend.py .
 COPY asim_config.py .
 
-# Apps (runnable applications)
-COPY apps/backend/ ./apps/backend/
-
-# Packages (shared libraries)
-COPY packages/core/ ./packages/core/
-COPY packages/mesh/ ./packages/mesh/
-COPY packages/security/ ./packages/security/
-COPY packages/agents/ ./packages/agents/
-COPY packages/connectors/ ./packages/connectors/
-COPY packages/economy/ ./packages/economy/
-COPY packages/governance/ ./packages/governance/
-COPY packages/storage/ ./packages/storage/
-COPY packages/data-lake/ ./packages/data-lake/
-COPY packages/kernel/ ./packages/kernel/
-COPY packages/os-control/ ./packages/os-control/
-COPY packages/monitoring/ ./packages/monitoring/
-COPY packages/cloud/ ./packages/cloud/
-
-# Legacy paths for backward compatibility (will be symlinked by migration scripts)
+# Core modules
 COPY core/ ./core/
 COPY agents/ ./agents/
 COPY auth/ ./auth/
@@ -96,6 +78,12 @@ COPY runtime/ ./runtime/
 COPY security/ ./security/
 COPY storage/ ./storage/
 COPY tools/ ./tools/
+
+# Packages (existing subdirectories only)
+COPY packages/agents/ ./packages/agents/
+COPY packages/core/ ./packages/core/
+COPY packages/mesh/ ./packages/mesh/
+COPY packages/security/ ./packages/security/
 
 # Create data directories
 RUN mkdir -p /app/data /app/logs /app/config /app/models
