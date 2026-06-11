@@ -1,10 +1,10 @@
 {
   "node_id": "main_node",
   "consent": [
-    "did:example:new_node",
     "e31f07ffc1dd6d02",
-    "did:example:partner",
-    "20d18e5326603887"
+    "20d18e5326603887",
+    "did:example:new_node",
+    "did:example:partner"
   ],
   "peers": {
     "20d18e5326603887": {
@@ -44,7 +44,7 @@
     "active_peers": {
       "add": {
         "e31f07ffc1dd6d02": [
-          "main_node:1781108930514617100:100"
+          "main_node:1781186802187111800:93"
         ]
       },
       "rem": {}
@@ -63,6 +63,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1781108930.5156174
+    "ts": 1781186802.1881118
   }
 }

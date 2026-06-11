@@ -103,7 +103,7 @@ def client(mock_hotel_sector):
                return_value=mock_hotel_sector):
         from core.api_endpoints.sector_api import router
         app.include_router(router)
-        return TestClient(app)
+        yield TestClient(app)
 
 
 # ─── Room Management Tests ───────────────────────────────────────────────────

@@ -234,7 +234,7 @@ class TestSecurityLayers:
         assert "Input Sanitization" in names
         assert "Audit Logger" in names
         assert "Zero Trust" in names
-        assert "Risk Validation" in names
+        assert "Risk Validator" in names
         assert "Power Balance Constitution" in names
 
 
@@ -246,8 +246,10 @@ class TestHardeningErrorHandling:
 
     def test_hardening_health_graceful_degradation(self, client):
         """Health endpoint gracefully handles partial failures."""
-        with patch("security.zero_trust.ZeroTrust",
-                   side_effect=Exception("Connection refused")):
+        class FailingModule:
+            def __getattr__(self, name):
+                raise ImportError("Cannot import ZeroTrust")
+        with patch.dict("sys.modules", {"security.zero_trust": FailingModule()}):
             app = FastAPI()
             from core.api_endpoints.hardening_api import router
             app.include_router(router)

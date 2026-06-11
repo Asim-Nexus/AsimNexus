@@ -97,7 +97,7 @@ def client(mock_banking_sector):
                return_value=mock_banking_sector):
         from core.api_endpoints.sector_api import router
         app.include_router(router)
-        return TestClient(app)
+        yield TestClient(app)
 
 
 # ─── Account Management Tests ────────────────────────────────────────────────

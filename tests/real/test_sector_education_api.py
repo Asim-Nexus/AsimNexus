@@ -106,7 +106,7 @@ def client(mock_education_sector):
                return_value=mock_education_sector):
         from core.api_endpoints.sector_api import router
         app.include_router(router)
-        return TestClient(app)
+        yield TestClient(app)
 
 
 # ─── Student Management Tests ────────────────────────────────────────────────

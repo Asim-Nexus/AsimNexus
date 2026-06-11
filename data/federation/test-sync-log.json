@@ -10,7 +10,7 @@
       "did": "did:example:slogger",
       "endpoint": "ws://10.0.0.1:9000",
       "trusted": true,
-      "last_sync": 1781108929.2486448,
+      "last_sync": 1781186800.1999848,
       "sync_count": 2
     }
   },
@@ -24,7 +24,7 @@
     "active_peers": {
       "add": {
         "94b24b0ff23644ab": [
-          "test-sync-log:1781108929246644900:40"
+          "test-sync-log:1781186800197982800:33"
         ]
       },
       "rem": {}
@@ -43,6 +43,6 @@
       "ts": 0.0,
       "node": ""
     },
-    "ts": 1781108929.2486448
+    "ts": 1781186800.1999848
   }
 }
