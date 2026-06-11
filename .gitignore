@@ -186,4 +186,9 @@ data/*.secret
 data/*.jsonl
 data/**/*.jsonl
 data/federated/*.json
+data/*.db-shm
+data/*.db-wal
+core/data/chromadb/
 core/data/mesh_messages/*.json
+deploy/release/*.json
+deploy/release/*.jsonl
