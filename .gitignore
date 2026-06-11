@@ -144,8 +144,8 @@ _techpana_article.html
 # AsimNexus — Temporary / generated files
 _odysseus_temp/
 query
-package-lock.json
-package.json
+/package-lock.json
+/package.json
 sitecustomize.py
 auto_start.py
 start_all.bat

@@ -65,6 +65,8 @@ class ActionType(Enum):
     AGENT_COMMAND = "agent_command"
     HUMAN_OVERRIDE = "human_override"
     EMERGENCY_ACTION = "emergency_action"
+    COMMERCE = "commerce"
+    INNOVATION = "innovation"
 
 @dataclass
 class ConstitutionalViolation:
