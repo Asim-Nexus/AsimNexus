@@ -6066,15 +6066,16 @@ def main():
     parser.add_argument("--port", type=int, default=int(os.getenv("ASIM_PORT", "8000")), help="Port number")
     args, unknown = parser.parse_known_args()
     
-    print("🚀 ASIMNEXUS Core Backend v2.0")
+    print("ASIMNEXUS Core Backend v2.0")
     print("=" * 50)
-    print(f"🐍 Python: {sys.version.split()[0]}")
-    print(f"📁 Directory: {os.getcwd()}")
-    print(f"🤖 GGUF Model: {'✅ Found' if Path(GGUF_MODEL_PATH).exists() else '❌ Not found'}")
-    print(f"📊 URL: http://{args.host}:{args.port}")
-    print(f"📚 Docs: http://{args.host}:{args.port}/docs")
+    print(f"Python: {sys.version.split()[0]}")
+    print(f"Directory: {os.getcwd()}")
+    print(f"GGUF Model: {'Found' if Path(GGUF_MODEL_PATH).exists() else 'Not found'}")
+    print(f"URL: http://{args.host}:{args.port}")
+    print(f"Docs: http://{args.host}:{args.port}/docs")
     print("=" * 50)
     uvicorn.run("simple_backend:app", host=args.host, port=args.port, log_level="info", reload=False)
+
 
 
 if __name__ == "__main__":
