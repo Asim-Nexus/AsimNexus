@@ -31,17 +31,29 @@ class Colors:
 def log(msg, level="info"):
     timestamp = time.strftime("%H:%M:%S")
     prefix = {
-        "success": f"{Colors.GREEN}[✓] {Colors.END}",
-        "error": f"{Colors.RED}[✗] {Colors.END}",
-        "warning": f"{Colors.YELLOW}[!] {Colors.END}",
+        "success": f"{Colors.GREEN}[OK] {Colors.END}",
+        "error": f"{Colors.RED}[FAIL] {Colors.END}",
+        "warning": f"{Colors.YELLOW}[WARN] {Colors.END}",
         "header": f"\n{Colors.CYAN}{Colors.BOLD}=== ",
-        "info": f"{Colors.BLUE}[i] {Colors.END}"
+        "info": f"{Colors.BLUE}[INFO] {Colors.END}"
     }
     
-    if level == "header":
-        print(f"{prefix[level]}{msg} ==={Colors.END}")
-    else:
-        print(f"[{timestamp}] {prefix[level]}{msg}")
+    # Safe printing wrapper
+    msg_str = str(msg)
+    try:
+        if level == "header":
+            print(f"{prefix[level]}{msg_str} ==={Colors.END}")
+        else:
+            print(f"[{timestamp}] {prefix[level]}{msg_str}")
+    except UnicodeEncodeError:
+        # Fallback to ascii representation
+        msg_ascii = msg_str.encode('ascii', errors='replace').decode('ascii')
+        clean_prefix = prefix[level].encode('ascii', errors='replace').decode('ascii')
+        if level == "header":
+            print(f"{clean_prefix}{msg_ascii} ===")
+        else:
+            print(f"[{timestamp}] {clean_prefix}{msg_ascii}")
+
 
 def check_port_free(port):
     """Check if a local port is free."""
