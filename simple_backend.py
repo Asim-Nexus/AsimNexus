@@ -6059,16 +6059,24 @@ app = create_app()
 
 def main():
     import uvicorn
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="ASIMNEXUS Core Backend")
+    parser.add_argument("--host", default=os.getenv("ASIM_HOST", "127.0.0.1"), help="Host bind address")
+    parser.add_argument("--port", type=int, default=int(os.getenv("ASIM_PORT", "8000")), help="Port number")
+    args, unknown = parser.parse_known_args()
+    
     print("🚀 ASIMNEXUS Core Backend v2.0")
     print("=" * 50)
     print(f"🐍 Python: {sys.version.split()[0]}")
     print(f"📁 Directory: {os.getcwd()}")
     print(f"🤖 GGUF Model: {'✅ Found' if Path(GGUF_MODEL_PATH).exists() else '❌ Not found'}")
-    print("📊 URL: http://127.0.0.1:8000")
-    print("📚 Docs: http://127.0.0.1:8000/docs")
+    print(f"📊 URL: http://{args.host}:{args.port}")
+    print(f"📚 Docs: http://{args.host}:{args.port}/docs")
     print("=" * 50)
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info", reload=False)
+    uvicorn.run("simple_backend:app", host=args.host, port=args.port, log_level="info", reload=False)
 
 
 if __name__ == "__main__":
     main()
+
