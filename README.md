@@ -2,7 +2,45 @@
 
 > **Version 0.7.0** — See [`CONSTITUTION.md`](CONSTITUTION.md) for governance rules.
 
-**AsimNexus is a local-first, human-controlled, constitutional digital platform prototype** where AI operates within a constitution, human approval, and audit trail. It is **not** a World OS, not production-grade infrastructure, and not a commercial product.
+**🚨 PROTOTYPE WARNING — NOT FOR PRODUCTION 🚨**
+
+> **AsimNexus is a PROTOTYPE ONLY — DO NOT USE IN PRODUCTION ENVIRONMENTS!**
+
+This is a functional prototype demonstrating constitutional AI concepts. 
+It is **NOT** production-grade infrastructure, not nationally certified, and not for real citizen data.
+
+---
+
+## **कसरी चलाउने? (Usage Guide)**
+
+### **तीनों मोड (Three Modes)**
+
+```bash
+# १. सरकार मोड (Government - 51% Control)
+uvicorn simple_backend:app --port 8000
+curl http://localhost:8000/api/v1/gov/status
+
+# २. कम्पनी मोड (Enterprise - 49% Control)  
+curl http://localhost:8000/api/v1/company/status
+
+# ३. नागरिक मोड (Local-First Citizens)
+curl http://localhost:8000/api/v1/user/status
+```
+
+### **नेपाली सुविधाहरू (Nepali Features)**
+
+```bash
+# कर गणना (Tax Calculation)
+curl -X POST http://localhost:8000/api/v1/gov/tax/calculate \
+  -d '{"citizen_id": "9841234567", "gross_income": 800000}'
+
+# सरकारी प्रमाणीकरण (Gov Verification)
+curl -X POST http://localhost:8000/api/v1/gov/identity/verify \
+  -d '{"document_type": "citizenship", "document_id": "123-456-789"}'
+
+# किसान मोड (Farmer Mode)
+curl http://localhost:8000/api/v1/sector/agriculture/status
+```
 
 ---
 
