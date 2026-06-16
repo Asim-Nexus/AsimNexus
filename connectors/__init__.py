@@ -15,6 +15,22 @@ from .supabase_connector import SupabaseConnector
 from .pollinations_connector import PollinationsConnector
 from .mongodb_connector import MongoDBConnector
 
+# Sector Connectors - Nepal Digital Ecosystem
+from .sector_connectors import (
+    get_sector_connector,
+    list_sectors,
+    AgricultureConnector,
+    TourismConnector,
+    BankingConnector,
+    TelecomConnector,
+    FintechConnector,
+    ISPConnector,
+    HydropowerConnector,
+    EducationConnector,
+    GovernmentConnector,
+    HealthConnector,
+)
+
 # New 2026 Components
 from .unified_messaging_connector import UnifiedMessagingConnector, messaging_connector
 from .smart_model_router import SmartModelRouter, model_router
@@ -37,6 +53,19 @@ __all__ = [
     'SupabaseConnector',
     'PollinationsConnector',
     'MongoDBConnector',
+    # Sector connectors
+    'get_sector_connector',
+    'list_sectors',
+    'AgricultureConnector',
+    'TourismConnector',
+    'BankingConnector',
+    'TelecomConnector',
+    'FintechConnector',
+    'ISPConnector',
+    'HydropowerConnector',
+    'EducationConnector',
+    'GovernmentConnector',
+    'HealthConnector',
     # New exports
     'UnifiedMessagingConnector',
     'messaging_connector',
