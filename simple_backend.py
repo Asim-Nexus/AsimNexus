@@ -6042,6 +6042,34 @@ def create_app():
             logger.error(f"⚠️ ASIM Kernel unavailable: {e}")
             return JSONResponse({"status": "unavailable", "error": str(e)})
 
+    # ─── PRODUCTION SECURITY INITIALIZATION ───────────────────────────────────────
+    try:
+        from security.hsm_production import get_hsm
+        from security.zkp_production import get_zkp
+        from security.mtls import get_mtls
+        from database.migrations.postgresql import get_migration
+        
+        hsm = get_hsm()
+        zkp = get_zkp()
+        mtls = get_mtls()
+        migration = get_migration()
+        
+        logger.info("✅ Production security modules initialized (HSM/ZKP/mTLS)")
+    except Exception as e:
+        logger.warning(f"⚠️ Production security modules skipped: {e}")
+
+    # ─── TRIPARTITE ROUTES: GOVERNMENT/COMPANY/CITIZEN ───────────────────────────────────
+    try:
+        from backend.gov_routes import setup_gov_routes
+        from backend.company_routes import setup_company_routes
+        from backend.user_routes import setup_user_routes
+        setup_gov_routes(app)
+        setup_company_routes(app)
+        setup_user_routes(app)
+        logger.info("✅ Tripartite routes registered (gov/company/user)")
+    except Exception as e:
+        logger.warning(f"⚠️ Tripartite route registration skipped: {e}")
+
     # ─── PHASE 4-6 ROUTES: SECTORS, GLOBAL AGENT, HARDENING ─────────────────
     try:
         from core.api_endpoints.register_routes import register_all_routes

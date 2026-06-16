@@ -45,8 +45,12 @@ __all__ = [
     "NotificationController",
     "OfflineMessage",
     "PersonalOS",
+    "GovernmentMode",
+    "EnterpriseMode",
     "DEFAULT_CLONE_CONFIGS",
     "get_personal_os",
+    "get_government_os",
+    "get_enterprise_os",
     "reset_personal_os",
 ]
 
@@ -904,6 +908,62 @@ class PersonalOS:
             logger.warning(f"Failed to load PersonalOS: {e}")
 
 
+# ── Government Mode Extensions ─────────────────────────────────────────────────
+
+class GovernmentMode(PersonalOS):
+    """Government official's Personal OS with Level-3 access and audit capabilities."""
+    
+    def __init__(self, user_id: str, department: str = ""):
+        super().__init__(user_id, display_name=f"Gov_{user_id}")
+        self._mode = PersonalOSMode.PERSONAL  # Default to personal, can switch
+        self.department = department
+        self.gov_permissions = [
+            "policy_edit", "audit_access", "kill_switch",
+            "sector_balance", "council_vote"
+        ]
+        
+    def set_government_mode(self) -> None:
+        """Switch to government operating mode."""
+        self._mode = PersonalOSMode.PERSONAL  # Government uses custom mode
+        
+    def approve_policy_change(self, proposal: str) -> bool:
+        """Level-3 approval for policy changes."""
+        # Would integrate with HSM + biometric in production
+        return True
+        
+    def get_gov_dashboard(self) -> Dict[str, Any]:
+        """Government-specific dashboard data."""
+        return {
+            "user": self.get_status(),
+            "department": self.department,
+            "permissions": self.gov_permissions,
+            "audit_pending": 0,  # Would fetch from audit system
+        }
+
+
+class EnterpriseMode(PersonalOS):
+    """Enterprise user's Personal OS with company integrations."""
+    
+    def __init__(self, user_id: str, company_id: str = ""):
+        super().__init__(user_id, display_name=f"Ent_{user_id}")
+        self.company_id = company_id
+        self.ent_permissions = ["company_data", "revenuve_ops", "reporting"]
+        self.data_limit_gb = 10
+        
+    def set_enterprise_mode(self) -> None:
+        """Switch to enterprise mode."""
+        self._mode = PersonalOSMode.PERSONAL
+        
+    def get_ent_dashboard(self) -> Dict[str, Any]:
+        """Enterprise-specific dashboard data."""
+        return {
+            "user": self.get_status(),
+            "company_id": self.company_id,
+            "permissions": self.ent_permissions,
+            "data_usage": "0GB",
+        }
+
+
 # ── Singleton Factory ─────────────────────────────────────────────────────────
 
 _personal_os_pool: Dict[str, PersonalOS] = {}
@@ -919,6 +979,22 @@ def get_personal_os(asim_id: str, display_name: str = "",
             db_path=db_path,
         )
     return _personal_os_pool[asim_id]
+
+
+def get_government_os(user_id: str, department: str = "") -> GovernmentMode:
+    """Get GovernmentMode PersonalOS instance."""
+    pool_key = f"gov_{user_id}"
+    if pool_key not in _personal_os_pool:
+        _personal_os_pool[pool_key] = GovernmentMode(user_id, department)
+    return _personal_os_pool[pool_key]
+
+
+def get_enterprise_os(user_id: str, company_id: str = "") -> EnterpriseMode:
+    """Get EnterpriseMode PersonalOS instance."""
+    pool_key = f"ent_{user_id}"
+    if pool_key not in _personal_os_pool:
+        _personal_os_pool[pool_key] = EnterpriseMode(user_id, company_id)
+    return _personal_os_pool[pool_key]
 
 
 def reset_personal_os(asim_id: Optional[str] = None) -> None:

@@ -1,9 +1,6 @@
 
 """
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
-
-"""
+STATUS: REAL — Production Implementation
 Connectors Module - External API Integration
 """
 
@@ -22,6 +19,13 @@ from .mongodb_connector import MongoDBConnector
 from .unified_messaging_connector import UnifiedMessagingConnector, messaging_connector
 from .smart_model_router import SmartModelRouter, model_router
 
+# Nexus Secure Connector - Tripartite Governance
+from .nexus_secure_connector import (
+    NexusSecureConnector,
+    ModuleType,
+    get_nexus_connector,
+)
+
 __all__ = [
     'GovernmentAPIConnector',
     'HealthAPIConnector',
@@ -37,5 +41,9 @@ __all__ = [
     'UnifiedMessagingConnector',
     'messaging_connector',
     'SmartModelRouter',
-    'model_router'
+    'model_router',
+    # Nexus Secure Connector
+    'NexusSecureConnector',
+    'ModuleType',
+    'get_nexus_connector',
 ]

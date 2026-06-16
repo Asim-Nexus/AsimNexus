@@ -1,0 +1,143 @@
+# Production K8s Deployment for AsimNexus Governance Infrastructure
+# k8s/production/governance-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asimnexus-governance
+  namespace: asimnexus
+  labels:
+    app: asimnexus-governance
+    tier: backend
+    component: governance
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: asimnexus-governance
+  template:
+    metadata:
+      labels:
+        app: asimnexus-governance
+        tier: backend
+        component: governance
+    spec:
+      containers:
+      - name: kernel
+        image: asimnexus/kernel:1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: ENVIRONMENT
+          value: "production"
+        - name: ASIM_HSM_PROVIDER
+          valueFrom:
+            secretKeyRef:
+              name: asimnexus-secrets
+              key: hsm-provider
+        - name: ASIM_HSM_KEY_LABEL
+          value: "asimnexus-gov-key"
+        - name: ASIM_CONSENSUS_QUORUM
+          value: "8"
+        - name: ASIM_POWER_BALANCE_DB_PATH
+          value: "data/power_balance.jsonl"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+        - name: hsm-socket
+          mountPath: /dev/hsm
+      - name: mesh-router
+        image: asimnexus/mesh-router:1.0.0
+        ports:
+        - containerPort: 9000
+          name: mesh
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        env:
+        - name: MESH_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: asimnexus-pvc
+      - name: hsm-socket
+        hostPath:
+          path: /dev/hsm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-governance-service
+  namespace: asimnexus
+  labels:
+    app: asimnexus-governance
+spec:
+  selector:
+    app: asimnexus-governance
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: asimnexus-governance-hpa
+  namespace: asimnexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: asimnexus-governance
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
