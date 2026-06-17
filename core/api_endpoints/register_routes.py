@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-ASIMNEXUS Route Registration
-=============================
+STATUS: REAL — AsimNexus Route Registration
+
+AsimNexus Route Registration
+============================
 Central registration for all API route modules.
 This is imported by simple_backend.py and other entry points.
 """
@@ -30,6 +32,22 @@ def register_all_routes(app):
         logger.info("✅ Sector routes registered (hospital, hotel, education, banking)")
     except Exception as e:
         logger.warning("⚠️ Sector route registration skipped: %s", e)
+
+    # ─── Real-Time Data Routes ─────────────────────────────────────────────
+    try:
+        from core.api.real_time_api import router as real_time_router
+        app.include_router(real_time_router)
+        logger.info("✅ Real-time API routes registered (weather, market, hydropower)")
+    except Exception as e:
+        logger.warning("⚠️ Real-time route registration skipped: %s", e)
+
+    # ─── Core Kernel Routes ────────────────────────────────────────────────
+    try:
+        from core.api.core_kernel_api import router as core_kernel_router
+        app.include_router(core_kernel_router)
+        logger.info("✅ Core Kernel routes registered (hardware, os detection)")
+    except Exception as e:
+        logger.warning("⚠️ Core Kernel route registration skipped: %s", e)
 
     # ─── Global Agent Routes ─────────────────────────────────────────────
     try:
