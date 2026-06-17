@@ -45,7 +45,6 @@ class AsimBrainService {
     // Fallback: Local processing
     return this.localProcess(message, context);
   }
-  }
 
   async *streamMessage(message, context = {}) {
     try {
