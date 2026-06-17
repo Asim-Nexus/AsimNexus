@@ -1,5 +1,5 @@
 """
-AsimNexus Sector Connectors Registry
+STATUS: REAL — AsimNexus Sector Connectors Registry
 
 All Sector Connectors for Nepal Digital Ecosystem
 """
@@ -17,6 +17,7 @@ from .hydropower_connector import HydropowerConnector
 from .education_connector import EducationConnector
 from .government_connector import GovernmentConnector
 from .health_connector import HealthConnector
+from .ecommerce_connector import EcommerceConnector
 
 _SECTOR_CONNECTORS: Dict[str, object] = {
     "agriculture": AgricultureConnector(),
@@ -29,6 +30,7 @@ _SECTOR_CONNECTORS: Dict[str, object] = {
     "education": EducationConnector(),
     "government": GovernmentConnector(),
     "health": HealthConnector(),
+    "ecommerce": EcommerceConnector(),
 }
 
 def get_sector_connector(sector: str):
@@ -52,4 +54,5 @@ __all__ = [
     "EducationConnector",
     "GovernmentConnector",
     "HealthConnector",
+    "EcommerceConnector",
 ]

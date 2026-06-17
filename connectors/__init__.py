@@ -29,6 +29,7 @@ from .sector_connectors import (
     EducationConnector,
     GovernmentConnector,
     HealthConnector,
+    EcommerceConnector,
 )
 
 # New 2026 Components
@@ -66,6 +67,7 @@ __all__ = [
     'EducationConnector',
     'GovernmentConnector',
     'HealthConnector',
+    'EcommerceConnector',
     # New exports
     'UnifiedMessagingConnector',
     'messaging_connector',

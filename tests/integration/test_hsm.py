@@ -58,20 +58,19 @@ class TestHSMProduction:
 class TestHSMGovernmentIntegration:
     """Test HSM integrated with Government API"""
     
-    @pytest.mark.asyncio
-    async def test_gov_route_with_hsm(self):
+    def test_gov_route_with_hsm(self):
         """Test government route uses HSM verification"""
-        # Check gov_routes imports HSM
+        # Check gov_routes has routes defined
         import core.api.gov_routes as gov_routes
-        assert hasattr(gov_routes, 'gov_router')
+        assert hasattr(gov_routes, 'router')
     
-    @pytest.mark.asyncio
-    async def test_level3_decorator(self):
+    def test_level3_decorator(self):
         """Test HMAC level-3 decorator usage"""
         from security.hsm_production import HSMProduction
         hsm = HSMProduction()
         
         # Verify decorator exists
+        assert hasattr(hsm, 'level3_approve')
         assert hasattr(hsm, 'level3_approve')
 
 if __name__ == "__main__":

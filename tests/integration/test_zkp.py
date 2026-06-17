@@ -74,7 +74,7 @@ class TestZKPProduction:
         })
         
         is_valid = await zkp.verify_identity(
-            proof=proof,
+            proof_data=proof,
             required={
                 "age_greater_equal": True,
                 "district_valid": True,
