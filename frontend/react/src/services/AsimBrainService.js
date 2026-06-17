@@ -21,6 +21,8 @@ class AsimBrainService {
 
   async processMessage(message, context = {}) {
     console.log('[AsimBrain] Processing message:', message.substring(0, 50));
+    
+    // Try direct backend API first
     try {
       const response = await fetch(`${API}/api/brain/process`, {
         method: 'POST',
@@ -28,21 +30,21 @@ class AsimBrainService {
         body: JSON.stringify({
           message,
           context: { ...context, timestamp: Date.now(), source: 'asim_orb' },
-          mode: context.mode || 'personal',
-          streaming: false,
         }),
       });
-      if (!response.ok) {
-        console.warn('[AsimBrain] API error:', response.status);
-        throw new Error(`HTTP ${response.status}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[AsimBrain] Backend response received');
+        return { response: data.response || '', source: data.source || 'backend' };
       }
-      const data = await response.json();
-      console.log('[AsimBrain] API response received');
-      return data;
     } catch (error) {
-      console.log('[AsimBrain] Falling back to local processing');
-      return this.localProcess(message, context);
+      console.log('[AsimBrain] Backend unavailable, using local fallback');
     }
+    
+    // Fallback: Local processing
+    return this.localProcess(message, context);
+  }
   }
 
   async *streamMessage(message, context = {}) {
