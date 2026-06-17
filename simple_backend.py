@@ -6063,10 +6063,12 @@ def create_app():
         from backend.gov_routes import setup_gov_routes
         from backend.company_routes import setup_company_routes
         from backend.user_routes import setup_user_routes
+        from backend.sector_routes import setup_sector_routes
         setup_gov_routes(app)
         setup_company_routes(app)
         setup_user_routes(app)
-        logger.info("✅ Tripartite routes registered (gov/company/user)")
+        setup_sector_routes(app)
+        logger.info("✅ Tripartite routes registered (gov/company/user/sector)")
     except Exception as e:
         logger.warning(f"⚠️ Tripartite route registration skipped: {e}")
 
@@ -6083,6 +6085,48 @@ def create_app():
 
 # ─── GLOBAL APP INSTANCE ──────────────────────────────────────────────────────
 app = create_app()
+
+
+# ─── BRAIN PROCESSING ENDPOINT (for frontend chat) ─────────────────────────────────
+try:
+    from fastapi import APIRouter
+    brain_router = APIRouter(prefix="/api/brain", tags=["brain"])
+    
+    @brain_router.post("/process")
+    async def process_brain_message(request: dict):
+        """Process message from frontend chat"""
+        message = request.get("message", "")
+        context = request.get("context", {})
+        user_id = context.get("user_id", "guest")
+        
+        # Use AsimBrain for processing
+        try:
+            from core.asim_brain import AsimBrain
+            brain = AsimBrain()
+            result = await brain.process(message, user_id=user_id, user_api_keys=context.get("api_keys"))
+            response = result.response if hasattr(result, 'response') else str(result)
+            source = result.source if hasattr(result, 'source') else "backend"
+        except Exception as e:
+            response = f"🤖 मैले बुझे: {message}\n\n**AsimNexus** मा तपाईंले केहि गर्न सक्नुहुन्छ:\n🏥 स्वास्थ्य जाँच · 💼 कामको स्थिति · 🤖 AI अभियान · 🌐 मेस नेटवर्क · ⚖️ धर्म गवर्नेन्स"
+            source = "fallback"
+        
+        return {"response": response, "source": source}
+    
+    @brain_router.post("/stream")
+    async def stream_brain_message(request: dict):
+        """Stream response for chat"""
+        from fastapi.responses import StreamingResponse
+        import json
+        
+        async def stream_generator():
+            chunk = f"🤖 {request.get('message', '')} को बारेमा जानकारी दिइरहेको छ..."
+            yield f"data: {json.dumps({'token': chunk})}\n\n"
+        
+        return StreamingResponse(stream_generator(), media_type="text/plain")
+    
+    app.include_router(brain_router)
+except Exception as e:
+    logger.warning(f"Brain API not registered: {e}")
 
 
 def main():
