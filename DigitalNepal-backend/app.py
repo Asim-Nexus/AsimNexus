@@ -70,32 +70,32 @@ async def company_action(sector: str, action: str):
 @app.get("/api/v1/np/ministries")
 async def nepal_ministries():
     """Get all Nepal ministries"""
-    from connectors.gov.ministries import NEPAL_MINISTRIES
-    return {"count": len(NEPAL_MINISTRIES), "ministries": [{"name": m.name, "sector": m.sector} for m in NEPAL_MINISTRIES]}
+    from connectors.nepal_connectors import GOVERNMENT
+    return {"count": len(GOVERNMENT["ministries"]), "ministries": GOVERNMENT["ministries"]}
 
 @app.get("/api/v1/np/provinces")
 async def nepal_provinces():
     """Get all Nepal provinces"""
-    from connectors.gov.provinces import NEPAL_PROVINCES
-    return {"count": len(NEPAL_PROVINCES), "provinces": [{"name": c.name, "number": c.number, "capital": c.capital, "districts": len(c.districts)} for c in NEPAL_PROVINCES]}
+    from connectors.nepal_connectors import GOVERNMENT
+    return {"count": len(GOVERNMENT["provinces"]), "provinces": GOVERNMENT["provinces"]}
 
 @app.get("/api/v1/np/districts")
 async def nepal_districts():
     """Get all Nepal districts"""
-    from connectors.gov.provinces import NEPAL_DISTRICTS
-    return {"count": len(NEPAL_DISTRICTS), "districts": NEPAL_DISTRICTS[:20]}  # First 20
+    from connectors.nepal_connectors import GOVERNMENT
+    return {"count": len(GOVERNMENT["districts"]), "districts": GOVERNMENT["districts"]}
 
 @app.get("/api/v1/np/banks")
 async def nepal_banks():
     """Get all Nepal banks"""
-    from connectors.company import NEPAL_BANKS
-    return {"count": len(NEPAL_BANKS), "banks": [{"name": b.name, "code": b.code, "type": b.type} for b in NEPAL_BANKS]}
+    from connectors.nepal_connectors import COMPANIES
+    return {"count": len(COMPANIES["banks"]), "banks": COMPANIES["banks"]}
 
 @app.get("/api/v1/np/isps")
 async def nepal_isps():
     """Get all Nepal ISPs"""
-    from connectors.company import NEPAL_ISPS
-    return {"count": len(NEPAL_ISPS), "isps": [{"name": i.name, "code": i.code} for i in NEPAL_ISPS]}
+    from connectors.nepal_connectors import COMPANIES
+    return {"count": len(COMPANIES["isps"]), "isps": COMPANIES["isps"]}
 
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 

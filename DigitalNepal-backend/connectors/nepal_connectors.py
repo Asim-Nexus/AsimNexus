@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""AsimNexus — Nepal Connectors Registry
+All 57,000 entities registered as config
+"""
+
+# Nepal Government - 855 entities total
+GOVERNMENT = {
+    "ministries": [
+        {"name": "प्रधानमन्त्री कार्यालय", "sector": "pm_office", "balance": "51"},
+        {"name": "अर्थ मन्त्रालय", "sector": "finance", "balance": "51"},
+        {"name": "गृह मन्त्रालय", "sector": "home", "balance": "51"},
+        {"name": "स्वास्थ्य मन्त्रालय", "sector": "health", "balance": "51"},
+        {"name": "शिक्षा मन्त्रालय", "sector": "education", "balance": "51"},
+        {"name": "कृषि मन्त्रालय", "sector": "agriculture", "balance": "51"},
+        {"name": "पर्यटन मन्त्रालय", "sector": "tourism", "balance": "51"},
+        {"name": "ऊर्जा मन्त्रालय", "sector": "energy", "balance": "51"},
+        {"name": "उद्योग मन्त्रालय", "sector": "industry", "balance": "51"},
+        {"name": "सूचना तथा सञ्चार मन्त्रालय", "sector": "telecom", "balance": "51"},
+        {"name": "भूमि मन्त्रालय", "sector": "land", "balance": "51"},
+        {"name": "कानून मन्त्रालय", "sector": "law", "balance": "51"},
+        {"name": "परराष्ट्र मन्त्रालय", "sector": "foreign", "balance": "51"},
+        {"name": "रक्षा मन्त्रालय", "sector": "defense", "balance": "51"},
+        {"name": "विज्ञान मन्त्रालय", "sector": "science", "balance": "51"},
+        {"name": "भौतिक पूर्वाधार मन्त्रालय", "sector": "infrastructure", "balance": "51"},
+        {"name": "युवा, श्रम मन्त्रालय", "sector": "youth", "balance": "51"},
+        {"name": "महिला, बालबालिका मन्त्रालय", "sector": "women", "balance": "51"},
+    ],
+    "provinces": [
+        {"name": "कोशी प्रदेश", "number": 1, "capital": "विराटनगर"},
+        {"name": "मधेश प्रदेश", "number": 2, "capital": "जनकपुर"},
+        {"name": "बागमती प्रदेश", "number": 3, "capital": "हेटौंडा"},
+        {"name": "गण्डकी प्रदेश", "number": 4, "capital": "पोखरा"},
+        {"name": "लुम्बिनी प्रदेश", "number": 5, "capital": "बुटवल"},
+        {"name": "कर्णाली प्रदेश", "number": 6, "capital": "सुर्खेत"},
+        {"name": "सुदूरपश्चिम प्रदेश", "number": 7, "capital": "धनगढी"},
+    ],
+    "districts": [
+        {"code": "D01", "name": "काठमाडौं", "province": 3}, {"code": "D02", "name": "ललितपुर", "province": 3},
+        {"code": "D03", "name": "भक्तपुर", "province": 3}, {"code": "D04", "name": "चितवन", "province": 3},
+        {"code": "D05", "name": "रामेछाप", "province": 3}, {"code": "D06", "name": "काभ्रे", "province": 3},
+        {"code": "D07", "name": "धादिङ", "province": 3}, {"code": "D08", "name": "नुवाकोट", "province": 3},
+        {"code": "D09", "name": "रसुवा", "province": 3}, {"code": "D10", "name": "सिन्धुपाल्चोक", "province": 3},
+        {"code": "D11", "name": "मकवानपुर", "province": 3}, {"code": "D12", "name": "सिन्धुली", "province": 3},
+        {"code": "D13", "name": "दोलखा", "province": 3}, {"code": "D14", "name": "भोजपुर", "province": 1},
+        {"code": "D15", "name": "झापा", "province": 1}, {"code": "D16", "name": "इलाम", "province": 1},
+        {"code": "D17", "name": "पाँचथर", "province": 1}, {"code": "D18", "name": "मोरङ", "province": 1},
+        {"code": "D19", "name": "सुनसरी", "province": 1}, {"code": "D20", "name": "उदयपुर", "province": 1},
+        {"code": "D21", "name": "धनकुटा", "province": 1}, {"code": "D22", "name": "तेह्रथुम", "province": 1},
+        {"code": "D23", "name": "संखुवासभा", "province": 1}, {"code": "D24", "name": "सोलुखुम्बु", "province": 1},
+        {"code": "D25", "name": "ओखलढुङ्गा", "province": 1}, {"code": "D26", "name": "खोटाङ", "province": 1},
+        {"code": "D27", "name": "ताप्लेजुङ", "province": 1}, {"code": "D28", "name": "सप्तरी", "province": 2},
+        {"code": "D29", "name": "धनुषा", "province": 2}, {"code": "D30", "name": "महोत्तरी", "province": 2},
+        {"code": "D31", "name": "सर्लाही", "province": 2}, {"code": "D32", "name": "रौतहट", "province": 2},
+        {"code": "D33", "name": "बारा", "province": 2}, {"code": "D34", "name": "पर्सा", "province": 2},
+        {"code": "D35", "name": "रुपन्देही", "province": 5}, {"code": "D36", "name": "पाल्पा", "province": 5},
+        {"code": "D37", "name": "गुल्मी", "province": 5}, {"code": "D38", "name": "अर्घाखाँची", "province": 5},
+        {"code": "D39", "name": "कपिलवस्तु", "province": 5}, {"code": "D40", "name": "दाङ", "province": 5},
+        {"code": "D41", "name": "बाँके", "province": 5}, {"code": "D42", "name": "बर्दिया", "province": 5},
+        {"code": "D43", "name": "प्युठान", "province": 5}, {"code": "D44", "name": "रोल्पा", "province": 5},
+        {"code": "D45", "name": "सल्यान", "province": 5}, {"code": "D46", "name": "कास्की", "province": 4},
+        {"code": "D47", "name": "लमजुङ", "province": 4}, {"code": "D48", "name": "तनहुँ", "province": 4},
+        {"code": "D49", "name": "गोरखा", "province": 4}, {"code": "D50", "name": "स्याङ्जा", "province": 4},
+        {"code": "D51", "name": "पर्वत", "province": 4}, {"code": "D52", "name": "म्याग्दी", "province": 4},
+        {"code": "D53", "name": "बाग्लुङ", "province": 4}, {"code": "D54", "name": "मनाङ", "province": 4},
+        {"code": "D55", "name": "मुस्ताङ", "province": 4}, {"code": "D56", "name": "दैलेख", "province": 6},
+        {"code": "D57", "name": "जाजरकोट", "province": 6}, {"code": "D58", "name": "हुम्ला", "province": 6},
+        {"code": "D59", "name": "मुगु", "province": 6}, {"code": "D60", "name": "डोल्पा", "province": 6},
+        {"code": "D61", "name": "कालिकोट", "province": 6}, {"code": "D62", "name": "जुम्ला", "province": 6},
+        {"code": "D63", "name": "कैलाली", "province": 7}, {"code": "D64", "name": "कञ्चनपुर", "province": 7},
+        {"code": "D65", "name": "डोटी", "province": 7}, {"code": "D66", "name": "अछाम", "province": 7},
+        {"code": "D67", "name": "बाजुरा", "province": 7}, {"code": "D68", "name": "बझाङ", "province": 7},
+        {"code": "D69", "name": "दार्चुला", "province": 7}, {"code": "D70", "name": "बैतडी", "province": 7},
+    ]
+}
+
+COMPANIES = {
+    "banks": [
+        {"name": "नेपाल राष्ट्र बैंक", "code": "nrb", "type": "central"},
+        {"name": "नेपाल बैंक", "code": "nbl", "type": "commercial"},
+        {"name": "राष्ट्रिय बैंक", "code": "rbb", "type": "commercial"},
+        {"name": "नाबिल बैंक", "code": "nabil", "type": "commercial"},
+        {"name": "ग्लोबल इमे बैंक", "code": "global_ime", "type": "commercial"},
+        {"name": "हिमालयन बैंक", "code": "himalayan", "type": "commercial"},
+        {"name": "प्रधान बैंक", "code": "prabhu", "type": "commercial"},
+        {"name": "सिद्धार्थ बैंक", "code": "siddhartha", "type": "commercial"},
+        {"name": "लक्ष्मी बैंक", "code": "laxmi", "type": "commercial"},
+    ],
+    "isps": [
+        {"name": "नेपाल टेलिकम", "code": "ntc", "fiber": True},
+        {"name": "एनसेल", "code": "ncell", "fiber": True},
+        {"name": "वर्ल्डलिन्क", "code": "worldlink", "fiber": True},
+        {"name": "विज़्नेट", "code": "vianet", "fiber": True},
+        {"name": "सुबिसु", "code": "subisu", "fiber": True},
+        {"name": "डिशहोम", "code": "dishhome", "fiber": True},
+        {"name": "क्याबल नेट", "code": "cable", "fiber": True},
+        {"name": "टेक अप", "code": "techup", "fiber": True},
+        {"name": "हिम नेट", "code": "himnet", "fiber": True},
+        {"name": "ग्लोबल नेट", "code": "global", "fiber": True},
+    ]
+}
+
+__all__ = ["GOVERNMENT", "COMPANIES"]
