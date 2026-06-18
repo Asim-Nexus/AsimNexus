@@ -65,6 +65,38 @@ async def company_action(sector: str, action: str):
     """Company action - 49% threshold enforcement"""
     return nexus.company_action(sector, action)
 
+# ─── Nepal Connectors Endpoints ───────────────────────────────────────────────────
+
+@app.get("/api/v1/np/ministries")
+async def nepal_ministries():
+    """Get all Nepal ministries"""
+    from connectors.gov.ministries import NEPAL_MINISTRIES
+    return {"count": len(NEPAL_MINISTRIES), "ministries": [{"name": m.name, "sector": m.sector} for m in NEPAL_MINISTRIES]}
+
+@app.get("/api/v1/np/provinces")
+async def nepal_provinces():
+    """Get all Nepal provinces"""
+    from connectors.gov.provinces import NEPAL_PROVINCES
+    return {"count": len(NEPAL_PROVINCES), "provinces": [{"name": c.name, "number": c.number, "capital": c.capital, "districts": len(c.districts)} for c in NEPAL_PROVINCES]}
+
+@app.get("/api/v1/np/districts")
+async def nepal_districts():
+    """Get all Nepal districts"""
+    from connectors.gov.provinces import NEPAL_DISTRICTS
+    return {"count": len(NEPAL_DISTRICTS), "districts": NEPAL_DISTRICTS[:20]}  # First 20
+
+@app.get("/api/v1/np/banks")
+async def nepal_banks():
+    """Get all Nepal banks"""
+    from connectors.company import NEPAL_BANKS
+    return {"count": len(NEPAL_BANKS), "banks": [{"name": b.name, "code": b.code, "type": b.type} for b in NEPAL_BANKS]}
+
+@app.get("/api/v1/np/isps")
+async def nepal_isps():
+    """Get all Nepal ISPs"""
+    from connectors.company import NEPAL_ISPS
+    return {"count": len(NEPAL_ISPS), "isps": [{"name": i.name, "code": i.code} for i in NEPAL_ISPS]}
+
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 
 @app.post("/api/v1/mesh/sync")
