@@ -1,5 +1,5 @@
 """
-STATUS: REAL — Clone Consensus Integration Tests
+STATUS: REAL — Clone Consensus Integration Tests with ZKP Privacy Binding
 
 AsimNexus Clone Consensus Tests
 =================================
@@ -8,6 +8,7 @@ Tests for 15-founder weighted voting system:
 - Vote casting and tallying
 - Government/Company/User sector routing
 - Integration with Government API
+- ZKP Privacy binding integration
 """
 
 import pytest
@@ -17,7 +18,8 @@ from core.clone_consensus import (
     get_clone_consensus,
     CloneConsensus,
     Proposal,
-    VoteDecision
+    VoteDecision,
+    ZKPVerificationResult
 )
 
 
@@ -145,6 +147,95 @@ class TestCloneConsensusReal:
         # Verify consensus endpoints exist
         has_consensus = any("consensus" in str(p) for p in route_paths)
         assert has_consensus or len(route_paths) > 0  # At least routes exist
+
+
+class TestCloneConsensusZKP:
+    """ZKP Privacy Integration Tests"""
+    
+    @pytest.fixture(autouse=True)
+    async def setup(self):
+        self.consensus = CloneConsensus()
+        await self.consensus.initialize()
+    
+    @pytest.mark.asyncio
+    async def test_zkp_enabled_in_status(self):
+        """Test ZKP is enabled in system status"""
+        status = self.consensus.status()
+        assert status["zkp_enabled"] is True
+        assert "zkp_stats" in status
+    
+    @pytest.mark.asyncio
+    async def test_cast_vote_with_zkp_binding(self):
+        """Test casting vote with ZKP commitment binding"""
+        proposal = self.consensus.create_proposal(
+            proposal_id="ZKP-VOTE-001",
+            title="ZKP Privacy Test",
+            description="Test ZKP vote binding",
+            sector="gov",
+            proposer="SYSTEM"
+        )
+        
+        vote = await self.consensus.cast_vote_with_zkp(
+            proposal_id="ZKP-VOTE-001",
+            founder_id="F001",
+            decision=VoteDecision.APPROVE
+        )
+        
+        assert vote.zkp_commitment is not None
+        assert vote.zkp_blinding is not None
+        assert len(vote.zkp_commitment) > 0
+        assert vote.zkp_blinding > 0
+    
+    @pytest.mark.asyncio
+    async def test_zkp_verification(self):
+        """Test ZKP commitment verification"""
+        proposal = self.consensus.create_proposal(
+            proposal_id="ZKP-VERIFY-001",
+            title="ZKP Verification Test",
+            description="Verify ZKP votes",
+            sector="company",
+            proposer="SYSTEM"
+        )
+        
+        # Cast votes with ZKP binding
+        for i in range(1, 6):
+            await self.consensus.cast_vote_with_zkp(
+                proposal_id="ZKP-VERIFY-001",
+                founder_id=f"F{i:03d}",
+                decision=VoteDecision.APPROVE
+            )
+        
+        # Verify ZKP commitments
+        result = await self.consensus.verify_zkp_votes("ZKP-VERIFY-001")
+        
+        assert result.valid is True
+        assert result.verified_votes == 5
+        assert result.total_votes == 5
+    
+    @pytest.mark.asyncio
+    async def test_zkp_vote_tally_integration(self):
+        """Test that ZKP-bound votes still tally correctly"""
+        proposal = self.consensus.create_proposal(
+            proposal_id="ZKP-TALLY-001",
+            title="ZKP Tally Integration",
+            description="Ensure ZKP votes still work with tallying",
+            sector="gov",
+            proposer="SYSTEM"
+        )
+        
+        # Cast votes with ZKP
+        for i in range(1, 11):
+            await self.consensus.cast_vote_with_zkp(
+                proposal_id="ZKP-TALLY-001",
+                founder_id=f"F{i:03d}",
+                decision=VoteDecision.APPROVE
+            )
+        
+        result = await self.consensus.tally_votes("ZKP-TALLY-001")
+        zkp_result = await self.consensus.verify_zkp_votes("ZKP-TALLY-001")
+        
+        assert result["passed"] is True
+        assert zkp_result.valid is True
 
 
 class TestCloneConsensusProduction:

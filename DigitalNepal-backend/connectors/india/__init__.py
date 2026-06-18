@@ -1,4 +1,0 @@
-# India Connectors
-from .ministries import INDIA_MINISTRIES, INDIA_STATES, INDIA_ALL_DISTRICTS
-
-__all__ = ["INDIA_MINISTRIES", "INDIA_STATES", "INDIA_ALL_DISTRICTS"]

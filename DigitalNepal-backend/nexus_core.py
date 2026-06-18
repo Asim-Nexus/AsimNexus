@@ -29,8 +29,7 @@ from mesh.offline_sync_engine import (
 )
 
 # Country/Ministry templates
-from connectors.country_template import get_country, CountryConfig
-from connectors.ministry_template import get_ministry, list_ministries
+from connectors.nepal_connectors import MINISTRIES, PROVINCES, DISTRICTS
 
 # ─── Unified World Interface ──────────────────────────────────────────────────────
 

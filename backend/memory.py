@@ -166,6 +166,24 @@ def setup_memory_routes(app, db_path: str = "data/vector_memory.db"):
             logger.error(f"Get user memories error: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
+@app.get("/api/memory/recent")
+    async def recent_memories(user_id: str = "anonymous", limit: int = 20):
+        """Get recent memories for user."""
+        try:
+            from core.vectormemory import get_vector_memory, EmbeddingBackend
+            vm = get_vector_memory(db_path, EmbeddingBackend.DUMMY)
+            memories = vm.get_user_memories(user_id, limit=limit)
+            return JSONResponse([{
+                "id": m.id,
+                "content": m.content,
+                "memory_type": m.memory_type.value,
+                "user_id": m.user_id,
+                "created_at": m.created_at
+            } for m in memories])
+        except Exception as e:
+            logger.error(f"Recent memories error: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+
     @app.delete("/api/memory/{memory_id}")
     async def delete_memory(memory_id: str):
         """Delete a memory by ID."""
@@ -179,7 +197,7 @@ def setup_memory_routes(app, db_path: str = "data/vector_memory.db"):
         except Exception as e:
             logger.error(f"Delete memory error: {e}")
             raise HTTPException(status_code=400, detail=str(e))
-    
+     
     @app.get("/api/memory/stats")
     async def get_memory_stats():
         """Get memory statistics."""

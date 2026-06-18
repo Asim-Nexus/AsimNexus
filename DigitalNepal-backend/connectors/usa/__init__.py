@@ -1,4 +1,0 @@
-# USA Connectors
-from .ministries import USA_DEPARTMENTS, USA_STATES, USA_ALL_COUNTIES
-
-__all__ = ["USA_DEPARTMENTS", "USA_STATES", USA_ALL_COUNTIES]

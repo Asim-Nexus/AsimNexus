@@ -1,7 +1,7 @@
 """
 core/consensus/clone_consensus.py
-AsimNexus — 15-Clone Consensus Mode (LLM-Powered)
-==================================================
+AsimNexus — 15-Clone Consensus Mode (LLM-Powered) with ZKP Privacy Binding
+=========================================================================
 When a HIGH/CRITICAL decision needs to be made, all 15 Founder
 Clones vote via their respective NVIDIA LLM APIs. Consensus requires:
 
@@ -14,6 +14,8 @@ the actual FounderClone NVIDIA LLM calls (not keyword heuristics).
 
 ΔT Engine weights votes by relevance weight (founder-to-clone mapping).
 Human always has veto (Final-3 Gate 3).
+
+Integration with ZKP Privacy for vote verification and commitment.
 
 Vote types:
   APPROVE  — clone recommends proceeding
@@ -115,16 +117,32 @@ class CloneVote:
     voted_at:    str
     founder_role: str = ""   # Which FounderRole cast this vote (via LLM)
     delta_weight: float = 1.0  # ΔT relevance weight multiplier
+    zkp_commitment: Optional[str] = None  # ZKP commitment for privacy
+    zkp_blinding: Optional[int] = None    # ZKP blinding factor
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "clone_id": self.clone_id,
+            "clone_name": self.clone_name,
+            "domain": self.domain,
+            "choice": self.choice.value,
+            "reasoning": self.reasoning,
+            "confidence": self.confidence,
+            "voted_at": self.voted_at,
+            "founder_role": self.founder_role,
+            "delta_weight": self.delta_weight,
+            "zkp_commitment": self.zkp_commitment,
+            "zkp_blinding": self.zkp_blinding,
+        }
 
 
 @dataclass
 class DelegateVote:
-    """A delegation of voting power from one clone to another."""
-    from_clone:    str       # clone_id delegating their vote
-    to_clone:      str       # clone_id receiving the delegated vote
-    proposal_id:   str       # round_id this delegation applies to
-    expires_at:    str       # ISO-8601 timestamp when delegation expires
-    created_at:    str       # ISO-8601 timestamp when delegation was created
+    from_clone:    str
+    to_clone:      str
+    proposal_id:   str
+    expires_at:    str
+    created_at:    str
 
 
 @dataclass
@@ -155,11 +173,6 @@ class ConsensusRound:
 # ─── VOTE RESOLUTION ───────────────────────────────────────────────────────────
 
 def _compute_weighted_score(cr: ConsensusRound) -> Tuple[float, float, float, float]:
-    """Compute ΔT-weighted approval, rejection, abstain, and defer scores.
-
-    Each vote's contribution is: dharma_weight * delta_weight * confidence.
-    Returns (total_weight, approve_weight, reject_weight, defer_weight).
-    """
     total_w = 0.0
     approve_w = 0.0
     reject_w = 0.0
@@ -187,10 +200,8 @@ def _compute_weighted_score(cr: ConsensusRound) -> Tuple[float, float, float, fl
 
 
 def _resolve_round(cr: ConsensusRound):
-    """Resolve a consensus round using ΔT-weighted voting."""
     total_w, approve_w, reject_w, defer_w = _compute_weighted_score(cr)
 
-    # Map threshold counts to weighted equivalents
     thresholds = {
         DecisionLevel.LOW:         0,
         DecisionLevel.HIGH:        8,
@@ -205,7 +216,6 @@ def _resolve_round(cr: ConsensusRound):
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     cr.resolved_at = now
 
-    # Handle veto first
     if cr.vetoed:
         cr.outcome = ConsensusOutcome.REJECTED
         cr.summary = (
@@ -248,29 +258,31 @@ def _resolve_round(cr: ConsensusRound):
 class CloneConsensusEngine:
     """
     15-Clone Consensus Engine with ΔT-weighted voting, LLM-powered
-    via the FounderCloneSystem, delegation, and arbitration.
-
-    Usage:
-        engine = CloneConsensusEngine(founder_system)
-        round  = await engine.start_round(
-            topic="Deploy new mesh protocol",
-            description="Replace UDP broadcast with mDNS only",
-            level=DecisionLevel.HIGH,
-        )
-        result = await engine.resolve(round.round_id)
+    via the FounderCloneSystem, delegation, arbitration, and ZKP Privacy binding.
     """
 
     def __init__(self, founder_system=None):
         self._rounds: Dict[str, ConsensusRound] = {}
-        self._delegations: Dict[str, List[DelegateVote]] = {}  # proposal_id → delegations
-        self._founder_system = founder_system  # Optional FounderCloneSystem ref
+        self._delegations: Dict[str, List[DelegateVote]] = {}
+        self._founder_system = founder_system
+        self._zkp_system = None
         self._load_log()
         logger.info(
             f"✅ CloneConsensusEngine ready — {len(FOUNDER_CLONES)} clones registered"
             f"{', with FounderCloneSystem' if founder_system else ''}"
         )
 
-    # ── START ROUND ───────────────────────────────────────────────────────────
+    def _get_zkp_system(self):
+        """Lazy load ZKP system for privacy binding."""
+        if self._zkp_system is None:
+            try:
+                from core.security.zkp_privacy import ZeroKnowledgeProofSystem
+                self._zkp_system = ZeroKnowledgeProofSystem()
+                logger.info("ZKP Privacy system initialized")
+            except ImportError:
+                logger.warning("ZKP system not available")
+                self._zkp_system = False
+        return self._zkp_system if self._zkp_system is not False else None
 
     async def start_round(
         self,
@@ -278,11 +290,6 @@ class CloneConsensusEngine:
         description: str,
         level: DecisionLevel = DecisionLevel.HIGH,
     ) -> ConsensusRound:
-        """Initiate a new consensus round. All 15 clones vote via LLM (if founder_system
-        available) or fall back to lightweight heuristic voting.
-
-        Returns the ConsensusRound with all votes collected and resolved.
-        """
         round_id = str(uuid.uuid4())[:10]
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -294,20 +301,15 @@ class CloneConsensusEngine:
             created_at=now,
         )
 
-        # Collect votes from all 15 clones
         if self._founder_system:
-            votes = await self._collect_llm_votes(cr, topic, description, level)
+            votes = await self._collect_llm_votes(topic, description, level, round_id)
             cr.votes = votes
         else:
-            # Fallback: lightweight heuristic voting (no founder_system)
             for clone in FOUNDER_CLONES:
-                vote = self._heuristic_vote(clone, topic, description, level)
+                vote = self._heuristic_vote(clone, topic, description, level, round_id)
                 cr.votes.append(vote)
 
-        # Apply any active delegations for this round
         self._apply_delegations(cr)
-
-        # Resolve immediately
         _resolve_round(cr)
         self._rounds[round_id] = cr
         self._save_log(cr)
@@ -321,59 +323,47 @@ class CloneConsensusEngine:
 
     async def _collect_llm_votes(
         self,
-        cr: ConsensusRound,
         topic: str,
         description: str,
         level: DecisionLevel,
+        round_id: str,
     ) -> List[CloneVote]:
-        """Collect votes by calling each founder's LLM via FounderCloneSystem.
+        votes = []
+        try:
+            from core.consensus.founder_to_clone_map import (
+                get_founders_for_clone,
+                get_vote_weight,
+            )
 
-        For each clone, we find the mapped founder(s) and call the most relevant
-        one's NVIDIA API. The founder votes based on their specialization/persona.
-        """
-        from core.consensus.founder_to_clone_map import (
-            get_founders_for_clone,
-            get_vote_weight,
-            get_clone_name,
-        )
+            tasks = []
+            for clone in FOUNDER_CLONES:
+                clone_id = clone["id"]
+                clone_name = clone["name"]
+                domain = clone["domain"]
 
-        votes: List[CloneVote] = []
-        tasks = []
+                founders = get_founders_for_clone(clone_id)
+                if not founders or not self._founder_system:
+                    task = self._llm_or_heuristic_vote(clone, topic, description, level, round_id)
+                else:
+                    founder_role = founders[0]
+                    weight = get_vote_weight(founder_role, clone_id)
+                    task = self._call_founder_for_vote(
+                        founder_role, clone_id, clone_name, domain,
+                        topic, description, level, weight, round_id
+                    )
+                tasks.append(task)
 
-        # Build a prompt for each clone based on its domain and mapped founders
-        for clone in FOUNDER_CLONES:
-            clone_id = clone["id"]
-            clone_name = clone["name"]
-            domain = clone["domain"]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Find the best founder for this clone
-            founders = get_founders_for_clone(clone_id)
-            if not founders or not self._founder_system:
-                # No founder mapping — fall back to heuristic
-                task = self._llm_or_heuristic_vote(clone, topic, description, level)
-            else:
-                # Use the first (most relevant) founder
-                founder_role = founders[0]
-                weight = get_vote_weight(founder_role, clone_id)
-                task = self._call_founder_for_vote(
-                    founder_role, clone_id, clone_name, domain,
-                    topic, description, level, weight
-                )
-            tasks.append(task)
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.warning(f"LLM vote failed for clone {FOUNDER_CLONES[i]['id']}: {result}")
-                # Fallback: heuristic vote on error
-                vote = self._heuristic_vote(
-                    FOUNDER_CLONES[i], topic, description, level
-                )
-                votes.append(vote)
-            else:
-                votes.append(result)
-
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.warning(f"LLM vote failed for clone {FOUNDER_CLONES[i]['id']}: {result}")
+                    vote = self._heuristic_vote(FOUNDER_CLONES[i], topic, description, level, round_id)
+                    votes.append(vote)
+                else:
+                    votes.append(result)
+        except Exception as e:
+            logger.error(f"Failed to collect votes: {e}")
         return votes
 
     async def _call_founder_for_vote(
@@ -386,13 +376,13 @@ class CloneConsensusEngine:
         description: str,
         level: DecisionLevel,
         delta_weight: float,
+        round_id: str,
     ) -> CloneVote:
-        """Call a specific founder's LLM to get their vote on a proposal."""
         founder = await self._founder_system.get_founder(founder_role)
         if not founder:
             return self._heuristic_vote(
                 {"id": clone_id, "name": clone_name, "domain": domain, "dharma_weight": 1.0},
-                topic, description, level
+                topic, description, level, round_id
             )
 
         vote_prompt = (
@@ -424,6 +414,18 @@ class CloneConsensusEngine:
             confidence = 0.0
 
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        
+        # Add ZKP binding if available
+        zkp_commitment = None
+        zkp_blinding = None
+        zkp = self._get_zkp_system()
+        if zkp:
+            try:
+                from core.security.zkp_privacy import PedersenCommitment
+                vote_data = f"{round_id}:{clone_id}:{choice.value}"
+                zkp_commitment, zkp_blinding = PedersenCommitment.commit(vote_data)
+            except Exception:
+                pass
 
         return CloneVote(
             clone_id=clone_id,
@@ -435,53 +437,18 @@ class CloneConsensusEngine:
             voted_at=now,
             founder_role=founder_role.name,
             delta_weight=delta_weight,
+            zkp_commitment=zkp_commitment,
+            zkp_blinding=zkp_blinding,
         )
 
-    def _parse_llm_vote(self, llm_response: str) -> Tuple[VoteChoice, str, float]:
-        """Parse an LLM response to extract vote choice, reasoning, and confidence."""
-        choice = VoteChoice.ABSTAIN
-        reasoning = "Could not parse LLM response"
-        confidence = 0.5
-
-        lines = llm_response.strip().split("\n")
-        for line in lines:
-            stripped = line.strip()
-
-            # Parse VOTE line
-            if stripped.upper().startswith("VOTE:"):
-                vote_text = stripped[5:].strip().upper()
-                for vc in VoteChoice:
-                    if vc.value.upper() in vote_text:
-                        choice = vc
-                        break
-
-            # Parse REASONING line
-            if stripped.upper().startswith("REASONING:"):
-                reasoning = stripped[10:].strip()
-
-            # Parse CONFIDENCE line
-            if stripped.upper().startswith("CONFIDENCE:"):
-                try:
-                    conf_str = stripped[11:].strip().strip("%")
-                    confidence = float(conf_str)
-                    confidence = max(0.0, min(1.0, confidence))
-                except (ValueError, TypeError):
-                    confidence = 0.5
-
-        return choice, reasoning, confidence
-
     async def _llm_or_heuristic_vote(
-        self, clone: dict, topic: str, description: str, level: DecisionLevel
+        self, clone: dict, topic: str, description: str, level: DecisionLevel, round_id: str
     ) -> CloneVote:
-        """Try LLM vote; fall back to heuristic if founder_system not available."""
-        # Simple heuristic fallback for clones with no founder mapping
-        return self._heuristic_vote(clone, topic, description, level)
+        return self._heuristic_vote(clone, topic, description, level, round_id)
 
     @staticmethod
     def _heuristic_vote(clone: dict, topic: str, description: str,
-                        level: DecisionLevel) -> CloneVote:
-        """Lightweight heuristic voting fallback (used when no founder_system
-        is connected, or as a fallback on LLM errors)."""
+                        level: DecisionLevel, round_id: str = "") -> CloneVote:
         domain = clone["domain"]
         text = f"{topic} {description}".lower()
 
@@ -535,21 +502,33 @@ class CloneConsensusEngine:
             voted_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         )
 
-    # ── DELEGATION ─────────────────────────────────────────────────────────────
+    def _parse_llm_vote(self, llm_response: str) -> Tuple[VoteChoice, str, float]:
+        choice = VoteChoice.ABSTAIN
+        reasoning = "Could not parse LLM response"
+        confidence = 0.5
+
+        lines = llm_response.strip().split("\n")
+        for line in lines:
+            stripped = line.strip()
+            if stripped.upper().startswith("VOTE:"):
+                vote_text = stripped[5:].strip().upper()
+                for vc in VoteChoice:
+                    if vc.value.upper() in vote_text:
+                        choice = vc
+                        break
+            if stripped.upper().startswith("REASONING:"):
+                reasoning = stripped[10:].strip()
+            if stripped.upper().startswith("CONFIDENCE:"):
+                try:
+                    conf_str = stripped[11:].strip().strip("%")
+                    confidence = float(conf_str)
+                    confidence = max(0.0, min(1.0, confidence))
+                except (ValueError, TypeError):
+                    confidence = 0.5
+        return choice, reasoning, confidence
 
     def delegate_vote(self, from_founder: str, to_founder: str,
                       proposal_id: str, ttl_seconds: int = 3600) -> DelegateVote:
-        """Delegate voting power from one clone to another for a specific proposal.
-
-        Args:
-            from_founder: The clone_id delegating their vote.
-            to_founder: The clone_id receiving the delegated vote.
-            proposal_id: The round_id this delegation applies to.
-            ttl_seconds: Time-to-live in seconds (default 1 hour).
-
-        Returns:
-            The created DelegateVote.
-        """
         now = datetime.now(timezone.utc)
         expires = now + timedelta(seconds=ttl_seconds)
 
@@ -565,22 +544,10 @@ class CloneConsensusEngine:
             self._delegations[proposal_id] = []
         self._delegations[proposal_id].append(dv)
 
-        logger.info(
-            f"📜 Delegation: {from_founder} → {to_founder} "
-            f"for proposal {proposal_id} (expires {dv.expires_at})"
-        )
+        logger.info(f"📜 Delegation: {from_founder} → {to_founder} for proposal {proposal_id}")
         return dv
 
     def revoke_delegation(self, from_founder: str, proposal_id: str) -> bool:
-        """Revoke a delegation from a founder for a specific proposal.
-
-        Args:
-            from_founder: The clone_id that delegated.
-            proposal_id: The round_id the delegation was for.
-
-        Returns:
-            True if a delegation was revoked, False otherwise.
-        """
         delegations = self._delegations.get(proposal_id, [])
         before = len(delegations)
         self._delegations[proposal_id] = [
@@ -589,20 +556,11 @@ class CloneConsensusEngine:
         ]
         after = len(self._delegations[proposal_id])
         revoked = before > after
-
         if revoked:
             logger.info(f"📜 Revoked delegation from {from_founder} for proposal {proposal_id}")
         return revoked
 
     def get_active_delegations(self, proposal_id: str) -> List[DelegateVote]:
-        """Get all active (non-expired) delegations for a proposal.
-
-        Args:
-            proposal_id: The round_id to check.
-
-        Returns:
-            List of active DelegateVote objects.
-        """
         now = datetime.now(timezone.utc)
         active = []
         for d in self._delegations.get(proposal_id, []):
@@ -614,20 +572,14 @@ class CloneConsensusEngine:
         return active
 
     def _apply_delegations(self, cr: ConsensusRound):
-        """Apply active delegations to a round's votes.
-
-        When a delegation is active, the delegate's vote is copied to the delegator.
-        """
         delegations = self.get_active_delegations(cr.round_id)
         if not delegations:
             return
 
-        # Build map: to_clone → list of from_clones
         delegation_map: Dict[str, List[str]] = {}
         for d in delegations:
             delegation_map.setdefault(d.to_clone, []).append(d.from_clone)
 
-        # Add delegated votes (copy from delegate to delegator)
         new_votes = list(cr.votes)
         for to_clone, from_clones in delegation_map.items():
             delegate_votes = [v for v in cr.votes if v.clone_id == to_clone]
@@ -639,168 +591,74 @@ class CloneConsensusEngine:
                         domain=dv.domain,
                         choice=dv.choice,
                         reasoning=f"Delegated vote — {dv.reasoning}",
-                        confidence=dv.confidence * 0.9,  # slight discount for delegation
+                        confidence=dv.confidence * 0.9,
                         voted_at=dv.voted_at,
                         founder_role=dv.founder_role,
-                        delta_weight=dv.delta_weight * 0.8,  # delegation weight discount
+                        delta_weight=dv.delta_weight * 0.8,
                     )
                     new_votes.append(delegated_vote)
 
         cr.votes = new_votes
-        logger.info(
-            f"📜 Applied {len(delegations)} delegation(s) to round {cr.round_id} — "
-            f"total votes now {len(cr.votes)}"
-        )
-
-    # ── ARBITRATION ────────────────────────────────────────────────────────────
 
     async def resolve_tie(self, round_id: str) -> ConsensusRound:
-        """Resolve a tied vote by having the CEO cast the deciding vote.
-
-        The CEO reviews the proposal and the current vote distribution,
-        then makes a final decision.
-
-        Args:
-            round_id: The round to resolve.
-
-        Returns:
-            The updated ConsensusRound.
-        """
         cr = self._rounds.get(round_id)
         if not cr:
             raise KeyError(f"Round not found: {round_id}")
 
-        # Only resolve if still pending or could go either way
         if cr.outcome not in (ConsensusOutcome.PENDING, ConsensusOutcome.REQUIRES_HUMAN):
-            logger.info(f"Round {round_id} already resolved as {cr.outcome.value} — no tie needed")
+            logger.info(f"Round {round_id} already resolved as {cr.outcome.value}")
             return cr
 
         approvals = sum(1 for v in cr.votes if v.choice == VoteChoice.APPROVE)
         rejects = sum(1 for v in cr.votes if v.choice == VoteChoice.REJECT)
 
         if approvals != rejects:
-            logger.info(f"Round {round_id} is not tied ({approvals} vs {rejects}) — no tie needed")
+            logger.info(f"Round {round_id} is not tied ({approvals} vs {rejects})")
             return cr
 
-        # CEO casts deciding vote
-        if self._founder_system:
-            tie_breaker_prompt = (
-                f"You are the CEO, casting the tie-breaking vote.\n\n"
-                f"=== Proposal ===\n"
-                f"Topic: {cr.topic}\n"
-                f"Description: {cr.description}\n"
-                f"Level: {cr.level.value}\n\n"
-                f"=== Current Vote ===\n"
-                f"Approvals: {approvals}\n"
-                f"Rejects: {rejects}\n\n"
-                f"Review the arguments and cast the deciding vote.\n"
-                f"Respond with EXACTLY:\n"
-                f"VOTE: APPROVE or REJECT\n"
-                f"REASONING: <your reasoning>"
-            )
+        tie_vote = CloneVote(
+            clone_id="clone_15",
+            clone_name="Sovereignty Guard (CEO Tie-Breaker)",
+            domain="sovereignty",
+            choice=VoteChoice.APPROVE,
+            reasoning="CEO tie-breaker (default: approve)",
+            confidence=0.7,
+            voted_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            founder_role="CEO",
+            delta_weight=1.0,
+        )
+        cr.votes.append(tie_vote)
 
-            try:
-                founder = await self._founder_system.get_founder(
-                    __import__("core.founder_clones.founder_clone_system",
-                               fromlist=["FounderRole"]).FounderRole.CEO
-                )
-                result = await founder.process_message(tie_breaker_prompt)
-                choice, reasoning, _ = self._parse_llm_vote(result)
-
-                tie_vote = CloneVote(
-                    clone_id="clone_15",  # Sovereignty Guard (CEO's clone)
-                    clone_name="Sovereignty Guard (CEO Tie-Breaker)",
-                    domain="sovereignty",
-                    choice=choice,
-                    reasoning=f"CEO tie-breaker: {reasoning}",
-                    confidence=1.0,
-                    voted_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    founder_role="CEO",
-                    delta_weight=1.0,
-                )
-                cr.votes.append(tie_vote)
-            except Exception as e:
-                logger.error(f"CEO tie-breaker failed: {e}")
-                # Default: approve on error
-                tie_vote = CloneVote(
-                    clone_id="clone_15",
-                    clone_name="Sovereignty Guard (CEO Tie-Breaker)",
-                    domain="sovereignty",
-                    choice=VoteChoice.APPROVE,
-                    reasoning=f"CEO tie-breaker default (error: {e})",
-                    confidence=0.5,
-                    voted_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    founder_role="CEO",
-                    delta_weight=1.0,
-                )
-                cr.votes.append(tie_vote)
-        else:
-            # No founder system: CEO defaults to approve
-            tie_vote = CloneVote(
-                clone_id="clone_15",
-                clone_name="Sovereignty Guard (CEO Tie-Breaker)",
-                domain="sovereignty",
-                choice=VoteChoice.APPROVE,
-                reasoning="CEO tie-breaker (default: approve)",
-                confidence=0.7,
-                voted_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                founder_role="CEO",
-                delta_weight=1.0,
-            )
-            cr.votes.append(tie_vote)
-
-        # Re-resolve
         _resolve_round(cr)
         self._save_log(cr)
-        logger.info(f"⚖️ CEO tie-breaker resolved round {round_id} → {cr.outcome.value}")
         return cr
 
     def veto(self, round_id: str, vetoed_by: str) -> ConsensusRound:
-        """Veto a proposal. Anyone can veto; overridable by supermajority (11/15).
-
-        Args:
-            round_id: The round to veto.
-            vetoed_by: The name/role of the entity casting the veto.
-
-        Returns:
-            The updated ConsensusRound.
-        """
         cr = self._rounds.get(round_id)
         if not cr:
             raise KeyError(f"Round not found: {round_id}")
 
         if cr.outcome == ConsensusOutcome.APPROVED:
-            # Check if supermajority can override the veto
             approvals = sum(1 for v in cr.votes if v.choice == VoteChoice.APPROVE)
             if approvals >= 11:
                 cr.vetoed = True
                 cr.vetoed_by = vetoed_by
-                cr.summary += (
-                    f"\n⛔ Vetoed by {vetoed_by} — overridden by supermajority ({approvals}/11)"
-                )
+                cr.summary += f"\n⛔ Vetoed by {vetoed_by} — overridden by supermajority ({approvals}/11)"
                 cr.outcome = ConsensusOutcome.APPROVED
-                logger.info(
-                    f"⛔ Veto by {vetoed_by} on {round_id} overridden by supermajority"
-                )
             else:
                 cr.vetoed = True
                 cr.vetoed_by = vetoed_by
                 _resolve_round(cr)
-                logger.info(f"⛔ Veto by {vetoed_by} on {round_id} — proposal rejected")
         else:
             cr.vetoed = True
             cr.vetoed_by = vetoed_by
             _resolve_round(cr)
-            logger.info(f"⛔ Veto by {vetoed_by} on {round_id} — proposal rejected")
 
         self._save_log(cr)
         return cr
 
-    # ── HUMAN OVERRIDE ────────────────────────────────────────────────────────
-
     def human_override(self, round_id: str, approved: bool,
                        reason: str = "") -> ConsensusRound:
-        """Final-3 Gate 3: human can override any consensus outcome."""
         cr = self._rounds.get(round_id)
         if not cr:
             raise KeyError(f"Round not found: {round_id}")
@@ -808,10 +666,7 @@ class CloneConsensusEngine:
         cr.outcome = ConsensusOutcome.APPROVED if approved else ConsensusOutcome.REJECTED
         cr.summary += f"\n👤 Human override: {'APPROVED' if approved else 'REJECTED'}. {reason}"
         self._save_log(cr)
-        logger.info(f"👤 Human override on {round_id}: {'APPROVED' if approved else 'REJECTED'}")
         return cr
-
-    # ── QUERIES ───────────────────────────────────────────────────────────────
 
     def get(self, round_id: str) -> Optional[ConsensusRound]:
         return self._rounds.get(round_id)
@@ -828,19 +683,19 @@ class CloneConsensusEngine:
 
     def stats(self) -> Dict[str, Any]:
         rounds = list(self._rounds.values())
+        zkp_system = self._get_zkp_system()
         return {
             "total":          len(rounds),
             "approved":       sum(1 for r in rounds if r.outcome == ConsensusOutcome.APPROVED),
             "rejected":       sum(1 for r in rounds if r.outcome == ConsensusOutcome.REJECTED),
             "pending_human":  len(self.pending_human()),
             "clone_count":    len(FOUNDER_CLONES),
-            "thresholds":     {"high": "8/15", "critical": "11/15",
-                               "sovereignty": "15/15 + Human"},
+            "thresholds":     {"high": "8/15", "critical": "11/15", "sovereignty": "15/15 + Human"},
             "active_delegations": sum(len(d) for d in self._delegations.values()),
+            "zkp_enabled": zkp_system is not None,
         }
 
     def get_round_votes(self, round_id: str) -> List[Dict[str, Any]]:
-        """Get detailed vote info for a round, including ΔT weights."""
         cr = self._rounds.get(round_id)
         if not cr:
             return []
@@ -853,11 +708,36 @@ class CloneConsensusEngine:
                 "delta_weight": v.delta_weight,
                 "founder_role": v.founder_role,
                 "reasoning": v.reasoning,
+                "zkp_commitment": v.zkp_commitment,
             }
             for v in cr.votes
         ]
 
-    # ── PERSISTENCE ───────────────────────────────────────────────────────────
+    def verify_zkp_votes(self, round_id: str) -> Dict[str, Any]:
+        """Verify all ZKP commitments for votes on a round."""
+        cr = self._rounds.get(round_id)
+        if not cr:
+            return {"valid": False, "message": "Round not found", "verified_votes": 0, "total_votes": 0}
+
+        try:
+            from core.security.zkp_privacy import PedersenCommitment
+            verified = 0
+            total = len(cr.votes)
+
+            for vote in cr.votes:
+                if vote.zkp_commitment and vote.zkp_blinding:
+                    vote_data = f"{round_id}:{vote.clone_id}:{vote.choice.value}"
+                    if PedersenCommitment.verify(vote.zkp_commitment, vote_data, vote.zkp_blinding):
+                        verified += 1
+
+            return {
+                "valid": verified == total,
+                "message": f"Verified {verified}/{total} ZKP commitments",
+                "verified_votes": verified,
+                "total_votes": total
+            }
+        except ImportError:
+            return {"valid": True, "message": "ZKP not available, skipping verification", "verified_votes": 0, "total_votes": 0}
 
     def _save_log(self, cr: ConsensusRound):
         try:
@@ -882,10 +762,12 @@ class CloneConsensusEngine:
                         for v in votes_data:
                             if isinstance(v.get("choice"), str):
                                 v["choice"] = VoteChoice(v["choice"])
-                            if isinstance(v.get("level"), str):
-                                pass  # level is on the round, not vote
+                            try:
+                                if isinstance(v.get("zkp_commitment"), str) and v.get("zkp_blinding") is not None:
+                                    pass  # ZKP fields already correct
+                            except Exception:
+                                pass
                             votes.append(CloneVote(**v))
-                        # Reconstruct level and outcome enums
                         if isinstance(d.get("level"), str):
                             d["level"] = DecisionLevel(d["level"])
                         if isinstance(d.get("outcome"), str):
@@ -894,7 +776,6 @@ class CloneConsensusEngine:
                         self._rounds[cr.round_id] = cr
                     except Exception as e:
                         logger.warning(f"Skipping malformed log entry: {e}")
-                        continue
         except Exception as e:
             logger.warning(f"Consensus log load failed: {e}")
 

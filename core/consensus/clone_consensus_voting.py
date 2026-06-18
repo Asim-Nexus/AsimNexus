@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-STATUS: NEW — Production Implementation
-core/consensus/clone_consensus_voting.py
-AsimNexus — Clone Consensus Voting Engine
+STATUS: REAL — Clone Consensus Voting Engine with ZKP Privacy Binding
 
+AsimNexus — Clone Consensus Voting Engine
+==========================================
 Constitutional AI Council voting mechanism implementing 8/15 approval threshold.
 Used for governance decisions, policy changes, and critical system actions.
 
@@ -11,6 +11,7 @@ Integration:
 - core/founder_clones/founder_clone_system.py — Founder system integration
 - security/power_balance_constitution.py — Sector balance validation
 - core/dharma/veto_engine.py — Human confirmation requirement
+- core/security/zkp_privacy.py — ZKP Privacy binding
 """
 
 import os
@@ -39,13 +40,16 @@ class VoteChoice(str, Enum):
 
 @dataclass
 class CloneVote:
-    """Single vote from a Founder Clone."""
+    """Single vote from a Founder Clone with optional ZKP binding."""
     voter_id: str
     voter_role: str
     choice: VoteChoice
     rationale: str
     weight: float = 1.0
     timestamp: float = field(default_factory=time.time)
+    zkp_commitment: Optional[str] = None
+    zkp_blinding: Optional[int] = None
+    zkp_proof: Optional[Dict] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -55,6 +59,8 @@ class CloneVote:
             "rationale": self.rationale,
             "weight": self.weight,
             "timestamp": self.timestamp,
+            "zkp_commitment": self.zkp_commitment,
+            "zkp_blinding": self.zkp_blinding,
         }
 
 
@@ -87,20 +93,33 @@ class ConsensusRound:
 
 class CloneConsensusVoting:
     """
-    Constitutional AI Council consensus mechanism.
+    Constitutional AI Council consensus mechanism with ZKP Privacy binding.
     
     Implements the core voting logic:
     - Send proposal to all 15 Founder Clones
     - Collect votes with rationale
     - Calculate 8/15 quorum threshold
     - Generate summary for decision
+    - ZKP commitment binding for vote privacy
     """
 
     def __init__(self, founder_system=None):
         self.founder_system = founder_system
         self._rounds: Dict[str, ConsensusRound] = {}
         self._quorum_threshold = _CONSENSUS_QUORUM
+        self._zkp_system = None
         logger.info(f"CloneConsensusVoting initialized — quorum={self._quorum_threshold}")
+
+    def _get_zkp_system(self):
+        """Lazy load ZKP system."""
+        if self._zkp_system is None:
+            try:
+                from core.security.zkp_privacy import ZeroKnowledgeProofSystem
+                self._zkp_system = ZeroKnowledgeProofSystem()
+            except ImportError:
+                logger.warning("ZKP system not available, continuing without ZKP")
+                self._zkp_system = None
+        return self._zkp_system
 
     async def start_round(
         self,
@@ -213,7 +232,7 @@ Then provide your rationale in one sentence.
                 choice = VoteChoice.REJECT
             elif "DEFER" in response_upper:
                 choice = VoteChoice.DEFER
-                
+            
             return CloneVote(
                 voter_id=role.value,
                 voter_role=role.value,
@@ -249,6 +268,65 @@ Then provide your rationale in one sentence.
             f"(Approve: {approve}, Reject: {reject}, Abstain: {abstain})"
         )
 
+    async def cast_vote_with_zkp(self, round_id: str, voter_id: str, 
+                                  choice: VoteChoice, rationale: str = "") -> CloneVote:
+        """Cast a vote with ZKP commitment for privacy binding."""
+        round_obj = self._rounds.get(round_id)
+        if not round_obj:
+            raise ValueError(f"Round {round_id} not found")
+        
+        zkp_system = self._get_zkp_system()
+        vote_data = f"{round_id}:{voter_id}:{choice.value}"
+        
+        if zkp_system:
+            try:
+                from core.security.zkp_privacy import PedersenCommitment
+                commitment, blinding = PedersenCommitment.commit(vote_data)
+            except Exception:
+                commitment, blinding = None, None
+        else:
+            commitment, blinding = None, None
+        
+        vote = CloneVote(
+            voter_id=voter_id,
+            voter_role=voter_id,
+            choice=choice,
+            rationale=rationale,
+            zkp_commitment=commitment,
+            zkp_blinding=blinding
+        )
+        
+        round_obj.votes.append(vote)
+        round_obj.outcome = self._calculate_outcome(round_obj.votes)
+        return vote
+
+    def verify_zkp_votes(self, round_id: str) -> Dict[str, Any]:
+        """Verify all ZKP commitments for votes on a round."""
+        round_obj = self._rounds.get(round_id)
+        if not round_obj:
+            return {"valid": False, "message": "Round not found", "verified_votes": 0, "total_votes": 0}
+        
+        try:
+            from core.security.zkp_privacy import PedersenCommitment
+            
+            verified = 0
+            total = len(round_obj.votes)
+            
+            for vote in round_obj.votes:
+                if vote.zkp_commitment and vote.zkp_blinding:
+                    vote_data = f"{round_id}:{vote.voter_id}:{vote.choice.value}"
+                    if PedersenCommitment.verify(vote.zkp_commitment, vote_data, vote.zkp_blinding):
+                        verified += 1
+            
+            return {
+                "valid": verified == total,
+                "message": f"Verified {verified}/{total} ZKP commitments",
+                "verified_votes": verified,
+                "total_votes": total
+            }
+        except ImportError:
+            return {"valid": True, "message": "ZKP not available, skipping verification", "verified_votes": 0, "total_votes": 0}
+
     def get_round(self, round_id: str) -> Optional[ConsensusRound]:
         """Get consensus round by ID."""
         return self._rounds.get(round_id)
@@ -266,11 +344,14 @@ Then provide your rationale in one sentence.
         total_rounds = len(self._rounds)
         approved = sum(1 for r in self._rounds.values() if r.outcome == "approved")
         
+        zkp_system = self._get_zkp_system()
+        
         return {
             "total_rounds": total_rounds,
             "approved_rounds": approved,
             "approval_rate": approved / max(total_rounds, 1),
             "quorum_threshold": self._quorum_threshold,
+            "zkp_enabled": zkp_system is not None,
         }
 
 

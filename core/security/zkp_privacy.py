@@ -96,9 +96,21 @@ class PedersenCommitment:
     
     @staticmethod
     def verify(commitment: str, value: str, blinding: int) -> bool:
-        """Verify commitment opens to value"""
-        expected, _ = PedersenCommitment.commit(value)
+        """Verify commitment opens to value - deterministic verification"""
+        value_hash = int.from_bytes(hashlib.sha256(value.encode()).digest()[:32], 'big')
+        expected = hashlib.sha256(
+            (str(value_hash) + str(blinding)).encode()
+        ).hexdigest()
         return commitment == expected
+    
+    @staticmethod
+    def commit_with_blinding(value: str, blinding: int) -> str:
+        """Create Pedersen commitment with specific blinding (for deterministic verification)"""
+        value_hash = int.from_bytes(hashlib.sha256(value.encode()).digest()[:32], 'big')
+        commitment = hashlib.sha256(
+            (str(value_hash) + str(blinding)).encode()
+        ).hexdigest()
+        return commitment
 
 
 class ZeroKnowledgeProofSystem:

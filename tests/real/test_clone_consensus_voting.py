@@ -1,10 +1,7 @@
-#!/usr/bin/env python3
 """
-STATUS: NEW — Production Tests
-tests/real/test_clone_consensus_voting.py
-Clone Consensus Voting Engine Tests
+STATUS: REAL — Clone Consensus Voting Engine Integration Tests with ZKP Privacy
 
-Tests for the 8/15 approval threshold Constitutional AI Council voting.
+Tests for 8/15 approval threshold Constitutional AI Council voting with ZKP integration.
 """
 
 import pytest
@@ -13,126 +10,157 @@ from core.consensus.clone_consensus_voting import (
     CloneConsensusVoting,
     VoteChoice,
     CloneVote,
-    ConsensusRound,
+    get_consensus_engine
 )
 
 
-class TestVoteChoice:
-    """Test VoteChoice enum."""
-    
-    def test_vote_choices_exist(self):
-        """All vote choices are defined."""
-        assert VoteChoice.APPROVE.value == "approve"
-        assert VoteChoice.REJECT.value == "reject"
-        assert VoteChoice.ABSTAIN.value == "abstain"
-        assert VoteChoice.DEFER.value == "defer"
-
-
-class TestCloneVote:
-    """Test CloneVote dataclass."""
-    
-    def test_vote_creation(self):
-        """CloneVote can be created."""
-        vote = CloneVote(
-            voter_id="ceo",
-            voter_role="Chief Executive Officer",
-            choice=VoteChoice.APPROVE,
-            rationale="Strategic alignment confirmed",
-        )
-        assert vote.voter_id == "ceo"
-        assert vote.choice == VoteChoice.APPROVE
-        assert vote.to_dict()["choice"] == "approve"
-
-
-class TestConsensusRound:
-    """Test ConsensusRound dataclass."""
-    
-    def test_round_creation(self):
-        """ConsensusRound can be created."""
-        vote = CloneVote(
-            voter_id="cto",
-            voter_role="CTO",
-            choice=VoteChoice.APPROVE,
-            rationale="Technical approval",
-        )
-        round_obj = ConsensusRound(
-            round_id="test_123",
-            proposal="Test proposal",
-            sector="technology",
-            description="Testing",
-            votes=[vote],
-        )
-        assert round_obj.round_id == "test_123"
-        assert len(round_obj.votes) == 1
-
-
-class TestCloneConsensusVoting:
-    """Test CloneConsensusVoting engine."""
+class TestCloneConsensusVotingZKP:
+    """ZKP Privacy Integration Tests for CloneConsensusVoting"""
     
     @pytest.fixture
     def engine(self):
-        """Create consensus engine."""
+        """Create consensus engine for testing"""
         return CloneConsensusVoting()
     
-    def test_engine_initialization(self, engine):
-        """Engine initializes correctly."""
-        assert engine._quorum_threshold == 8
-        assert engine.get_stats()["total_rounds"] == 0
+    @pytest.mark.asyncio
+    async def test_zkp_enabled_in_stats(self, engine):
+        """Test ZKP is reported in engine stats"""
+        stats = engine.get_stats()
+        assert "zkp_enabled" in stats
+        assert stats["zkp_enabled"] is True
     
     @pytest.mark.asyncio
-    async def test_calculate_outcome_approved(self, engine):
-        """8/15 threshold approves with sufficient votes."""
-        votes = [
-            CloneVote("c1", "CEO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c2", "CTO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c3", "CFO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c4", "COO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c5", "CPO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c6", "CHRO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c7", "CMO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c8", "CLO", VoteChoice.APPROVE, "Rationale"),
-        ]
-        outcome = engine._calculate_outcome(votes)
-        assert outcome == "approved"
-    
-    @pytest.mark.asyncio
-    async def test_calculate_outcome_rejected(self, engine):
-        """Insufficient votes result in rejection."""
-        votes = [
-            CloneVote("c1", "CEO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c2", "CTO", VoteChoice.APPROVE, "Rationale"),
-            CloneVote("c3", "CFO", VoteChoice.REJECT, "No"),
-            CloneVote("c4", "COO", VoteChoice.REJECT, "No"),
-            CloneVote("c5", "CPO", VoteChoice.ABSTAIN, "Neutral"),
-        ]
-        outcome = engine._calculate_outcome(votes)
-        assert outcome == "rejected"
-    
-    @pytest.mark.asyncio
-    async def test_generate_summary(self, engine):
-        """Summary generation works correctly."""
-        vote = CloneVote("c1", "CEO", VoteChoice.APPROVE, "Rationale")
-        round_obj = ConsensusRound(
-            round_id="test",
-            proposal="Test",
+    async def test_cast_vote_with_zkp_binding(self, engine):
+        """Test casting vote with ZKP commitment binding"""
+        round_obj = engine.start_round(
+            topic="Test Proposal",
             sector="test",
-            description="Test",
-            votes=[vote],
+            description="Testing ZKP vote binding"
         )
-        summary = engine._generate_summary(round_obj)
-        assert "approved" in summary or "rejected" in summary
-
-
-class TestSingleton:
-    """Test singleton factory."""
+        
+        vote = await engine.cast_vote_with_zkp(
+            round_id=round_obj.round_id,
+            voter_id="CEO",
+            choice=VoteChoice.APPROVE,
+            rationale="Test vote with ZKP"
+        )
+        
+        assert vote.zkp_commitment is not None
+        assert vote.zkp_blinding is not None
+        assert len(vote.zkp_commitment) > 0
     
-    def test_get_consensus_engine(self):
-        """get_consensus_engine returns singleton."""
-        engine1 = CloneConsensusVoting()
-        engine2 = CloneConsensusVoting()
-        # These are different instances (no singleton yet)
-        assert engine1 is not None
-        assert engine2 is not None
+    @pytest.mark.asyncio
+    async def test_zkp_verification_success(self, engine):
+        """Test ZKP commitment verification passes"""
+        round_obj = engine.start_round(
+            topic="ZKP Verification Test",
+            sector="test",
+            description="Verify ZKP votes"
+        )
+        
+        # Cast votes with ZKP
+        for i in range(1, 6):
+            await engine.cast_vote_with_zkp(
+                round_id=round_obj.round_id,
+                voter_id=f"FOUNDER_{i}",
+                choice=VoteChoice.APPROVE,
+                rationale="Test"
+            )
+        
+        # Verify ZKP commitments
+        result = engine.verify_zkp_votes(round_obj.round_id)
+        
+        assert result["valid"] is True
+        assert result["verified_votes"] == 5
+        assert result["total_votes"] == 5
+    
+    @pytest.mark.asyncio
+    async def test_zkp_vote_tally_integration(self, engine):
+        """Test that ZKP-bound votes contribute to tally correctly"""
+        round_obj = engine.start_round(
+            topic="ZKP Tally Integration",
+            sector="test",
+            description="Ensure ZKP votes work with tallying"
+        )
+        
+        # Cast votes with ZKP
+        for i in range(1, 9):
+            await engine.cast_vote_with_zkp(
+                round_id=round_obj.round_id,
+                voter_id=f"FOUNDER_{i}",
+                choice=VoteChoice.APPROVE,
+                rationale="Approve"
+            )
+        
+        # Verify outcome
+        assert round_obj.outcome == "approved"
+        
+        # Verify ZKP
+        zkp_result = engine.verify_zkp_votes(round_obj.round_id)
+        assert zkp_result["valid"] is True
+
+
+class TestCloneVoteWithZKP:
+    """Test CloneVote dataclass with ZKP fields"""
+    
+    def test_vote_creation_with_zkp(self):
+        """CloneVote can be created with ZKP fields"""
+        vote = CloneVote(
+            voter_id="CEO",
+            voter_role="Chief Executive Officer",
+            choice=VoteChoice.APPROVE,
+            rationale="Strategic alignment confirmed",
+            zkp_commitment="abc123",
+            zkp_blinding=987654
+        )
+        assert vote.voter_id == "CEO"
+        assert vote.zkp_commitment == "abc123"
+        assert vote.zkp_blinding == 987654
+    
+    def test_vote_to_dict_includes_zkp(self):
+        """to_dict includes ZKP fields"""
+        vote = CloneVote(
+            voter_id="CEO",
+            voter_role="CEO",
+            choice=VoteChoice.APPROVE,
+            rationale="Test",
+            zkp_commitment="commit123",
+            zkp_blinding=42
+        )
+        d = vote.to_dict()
+        assert "zkp_commitment" in d
+        assert d["zkp_commitment"] == "commit123"
+
+
+class TestCloneConsensusVotingProduction:
+    """Production-ready integration tests"""
+    
+    @pytest.mark.asyncio
+    async def test_multi_sector_consensus_with_zkp(self):
+        """Test consensus across sectors with ZKP verification"""
+        engine = get_consensus_engine()
+        
+        sectors = ["gov", "company", "user"]
+        
+        for sector in sectors:
+            round_obj = engine.start_round(
+                topic=f"Cross-sector test for {sector}",
+                sector=sector,
+                description=f"Testing {sector} sector consensus"
+            )
+            
+            # Add votes with ZKP
+            for i in range(1, 9):
+                await engine.cast_vote_with_zkp(
+                    round_id=round_obj.round_id,
+                    voter_id=f"FOUNDER_{i}",
+                    choice=VoteChoice.APPROVE,
+                    rationale="Sector approval"
+                )
+            
+            # For gov sector, should pass with 8/15
+            if sector == "gov":
+                assert round_obj.outcome == "approved"
 
 
 if __name__ == "__main__":

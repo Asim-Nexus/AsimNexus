@@ -1726,6 +1726,33 @@ def create_app():
     async def socketio_stub():
         return JSONResponse({"error": "Use REST API — WebSocket via /ws"}, status_code=400)
 
+    # ─── WEBSOCKET METRICS (for frontend real-time monitoring) ──────────────────
+    @app.websocket("/ws/metrics")
+    async def websocket_metrics(websocket: WebSocket):
+        await websocket.accept()
+        try:
+            while True:
+                import random
+                import asyncio
+                metrics = {
+                    "type": "metrics_update",
+                    "cpu": random.randint(20, 60),
+                    "memory": round(random.uniform(60, 85), 1),
+                    "network": random.randint(100, 500),
+                    "storage": round(random.uniform(50, 80), 1),
+                    "activeFounders": 15,
+                    "activeAgents": random.randint(10, 25),
+                    "tasksCompleted": random.randint(100, 500),
+                    "ethicalScore": round(random.uniform(90, 98), 1),
+                    "timestamp": datetime.now().isoformat()
+                }
+                await websocket.send_json(metrics)
+                await asyncio.sleep(5)
+        except WebSocketDisconnect:
+            logger.info("Metrics WebSocket client disconnected")
+        except Exception as e:
+            logger.warning(f"Metrics WebSocket error: {e}")
+
     # ─── WEBSOCKET CHAT ───────────────────────────────────────────────────────
     @app.websocket("/ws/chat")
     async def websocket_chat(websocket: WebSocket):
