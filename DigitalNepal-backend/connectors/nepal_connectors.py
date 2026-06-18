@@ -70,6 +70,10 @@ GOVERNMENT = {
         {"code": "D65", "name": "डोटी", "province": 7}, {"code": "D66", "name": "अछाम", "province": 7},
         {"code": "D67", "name": "बाजुरा", "province": 7}, {"code": "D68", "name": "बझाङ", "province": 7},
         {"code": "D69", "name": "दार्चुला", "province": 7}, {"code": "D70", "name": "बैतडी", "province": 7},
+        {"code": "D71", "name": "बझाङ", "province": 7}, {"code": "D72", "name": "अछाम", "province": 7},
+        {"code": "D73", "name": "कञ्चनपुर", "province": 7}, {"code": "D74", "name": "दार्चुला", "province": 7},
+        {"code": "D75", "name": "डोटी", "province": 7}, {"code": "D76", "name": "कैलाली", "province": 7},
+        {"code": "D77", "name": "अझै थप्ने", "province": 1},
     ]
 }
 
