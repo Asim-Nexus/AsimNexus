@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asimnexus-backend
+  labels:
+    app: asimnexus
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: asimnexus
+  template:
+    metadata:
+      labels:
+        app: asimnexus
+    spec:
+      containers:
+      - name: backend
+        image: asimnexus/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ASIM_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ASIM_COUNTRY
+          value: "NP"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: asimnexus-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-service
+spec:
+  selector:
+    app: asimnexus
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
