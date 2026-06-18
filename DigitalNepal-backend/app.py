@@ -136,8 +136,8 @@ async def get_health_record(patient_id: str):
 @app.get("/api/v1/np/palikas")
 async def nepal_palikas():
     """Get Nepal palikas (sample)"""
-    from connectors.palika_connectors import get_all_palikas
-    return get_all_palikas()
+    from connectors.palika_connectors import PALIKAS
+    return {"count": len(PALIKAS), "palikas": list(PALIKAS.values())[:50]}
 
 # ─── Knowledge Endpoints ─────────────────────────────────────────────────────
 
