@@ -131,6 +131,22 @@ async def get_health_record(patient_id: str):
     from connectors.health_connectors import get_health_record
     return get_health_record(patient_id)
 
+# ─── Palika Endpoints ────────────────────────────────────────────────────────
+
+@app.get("/api/v1/np/palikas")
+async def nepal_palikas():
+    """Get Nepal palikas (sample)"""
+    from connectors.palika_connectors import get_all_palikas
+    return get_all_palikas()
+
+# ─── Knowledge Endpoints ─────────────────────────────────────────────────────
+
+@app.get("/api/v1/knowledge/foundations")
+async def knowledge_foundations():
+    """Get 9 knowledge foundations"""
+    from knowledge import FOUNDATIONS
+    return {"count": len(FOUNDATIONS), "foundations": list(FOUNDATIONS.values())}
+
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 
 @app.post("/api/v1/mesh/sync")

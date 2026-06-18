@@ -11,10 +11,11 @@ from .education_connectors import (
 from .health_connectors import (
     HOSPITALS, HEALTH_PROGRAMS, get_hospital, book_appointment, get_health_record
 )
+from .palika_connectors import PALIKAS, get_palika, get_all_palikas
+from .tourism_connectors import TOURISM_ENTITY
 
 __all__ = [
-    "MINISTRIES", "PROVINCES", "DISTRICTS", "BANKS", "ISPS",
-    "UNIVERSITIES", "SCHOOLS",
-    "HOSPITALS", "HEALTH_PROGRAMS",
-    "get_entity", "get_registry", "get_university", "get_school", "get_hospital"
+    "MINISTRIES", "PROVINCES", "DISTRICTS", "BANKS", "ISPS", "PALIKAS",
+    "UNIVERSITIES", "SCHOOLS", "HOSPITALS", "TOURISM_ENTITY",
+    "get_entity", "get_registry", "get_university", "get_school", "get_hospital",
 ]
