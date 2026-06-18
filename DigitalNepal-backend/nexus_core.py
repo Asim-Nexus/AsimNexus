@@ -8,7 +8,8 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Fix: backend directory मा path
+sys.path.insert(0, str(Path(__file__).parent))
 
 # Core modules
 from core.dharma_chakra.veto_engine import (
