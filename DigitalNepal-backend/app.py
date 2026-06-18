@@ -97,6 +97,40 @@ async def nepal_isps():
     from connectors.nepal_connectors import ISPS
     return {"count": len(ISPS), "isps": list(ISPS.values())}
 
+# ─── Education Endpoints ──────────────────────────────────────────────────────
+
+@app.get("/api/v1/education/universities")
+async def get_universities():
+    """Get all Nepal universities"""
+    from connectors.education_connectors import UNIVERSITIES
+    return {"count": len(UNIVERSITIES), "universities": list(UNIVERSITIES.values())}
+
+@app.get("/api/v1/education/schools")
+async def get_schools():
+    """Get Nepal schools (sample)"""
+    from connectors.education_connectors import SCHOOLS
+    return {"count": len(SCHOOLS), "schools": list(SCHOOLS.values())}
+
+@app.post("/api/v1/education/verify")
+async def verify_edu_cert(cert_id: str):
+    """Verify education certificate"""
+    from connectors.education_connectors import verify_certificate
+    return verify_certificate(cert_id)
+
+# ─── Health Endpoints ──────────────────────────────────────────────────────────
+
+@app.get("/api/v1/health/hospitals")
+async def get_hospitals():
+    """Get all Nepal hospitals"""
+    from connectors.health_connectors import HOSPITALS
+    return {"count": len(HOSPITALS), "hospitals": list(HOSPITALS.values())}
+
+@app.post("/api/v1/health/record")
+async def get_health_record(patient_id: str):
+    """Get patient health record"""
+    from connectors.health_connectors import get_health_record
+    return get_health_record(patient_id)
+
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 
 @app.post("/api/v1/mesh/sync")
