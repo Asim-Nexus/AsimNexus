@@ -5,6 +5,10 @@ Usage: python scripts/integrate_all.py
 """
 
 import asyncio
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / "DigitalNepal-backend"))
+
 from connectors.gov.ministries import NEPAL_MINISTRIES
 from connectors.gov.provinces import NEPAL_PROVINCES, NEPAL_DISTRICTS
 from connectors.company import NEPAL_BANKS, NEPAL_ISPS
@@ -21,12 +25,12 @@ class AsimNexusIntegrator:
             "isps": len(NEPAL_ISPS),
         }
         
-        print("✅ Government:", stats["ministries"], "Ministries")
-        print("✅ Provinces:", stats["provinces"], "Provinces") 
-        print("✅ Districts:", stats["districts"], "Districts")
-        print("✅ Banks:", stats["banks"], "Banks")
-        print("✅ ISPs:", stats["isps"], "ISPs")
-        print("\n🎉 AsimNexus Nepal Integration Complete!")
+        print("[OK] Government:", stats["ministries"], "Ministries")
+        print("[OK] Provinces:", stats["provinces"], "Provinces") 
+        print("[OK] Districts:", stats["districts"], "Districts")
+        print("[OK] Banks:", stats["banks"], "Banks")
+        print("[OK] ISPs:", stats["isps"], "ISPs")
+        print("\n[OK] AsimNexus Nepal Integration Complete!")
         return stats
 
 if __name__ == "__main__":
