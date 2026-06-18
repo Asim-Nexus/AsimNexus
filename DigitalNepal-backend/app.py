@@ -70,32 +70,32 @@ async def company_action(sector: str, action: str):
 @app.get("/api/v1/np/ministries")
 async def nepal_ministries():
     """Get all Nepal ministries"""
-    from connectors.nepal_connectors import GOVERNMENT
-    return {"count": len(GOVERNMENT["ministries"]), "ministries": GOVERNMENT["ministries"]}
+    from connectors.nepal_connectors import MINISTRIES
+    return {"count": len(MINISTRIES), "ministries": list(MINISTRIES.values())}
 
 @app.get("/api/v1/np/provinces")
 async def nepal_provinces():
     """Get all Nepal provinces"""
-    from connectors.nepal_connectors import GOVERNMENT
-    return {"count": len(GOVERNMENT["provinces"]), "provinces": GOVERNMENT["provinces"]}
+    from connectors.nepal_connectors import PROVINCES
+    return {"count": len(PROVINCES), "provinces": list(PROVINCES.values())}
 
 @app.get("/api/v1/np/districts")
 async def nepal_districts():
     """Get all Nepal districts"""
-    from connectors.nepal_connectors import GOVERNMENT
-    return {"count": len(GOVERNMENT["districts"]), "districts": GOVERNMENT["districts"]}
+    from connectors.nepal_connectors import DISTRICTS
+    return {"count": len(DISTRICTS), "districts": list(DISTRICTS.values())}
 
 @app.get("/api/v1/np/banks")
 async def nepal_banks():
     """Get all Nepal banks"""
-    from connectors.nepal_connectors import COMPANIES
-    return {"count": len(COMPANIES["banks"]), "banks": COMPANIES["banks"]}
+    from connectors.nepal_connectors import BANKS
+    return {"count": len(BANKS), "banks": list(BANKS.values())}
 
 @app.get("/api/v1/np/isps")
 async def nepal_isps():
     """Get all Nepal ISPs"""
-    from connectors.nepal_connectors import COMPANIES
-    return {"count": len(COMPANIES["isps"]), "isps": COMPANIES["isps"]}
+    from connectors.nepal_connectors import ISPS
+    return {"count": len(ISPS), "isps": list(ISPS.values())}
 
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 
