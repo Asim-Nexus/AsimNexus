@@ -14,13 +14,19 @@ UNIVERSITIES = {
     "op": {"name": "नेपाल खुला विश्वविद्यालय", "type": "public", "location": "काठमाडौं"},
     "fw": {"name": "फर वेस्टर्न विश्वविद्यालय", "type": "public", "location": "सुर्खेत"},
     "mw": {"name": "मिड वेस्टर्न विश्वविद्यालय", "type": "public", "location": "सन्ध्या"},
+    "tr": {"name": "त्रिभुवन विज्ञान विश्वविद्यालय", "type": "public", "location": "काठमाडौं"},
+    "nr": {"name": "नेपाल राष्ट्रीय विश्वविद्यालय", "type": "public", "location": "काठमाडौं"},
 }
 
 SCHOOLS = {
     "s001": {"name": "गणेश हाइस्कुल", "district": "काठमाडौं", "type": "community"},
     "s002": {"name": "बृहद एकेडेमी", "district": "ललितपुर", "type": "private"},
     "s003": {"name": "भक्तपुर मावि", "district": "भक्तपुर", "type": "government"},
-    # ... 28,000+ schools would be loaded from database
+    # Add more sample schools
+    "s004": {"name": "काठमाडौं विद्यालय", "district": "काठमाडौं", "type": "government"},
+    "s005": {"name": "गोरखा मावि", "district": "गोरखा", "type": "government"},
+    "s006": {"name": "पोखरा स्कूल", "district": "कास्की", "type": "private"},
+    "s007": {"name": "चितवन उच्च मावि", "district": "चितवन", "type": "government"},
 }
 
 def get_university(code: str):

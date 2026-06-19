@@ -147,6 +147,14 @@ async def knowledge_foundations():
     from knowledge import FOUNDATIONS
     return {"count": len(FOUNDATIONS), "foundations": list(FOUNDATIONS.values())}
 
+# ─── Tourism Endpoints ─────────────────────────────────────────────────────────
+
+@app.get("/api/v1/tourism/hotels")
+async def tourism_hotels():
+    """Get Nepal hotels"""
+    from connectors.tourism_connectors import HOTELS
+    return {"count": len(HOTELS), "hotels": list(HOTELS.values())}
+
 # ─── Mesh Endpoints ─────────────────────────────────────────────────────────
 
 @app.post("/api/v1/mesh/sync")

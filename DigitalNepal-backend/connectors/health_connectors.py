@@ -14,11 +14,14 @@ HOSPITALS = {
     "rmh": {"name": "रामेछाप अस्पताल", "district": "रामेछाप", "type": "government", "beds": 120},
     "bph": {"name": "बिराट अस्पताल", "district": "सप्तरी", "type": "government", "beds": 200},
     "nmh": {"name": "नेपाल मेडिकल शाला", "district": "काठमाडौं", "type": "government", "beds": 800},
+    "kth": {"name": "काठमाडौं उपयोगशाला अस्पताल", "district": "काठमाडौं", "type": "government", "beds": 300},
+    "lsh": {"name": "ललितपुर चिकित्सा केन्द्र", "district": "ललितपुर", "type": "private", "beds": 150},
 }
 
 HEALTH_PROGRAMS = {
     "nmc": {"name": "नेपाल मेडिकल कल्याण", "type": "insurance", "sector": "51%"},
     "fhs": {"name": "स्वास्थ्य सुरक्षा", "type": "program", "sector": "51%"},
+    "hdp": {"name": "आमवास्ता संरक्षण", "type": "program", "sector": "51%"},
 }
 
 def get_hospital(code: str):
