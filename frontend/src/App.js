@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 // API — unified barrel import
-import { getStoredToken, getStoredUser, clearAuth, healthAPI, osToolsAPI, toolsAPI, checkBackendHealth } from './api';
+import { getStoredToken, getStoredUser, clearAuth, healthAPI, personalAPI, osToolsAPI } from './api';
 
 // Layout Components
 import AuthPage from './components/layout/AuthPage';
@@ -114,7 +114,7 @@ function AppShell({ currentUser, onLogout }) {
   useEffect(() => {
     const checkPending = async () => {
       try {
-        const res = await toolsAPI.pending();
+        const res = await osToolsAPI.getPending();
         const pendingList = res.data?.pending || res.data?.executions || [];
         if (pendingList.length > 0) {
           setPendingExecution(pendingList[0]);
