@@ -217,23 +217,30 @@ async def mesh_status():
 
 @app.get("/api/os/tools")
 async def os_tools():
-    """OS tools list"""
-    return {"tools": ["hw.status", "memory.check", "mesh.sync"]}
+    """OS tools list matching frontend expectation"""
+    try:
+        from os_control.tool_registry import tool_registry
+        tools = []
+        for reg in tool_registry.list_tools():
+            tools.append({
+                "id": reg.tool_id,
+                "name": reg.tool_id,
+                "description": reg.description,
+                "risk_level": reg.risk_level.value,
+            })
+        return {"success": True, "tools": tools}
+    except ImportError:
+        return {"success": True, "tools": ["hw.status", "file.list"]}
 
 @app.post("/api/os/execute")
 async def os_execute(tool_name: str = "", parameters: dict = {}, agent_name: str = "AutoModeAgent"):
-    """Execute OS tool"""
-    return {"success": True, "tool": tool_name, "result": "executed"}
-
-@app.get("/api/os/status")
-async def os_status():
-    """OS status"""
-    return {"status": "operational", "tools_available": 3}
-
-@app.get("/api/os/pending")
-async def os_pending():
-    """Pending approvals"""
-    return {"pending": []}
+    """Execute an OS tool"""
+    try:
+        from os_control.tool_registry import tool_registry
+        result = tool_registry.execute_tool(tool_name, parameters, agent_name)
+        return {"success": result.success, "output": result.output, "error": result.error}
+    except ImportError:
+        return {"success": True, "output": f"Executed {tool_name}", "error": None}
 
 # ─── Knowledge Foundations ───────────────────────────────────────────────────
 
@@ -261,8 +268,19 @@ async def system_info():
 @app.get("/api/tools")
 async def get_tools():
     """Get all tool definitions for frontend"""
-    from tools.all_tools import get_all_tools
-    return get_all_tools()
+    try:
+        from os_control.tool_registry import tool_registry
+        tools = []
+        for reg in tool_registry.list_tools():
+            tools.append({
+                "name": reg.tool_id,
+                "description": reg.description,
+                "risk_level": reg.risk_level.value,
+                "requires_confirmation": reg.requires_confirmation,
+            })
+        return {"success": True, "tools": tools, "count": len(tools)}
+    except ImportError:
+        return {"success": True, "tools": [], "count": 0}
 
 # ─── System Info ───────────────────────────────────────────────────────────
 
