@@ -23,6 +23,7 @@ HOTELS = {
     "dlp001": {"name": "डोल्पा ट्रेकिङ", "district": "डोल्पा", "rooms": 60},
     "kcp001": {"name": "कञ्चनपुर घर", "district": "कञ्चनपुर", "rooms": 120},
     "dhg001": {"name": "धनगढी बीच", "district": "कैलाली", "rooms": 140},
+    "ktm004": {"name": "लक्सेस होटल", "district": "काठमाडौं", "rooms": 100},
 }
 
 TOURISM_SERVICES = {

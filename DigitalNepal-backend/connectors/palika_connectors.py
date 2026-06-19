@@ -29,8 +29,8 @@ PALIKAS = {
     "KCP001": {"name": "कञ्चनपुर नगरपालिका", "district": "कञ्चनपुर", "type": "municipality", "wards": 17},
 }
 
-# Add remaining palikas programmatically
-for i in range(1, 743):
+# Add remaining palikas programmatically (753 total - 15 existing = 738)
+for i in range(1, 738):
     palika_id = f"PAL{i:03d}"
     district_num = ((i - 1) // 10) % 77 + 1
     PALIKAS[palika_id] = {
