@@ -374,7 +374,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
                         "/api/disaster-recovery/backup", "/api/disaster-recovery/backups", "/api/disaster-recovery/restore",
                         "/api/microkernel/status", "/api/depin/stats", "/api/constitution/status",
                         "/api/language/status", "/api/language/set", "/api/federation/status",
-                        "/api/marketplace/apps"]
+                        "/api/marketplace/apps",
+                        "/api/ai/status"]
         if request.url.path in public_paths:
             return await call_next(request)
 

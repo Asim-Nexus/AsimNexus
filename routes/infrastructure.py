@@ -379,3 +379,33 @@ async def marketplace_get(app_id: str):
     except Exception as e:
         logger.error(f"Marketplace get error: {e}")
         return error(str(e))
+
+# ─── AI Improvements ─────────────────────────────────────────────────────────────
+
+@router.get("/api/ai/status")
+async def ai_status():
+    """Get AI improvements status."""
+    try:
+        from core.ai_improvements import get_nepali_fine_tuner, get_multimodal_processor
+        tuner = get_nepali_fine_tuner()
+        mm = get_multimodal_processor()
+        return ok(data={
+            "nepali_finetuning": tuner.get_status(),
+            "multimodal": {"capabilities": mm.get_capabilities()}
+        })
+    except Exception as e:
+        logger.error(f"AI status error: {e}")
+        return error(str(e))
+
+
+@router.post("/api/ai/finetune/nepali")
+async def ai_finetune_nepali(model: str = Body(..., embed=True)):
+    """Fine-tune model on Nepali language."""
+    try:
+        from core.ai_improvements import get_nepali_fine_tuner
+        tuner = get_nepali_fine_tuner()
+        result = tuner.fine_tune(model)
+        return ok(data=result)
+    except Exception as e:
+        logger.error(f"Finetune error: {e}")
+        return error(str(e))
