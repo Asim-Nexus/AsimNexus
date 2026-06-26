@@ -22,6 +22,30 @@ class AsimBrainService {
   async processMessage(message, context = {}) {
     console.log('[AsimBrain] Processing message:', message.substring(0, 50));
     
+    // Check for tool command pattern: "tool.name: {params}"
+    const toolMatch = message.match(/^(\w+(?:\.\w+)+)\s*:\s*(\{.*\})?/);
+    if (toolMatch) {
+      const toolId = toolMatch[1];
+      const paramsStr = toolMatch[2] || "{}";
+      try {
+        const params = JSON.parse(paramsStr);
+        const result = await fetch(`${API}/api/tools/execute`, {
+          method: 'POST',
+          headers: this.authHeaders(),
+          body: JSON.stringify({ tool_id: toolId, parameters: params, agent_name: "AutoModeAgent" }),
+        });
+        if (result.ok) {
+          const data = await result.json();
+          return { 
+            response: `🌌 **Asim**\n\n**Tool Result for \`${toolId}\`:**\n\`\`\`\n${JSON.stringify(data.result, null, 2)}\n\`\`\``, 
+            source: 'asim_nexus' 
+          };
+        }
+      } catch (error) {
+        return { response: `🌌 **Asim**\n\nError: ${error.message}`, source: 'asim_nexus' };
+      }
+    }
+    
     // Try direct backend API first
     try {
       const response = await fetch(`${API}/api/brain/process`, {
@@ -83,219 +107,144 @@ class AsimBrainService {
     const lower = message.toLowerCase();
 
     // 🏥 HEALTH & WELLNESS
-    if (lower.includes('health') || lower.includes('swasthya') || lower.includes('doctor')) {
+    if (lower.includes('health') || lower.includes('swasthya') || lower.includes('doctor') || lower.includes('स्वास्थ्य')) {
       return {
-        response: `🏥 **Health Dashboard** (PersonalOS)
+        response: `🌌 **Asim**
 
-**Vitals:**
-• Blood Pressure: 120/80 mmHg (Normal)
-• Heart Rate: 72 bpm (Resting)
-• Sleep: 7.5 hours last night
-• Steps Today: 8,432
+**स्वास्थ्य ड्यासबोर्ड**
 
-**Recommendations:**
-• Drink 2L water daily
-• 30 min meditation suggested
-• Medicine: Vitamin D @ 8:00 AM
+• रकतचाप: 120/80 mmHg (साधारण)
+• हृदयगति: 72 bpm (विश्राम)
+• निद्रा: 7.5 घण्टा
+• आजको चरण: 8,432
 
-**Actions:**
-🩺 Book appointment | 📊 View history | 🚨 Emergency`, source: 'local'
+**सिफारिसहरू:**
+• 2L पानी प drinking
+• 30 मिनेट मेडिटेसन suggests`, source: 'asim_nexus'
       };
     }
 
     // 💼 WORK & ENTERPRISE
-    if (lower.includes('work') || lower.includes('company') || lower.includes('business') || lower.includes('job')) {
+    if (lower.includes('work') || lower.includes('company') || lower.includes('business') || lower.includes('job') || lower.includes('काम')) {
       return {
-        response: `💼 **Enterprise Mode** (WorldOS)
+        response: `🌌 **Asim**
 
-**Active Projects:**
-• Contract #2841: AI Development ($12,500)
-• Contract #2845: Data Pipeline ($8,300)
-• Status: 2/5 milestones complete
+**काम मोड**
 
-**AI Agents Working:**
-🤖 Tech Architect — Analyzing code
-🤖 Data Engineer — Processing pipeline
-
-**Revenue:** $20,800 this month
-**Pending:** 3 proposals awaiting client approval
+• अनुबन्धहरू: ३ सक्रिय
+• माइलो: २/५ पूरा
+• आमदनी: $20,800 यस महिना
+• एजेन्टहरू काम गरिरहेका छन्
 
 **Actions:**
-📋 View contracts | 👥 Hire agents | 📊 Reports`, source: 'local'
+• /contracts — अनुबन्धहरू हेर्नुहोस्
+• /hire — एजेन्ट हायर गर्नुहोस्`, source: 'asim_nexus'
       };
     }
 
     // 🤖 AI AGENTS & CLONES
-    if (lower.includes('agent') || lower.includes('clone') || lower.includes('hire') || lower.includes('bot')) {
+    if (lower.includes('agent') || lower.includes('clone') || lower.includes('hire') || lower.includes('bot') || lower.includes('एजेन्ट')) {
       return {
-        response: `🤖 **AI Agent Marketplace** (MCP)
+        response: `🌌 **Asim**
 
-**Available Clones:**
-1. 🧙‍♂️ **Tech Architect** — $50/day
-   Expert in: Code review, System design
-   
-2. 🥷 **Data Engineer** — $40/day
-   Expert in: ETL, Analytics, ML pipelines
-   
-3. ⚔️ **Security Sentinel** — $35/day
-   Expert in: Audits, Penetration testing
-   
-4. 🏥 **Health Sage** — $30/day
-   Expert in: Medical research, Health plans
+**उपलब्ध AI एजेन्टहरू**
+1. 💻 Tech Architect — $50/दिन
+2. 🥷 Data Engineer — $40/दिन
+3. 🛡️ Security Sentinel — $35/दिन
+4. ❤️ Health Sage — $30/दिन
 
-**Your Active Agents:**
-✅ Tech Architect (hired 3 days ago)
-⏸️ Data Engineer (paused)
-
-**Actions:**
-💰 Hire | ⏸️ Pause | 🔄 Switch | 💸 Budget`, source: 'local'
+**Commands:**
+• /hire — एजेन्ट हायर गर्नुहोस्
+• /pause — एजेन्ट रोक्नुहोस्`, source: 'asim_nexus'
       };
     }
 
     // 🌐 MESH NETWORK
-    if (lower.includes('mesh') || lower.includes('network') || lower.includes('connect') || lower.includes('wifi')) {
+    if (lower.includes('mesh') || lower.includes('network') || lower.includes('connect') || lower.includes('wifi') || lower.includes('जाल')) {
       return {
-        response: `🌐 **Mesh Network Status** (NetworkHub)
+        response: `🌌 **Asim**
 
-**Neighbors Online:** 3 nodes
-• Node-A47: 2 hops, Strong signal (-45dBm)
-• Node-B12: 1 hop, Excellent (-32dBm)
-• Node-C89: 3 hops, Good (-58dBm)
+**मेष जाल स्थिति**
 
-**Data Shared Today:**
-• Uploaded: 45 MB (encrypted)
-• Downloaded: 128 MB
-• Relayed: 12 MB (helping neighbors)
+• नोडहरू: ३ जडान
+• आज: ४५ MB अपलोड, १२८ MB डाउनलोड
+• स्थिति: अनलाइन & सिङ्क
 
-**Dharma ΔT Contribution:** +12 points
-**Offline Mode:** ✅ Ready (local AI active)
-
-**Actions:**
-📡 Scan network | 🔒 Security audit | ⚡ Boost signal`, source: 'local'
+Actions: /scan — नेटवर्क स्क्यान गर्नुहोस्`, source: 'asim_nexus'
       };
     }
 
     // ⚖️ DHARMA / GOVERNANCE
-    if (lower.includes('dharma') || lower.includes('balance') || lower.includes('vote') || lower.includes('governance')) {
+    if (lower.includes('dharma') || lower.includes('balance') || lower.includes('vote') || lower.includes('governance') || lower.includes('धर्म')) {
       return {
-        response: `⚖️ **Dharma Governance** (ΔT System)
+        response: `🌌 **Asim**
 
-**Network Balance:**
-• Symmetry Score: 94.2% (Excellent)
-• Gini Coefficient: 0.32 (Fair distribution)
-• Last Community Vote: Proposal #892 passed
+**धर्म गवर्नेन्स**
 
-**Your Contributions:**
-• ΔT Points: +156 (Top 15% contributor)
-• Validated transactions: 42
-• Proposals created: 3
-• Proposals voted: 18
+• सन्तुलन स्कोर: 94.2%
+• गिनी सिद्धान्त: 0.32
+• अन्तिम मतदान: सफल
 
-**Active Proposals:**
-🗳️ Prop #901: Increase mesh rewards
-🗳️ Prop #902: New health AI features
-
-**Actions:**
-🗳️ Vote | 📜 View proposals | ⚖️ Create proposal`, source: 'local'
+• Actions: /Vote · /View proposals`, source: 'asim_nexus'
       };
     }
 
     // 💰 WALLET / FINANCE
-    if (lower.includes('money') || lower.includes('wallet') || lower.includes('balance') || lower.includes('payment') || lower.includes('send')) {
+    if (lower.includes('money') || lower.includes('wallet') || lower.includes('balance') || lower.includes('payment') || lower.includes('send') || lower.includes('पैसा')) {
       return {
-        response: `💰 **Asim Wallet** (IdentityHub)
+        response: `🌌 **Asim**
 
-**Balances:**
-• ASIM Tokens: 1,247.50 ⓐ
+**Asim वालेट**
+
+• ASIM टोकनहरू: 1,247.50 ⓐ
 • USDC: $450.00
 • ETH: 0.42 Ξ
 
-**Recent Transactions:**
-• +50 ⓐ Mesh contribution reward
-• -120 ⓐ Hired Tech Architect (2 days)
-• +200 ⓐ Contract #2841 milestone
-
-**Identity:**
-🔐 DID: did:asim:a1b2c3d4e5f6...
-✅ KYC Verified: Level 3 (Enterprise)
-
-**Actions:**
-💸 Send | 📥 Receive | 📊 History | 🔒 Security`, source: 'local'
+• Actions: /Send · /Receive · /History`, source: 'asim_nexus'
       };
     }
 
     // 🆘 HELP / WHAT IS ASIM
-    if (lower.includes('help') || lower.includes('what is asim') || lower.includes('about') || lower.includes('guide')) {
+    if (lower.includes('help') || lower.includes('what is asim') || lower.includes('about') || lower.includes('guide') || lower.includes('मद्दत')) {
       return {
-        response: `🌌 **AsimNexus v3 — World Operating System**
+        response: `🌌 **AsimNexus World OS**
 
-**What is AsimNexus?**
-A unified digital ecosystem connecting Individuals, Companies, Governments, and Communities through AI, Blockchain, and Mesh Networking.
+म तपाईंको व्यक्तिगत AI सहयोगी Asim हुँ।
 
-**What can I do here?**
-🏥 Manage health & wellness
-💼 Run business with AI agents
-� Hire specialized AI clones
-🌐 Join mesh network
-⚖️ Participate in governance
-💰 Send/receive payments
-🔐 Secure digital identity
+**म के गर्न सक्छु:**
+• 🏥 स्वास्थ्य प्रबन्धन
+• 💼 व्यवसाय AI एजेन्टहरूसँग
+• 🤖 विशेषज्ञ एजेन्टहरू हायर गर्नुहोस्
+• 🌐 मेष नेटवर्कमा जडान
+• ⚖️ गवर्नेन्समा सहभागी
+• 💰 भुक्तानीहरू
 
-**Navigation:**
-🖥️ OS Hub — Personal & World OS
-🌍 Market — Agents & Contracts
-🧠 AI Hub — Memory & Learning
-🔐 Identity — Wallet & KYC
-🌐 Network — Mesh & Connectivity
-
-**Need help? Try:**
-"Health check" | "Work status" | "Hire agent" | "Mesh info"`, source: 'local'
+Try: "Health check" | "Work status" | "Hire agent" | "Mesh info"`, source: 'asim_nexus'
       };
     }
 
     // 📊 SYSTEM STATUS
-    if (lower.includes('status') || lower.includes('system') || lower.includes('info') || lower.includes('dashboard')) {
+    if (lower.includes('status') || lower.includes('system') || lower.includes('info') || lower.includes('dashboard') || lower.includes('स्थिति')) {
       return {
-        response: `📊 **AsimNexus System Status**
+        response: `🌌 **Asim**
 
-**Components:**
-✅ Frontend React — v3.0.1 (Running)
-✅ Backend FastAPI — v3.0.0 (Connected)
-⚠️  Local LLM — Offline (using fallback)
-✅ WebSocket — Standby
-✅ Blockchain Bridge — Connected
-
-**Your Activity:**
-• Messages today: 23
-• Commands executed: 7
-• AI interactions: 12
-• Data processed: 1.2 MB
-
-**Quick Stats:**
-• Clones hired: 2 active
-• Contracts: 3 in progress
-• Network nodes: 3 neighbors
-• Wallet balance: 1,247 ⓐ
-
-**Everything is operational!** 🚀`, source: 'local'
+**प्रणाली स्थिति**
+• Frontend React — v3.0.1 (चलिरहेको)
+• Backend FastAPI — v3.0.0 (जडान)
+• WebSocket — तयार
+• Blockchain — तयार`, source: 'asim_nexus'
       };
     }
 
     // Default response with suggestions
     return {
-      response: `🤔 I received: "${message}"
+      response: `🌌 **Asim**
 
-**I can help you with:**
-🏥 Health & Wellness — "Health check"
-💼 Work & Business — "Work status"  
-🤖 AI Agents — "Hire agent"
-🌐 Mesh Network — "Mesh info"
-⚖️ Governance — "Dharma balance"
-💰 Wallet — "Check balance"
-📊 System — "Show status"
-❓ Help — "What is Asim"
+Received: "${message}"
 
-Try one of these commands!`, source: 'local'
+म तपाईंलाई कसरी मद्दत गर्न सक्छु?
+
+🏥 Health · 💼 Work · 🤖 Agents · 🌐 Mesh · ⚖️ Governance · 💰 Wallet`, source: 'asim_nexus'
     };
   }
 }

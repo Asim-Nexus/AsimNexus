@@ -1,10 +1,16 @@
+# AsimNexus Security Layer
+# ========================
+# Unified security exports: ZKP, HSM, Power Balance, Zero Trust
 
-"""
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
+from .zkp_privacy import ZKPProof
+from .hsm_integration import HSMIntegration
+from .power_balance_constitution import PowerBalanceConstitution, get_power_balance
+from .zero_trust import ZeroTrustSecurity
 
-"""
-STATUS: STUB — Auto-labeled by batch_label.py
-"""
-
-"""Security Module"""
+__all__ = [
+    "ZKPProof",
+    "HSMIntegration",
+    "PowerBalanceConstitution", 
+    "get_power_balance",
+    "ZeroTrustSecurity",
+]

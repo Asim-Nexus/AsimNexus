@@ -138,9 +138,38 @@ async def nepal_palikas():
     from connectors.palika_connectors import PALIKAS
     return {"count": len(PALIKAS), "palikas": list(PALIKAS.values())[:50]}
 
-# ─── Knowledge Endpoints ─────────────────────────────────────────────────────
+# ─── Tourism Endpoints ─────────────────────────────────────────────────────────
 
-@app.get("/api/v1/knowledge/foundations")
+# ─── Mirror Endpoints ────────────────────────────────────────────────────────────
+
+@app.post("/api/v1/citizen/action")
+async def citizen_action(user_id: str, action: str, intent: str = ""):
+    """Citizen action with Mirror reflection."""
+    from core.mirror.mirror_module import get_mirror
+    mirror = get_mirror(user_id)
+    if mirror:
+        result = await mirror.reflect({"intent": intent or action})
+        return {"user_id": user_id, "reflected": True, "response": result.mirror_response}
+    return nexus.citizen_chat(action, user_id)
+
+@app.post("/api/v1/mirror/reflect")
+async def mirror_reflect(user_id: str, action: str):
+    """Reflect action in Mirror."""
+    from core.mirror.mirror_module import get_mirror
+    mirror = get_mirror(user_id)
+    if mirror:
+        result = await mirror.reflect({"intent": action})
+        return {"success": True, "intent": result.intent}
+    return {"success": False}
+
+@app.get("/api/v1/mirror/state/{user_id}")
+async def mirror_state(user_id: str):
+    """Get Mirror state."""
+    from core.mirror.mirror_module import get_mirror
+    mirror = get_mirror(user_id)
+    if mirror:
+        return {"state": mirror.get_daily_report()}
+    return {"state": {}}
 async def knowledge_foundations():
     """Get 9 knowledge foundations"""
     from knowledge import FOUNDATIONS

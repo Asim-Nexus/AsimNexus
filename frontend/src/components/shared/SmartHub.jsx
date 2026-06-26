@@ -3,6 +3,7 @@
  * DRY: Don't Repeat Yourself — One component, all hubs
  */
 import React, { useState, useEffect } from 'react';
+import ModeSwitcher from '../common/ModeSwitcher';
 
 export default function SmartHub({ 
   tabs = [], 
@@ -104,6 +105,9 @@ export default function SmartHub({
           </div>
         )}
 
+        {/* Mode Switcher - Added for AsimNexus integration */}
+        <ModeSwitcher />
+
         {/* Compact Mode Toggle */}
         <button
           onClick={() => setIsCompact(!isCompact)}
@@ -118,7 +122,7 @@ export default function SmartHub({
             cursor: 'pointer'
           }}
         >
-          {isCompact ? '□' : '◫'}
+          {isCompact ? '[]' : '[]'}
         </button>
       </div>
 
@@ -174,7 +178,7 @@ export default function SmartHub({
                       fontSize: '0.6rem', 
                       opacity: 0.5,
                       marginLeft: 2
-                    }}>⌥{idx + 1}</span>
+                    }}>[{idx + 1}]</span>
                   )}
                 </div>
                 <div style={{ 

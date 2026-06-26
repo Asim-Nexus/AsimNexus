@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cpu, MemoryStick, Network, HardDrive, Users, Bot, CheckCircle, Shield } from 'lucide-react';
+import { useRealTimeMetrics } from '../../hooks/useRealTimeMetrics';
+import { analyticsAPI, memoryAPI, jobsAPI, dreamingAPI } from '../../api/asimnexus';
+
 // Design system component (inline for now)
 const Card = ({ children, className = '', style = {} }) => (
   <div className={className} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, ...style }}>
     {children}
   </div>
 );
-import { useRealTimeMetrics } from '../../hooks/useRealTimeMetrics';
-import { analyticsAPI, memoryAPI, jobsAPI, dreamingAPI } from '../../api/asimnexus';
 // import '../styles/glassmorphism.css';
 // Colors defined locally
 const colors = {

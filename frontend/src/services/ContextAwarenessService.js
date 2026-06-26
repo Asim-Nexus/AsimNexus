@@ -36,11 +36,11 @@ class ContextAwarenessService {
   // Track URL/page changes
   trackURLChanges() {
     try {
-      let lastUrl = location.href;
       if (typeof document === 'undefined' || !document.body) return;
+      let lastUrl = typeof window !== 'undefined' ? window.location?.href : '';
       
       this.urlObserver = new MutationObserver(() => {
-        const url = location.href;
+        const url = typeof window !== 'undefined' ? window.location?.href : '';
         if (url !== lastUrl) {
           lastUrl = url;
           this.handlePageChange(url);
@@ -55,6 +55,7 @@ class ContextAwarenessService {
 
   // Track focus changes
   trackFocusChanges() {
+    if (typeof document === 'undefined') return;
     document.addEventListener('focusin', (e) => {
       this.currentContext = {
         ...this.currentContext,
@@ -128,11 +129,11 @@ class ContextAwarenessService {
     
     const analysis = {
       timestamp: Date.now(),
-      url: window.location.href,
-      title: document.title,
-      hasImages: document.images.length,
-      hasVideos: document.querySelectorAll('video').length,
-      textContent: document.body.innerText.substring(0, 500),
+      url: typeof window !== 'undefined' ? window.location?.href : '',
+      title: typeof document !== 'undefined' ? document.title : '',
+      hasImages: typeof document !== 'undefined' ? document.images.length : 0,
+      hasVideos: typeof document !== 'undefined' ? document.querySelectorAll('video').length : 0,
+      textContent: typeof document !== 'undefined' ? document.body?.innerText?.substring(0, 500) || '' : '',
     };
     
     this.currentContext = { ...this.currentContext, ...analysis };
@@ -140,22 +141,17 @@ class ContextAwarenessService {
 
   // Capture screenshot (simulated - real implementation needs permissions)
   async captureScreenshot() {
-    // In a real implementation, this would use:
-    // - Desktop: getDisplayMedia() API with extension
-    // - Mobile: Platform-specific screenshot API
-    
     return {
       type: 'screenshot',
       timestamp: Date.now(),
-      url: window.location.href,
+      url: typeof window !== 'undefined' ? window.location?.href : '',
       simulated: true,
-      // In real implementation: base64 image data
     };
   }
 
   // OCR simulation (real would use Tesseract.js or cloud OCR)
   async performOCR(imageData) {
-    // Extract text from current page as simulation
+    if (typeof document === 'undefined') return { text: '', blocks: [], confidence: 0 };
     const textElements = Array.from(document.querySelectorAll('p, h1, h2, h3, span, div'))
       .filter(el => el.innerText && el.innerText.length > 10)
       .slice(0, 10)
@@ -179,7 +175,6 @@ class ContextAwarenessService {
     
     const suggestions = [];
     
-    // App-specific suggestions
     switch (context.appType) {
       case 'code':
         suggestions.push(

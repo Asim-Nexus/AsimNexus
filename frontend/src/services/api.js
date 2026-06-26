@@ -360,8 +360,8 @@ class ApiService {
   }
 
   async executeOsTool(toolName, parameters = {}, agentName = 'AutoModeAgent') {
-    return this.post('/api/os/execute', {
-      tool_name: toolName,
+    return this.post('/api/tools/execute', {
+      tool_id: toolName,
       parameters,
       agent_name: agentName,
     });

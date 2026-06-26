@@ -12,7 +12,7 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-import jwt
+from .jwt import create_access_token, create_refresh_token, decode_token
 import bcrypt
 import logging
 from pydantic import BaseModel
@@ -108,55 +108,30 @@ class AuthManager:
         )
     
     def create_access_token(self, user: User) -> str:
-        """Create JWT access token"""
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-        payload = {
-            "user_id": user.id,
-            "username": user.username,
-            "roles": user.roles,
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "type": "access"
-        }
-        
-        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+        """Create JWT access token using shared utility"""
+        return create_access_token(
+            user_id=user.id,
+            username=user.username,
+            roles=user.roles,
+            org_id=getattr(user, "org_id", None),
+            permissions=getattr(user, "permissions", []),
+            email=user.email,
+        )
     
     def create_refresh_token(self, user: User) -> str:
-        """Create JWT refresh token"""
-        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-        
-        payload = {
-            "user_id": user.id,
-            "username": user.username,
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "type": "refresh"
-        }
-        
-        return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+        """Create JWT refresh token using shared utility"""
+        return create_refresh_token(
+            user_id=user.id,
+            username=user.username,
+            roles=user.roles,
+            org_id=getattr(user, "org_id", None),
+            permissions=getattr(user, "permissions", []),
+            email=user.email,
+        )
     
     def decode_token(self, token: str) -> TokenData:
-        """Decode and validate JWT token"""
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            
-            return TokenData(
-                user_id=payload["user_id"],
-                username=payload["username"],
-                roles=payload.get("roles", []),
-                exp=datetime.fromtimestamp(payload["exp"])
-            )
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired"
-            )
-        except jwt.JWTError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}"
-            )
+        """Decode and validate JWT token using shared utility"""
+        return decode_token(token)
     
     def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """Authenticate user with username and password"""
@@ -388,3 +363,39 @@ if __name__ == "__main__":
     )
     print(f"Has 'all' permission: {auth_manager.has_permission(user, 'all')}")
     print(f"Has 'admin' role: {auth_manager.has_role(user, 'admin')}")
+
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Skip auth for public endpoints
+        public_paths = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh",
+                        "/health", "/api/dharma/status", "/metrics", "/api/compliance/vapt-status",
+                        "/api/disaster-recovery/backup", "/api/disaster-recovery/backups", "/api/disaster-recovery/restore"]
+        if request.url.path in public_paths:
+            return await call_next(request)
+
+        # Allow OPTIONS for CORS
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=401, content={"detail": "Missing or invalid token"})
+
+        token = auth_header.split(" ")[1]
+        try:
+            payload = decode_token(token)  # HSM-aware verification
+            # Make sure request.state has user info
+            request.state.user = payload
+            request.state.user_id = getattr(payload, 'user_id', None)
+            request.state.role = getattr(payload, 'roles', [])
+            request.state.permissions = getattr(payload, 'permissions', [])
+        except Exception as e:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=403, content={"detail": f"Token verification failed: {str(e)}"})
+
+        return await call_next(request)
+
+

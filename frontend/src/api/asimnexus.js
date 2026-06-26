@@ -807,9 +807,41 @@ export const analyticsAPI = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// MIRROR API — Digital Twin
+// ═══════════════════════════════════════════════════════════════════
+
+export const mirrorAPI = {
+  /** POST /api/v1/mirror/reflect — reflect action */
+  reflect: (userId, action) => api.post('/api/v1/mirror/reflect', { user_id: userId, action }),
+
+  /** GET /api/v1/mirror/daily/{user_id} — daily mirror report */
+  getDaily: (userId) => api.get(`/api/v1/mirror/daily/${userId}`),
+
+  /** POST /api/v1/mirror/dream — trigger dreaming engine */
+  dream: (userId) => api.post('/api/v1/mirror/dream', { user_id: userId }),
+
+  /** POST /api/v1/mirror/fine-tune — trigger LoRA fine-tuning */
+  fineTune: (userId) => api.post('/api/v1/mirror/fine-tune', { user_id: userId }),
+
+  /** GET /api/v1/mirror/state/{user_id} — mirror state */
+  getState: (userId) => api.get(`/api/v1/mirror/state/${userId}`),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// SANDBOX API — OS Tool Execution
+// ═══════════════════════════════════════════════════════════════════
+
+export const sandboxAPI = {
+  /** POST /api/v1/sandbox/execute — execute tool in sandbox */
+  execute: (toolId, parameters, userId = 'default', context = {}) =>
+    api.post('/api/v1/sandbox/execute', { tool_id: toolId, parameters, user_id: userId, context }),
+
+  /** GET /api/v1/sandbox/status — sandbox system status */
+  getStatus: () => api.get('/api/v1/sandbox/status'),
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // JOBS / MARKETPLACE API
-// Backend routes: GET /api/jobs/stats, GET /api/jobs/list, POST /api/jobs/post
-//                 GET /api/jobs/{job_id}, POST /api/jobs/{job_id}/apply
 // ═══════════════════════════════════════════════════════════════════
 
 export const jobsAPI = {
@@ -842,12 +874,12 @@ export const dreamingAPI = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// CONSENSUS / CLONE VOTING API
+// CONSENSUS / CLONE VOTING API (Legacy)
 // Backend routes: POST /api/consensus/vote, POST /api/consensus/{round_id}/override
 //                 GET /api/consensus/stats, GET /api/consensus/pending, GET /api/consensus/list
 // ═══════════════════════════════════════════════════════════════════
 
-export const consensusAPI = {
+export const consensusV1API = {
   /** POST /api/consensus/vote — start a consensus round */
   vote: (topic, description = '', level = 'high') =>
     api.post('/api/consensus/vote', { topic, description, level }),
@@ -864,6 +896,26 @@ export const consensusAPI = {
 
   /** GET /api/consensus/list — recent consensus rounds */
   getList: () => api.get('/api/consensus/list'),
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSENSUS V2 API — 15 Clones Voting (from Phase 3)
+// Backend routes: POST /api/v1/consensus/vote, POST /api/v1/consensus/weighted-vote
+// ═══════════════════════════════════════════════════════════════════
+
+export const consensusAPI = {
+  /** POST /api/v1/consensus/vote — 15 clones vote */
+  vote: (title, description, sector) =>
+    api.post('/api/v1/consensus/vote', { title, description, sector }),
+
+  /** POST /api/v1/consensus/weighted-vote — weighted voting */
+  weightedVote: (title, description, sector, govBenefit, privateBenefit) =>
+    api.post('/api/v1/consensus/weighted-vote', {
+      title, description, sector, gov_benefit: govBenefit, private_benefit: privateBenefit
+    }),
+
+  /** GET /api/v1/consensus/status — consensus status */
+  getStatus: () => api.get('/api/v1/consensus/status'),
 };
 
 // ═══════════════════════════════════════════════════════════════════

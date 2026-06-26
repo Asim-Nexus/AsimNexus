@@ -60,6 +60,8 @@ export {
   clonesAPI,
   healingAPI,
   osToolsAPI,
+  mirrorAPI,
+  sandboxAPI,
   asimnexusAPI,
   checkBackendHealth,
 } from './asimnexus';

@@ -137,9 +137,9 @@ export default function MemoryDashboard() {
     }
   };
 
-  // Delete conversation
-  const deleteConversation = async (convId) => {
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
+// Delete conversation
+   const deleteConversation = async (convId) => {
+    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
     
     try {
       // Note: Add delete endpoint to API

@@ -1,0 +1,87 @@
+/* STATUS: NEW — Mirror Dashboard Styles */
+.mirror-dashboard {
+  padding: 20px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 16px;
+  border: 1px solid #667eea33;
+}
+
+.mirror-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: rgba(255,255,255,0.04);
+  padding: 16px;
+  border-radius: 12px;
+  min-width: 120px;
+  flex: 1;
+}
+
+.stat-card .label {
+  font-size: 0.8rem;
+  color: #aaa;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.stat-card .value {
+  font-size: 1.2rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.mirror-actions {
+  margin: 20px 0;
+}
+
+.mirror-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #667eea33;
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+
+.mirror-btn, .dream-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.mirror-btn {
+  background: #667eea;
+  color: #fff;
+}
+
+.dream-btn {
+  background: #10b981;
+  color: #fff;
+}
+
+.mirror-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.daily-report {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+}
+
+.daily-report h3 {
+  margin-top: 0;
+  color: #10b981;
+}

@@ -1,4 +1,4 @@
-"""
+﻿"""
 ASIMNEXUS Tool Registry
 =======================
 Central registry for all OS control tools. Stores metadata (risk level,
@@ -7,12 +7,12 @@ every tool. Provides execute_tool() as the single entry point for
 capability-gated tool execution.
 
 Architecture:
-  call_tool(tool_id) → ToolRegistry.execute_tool()
-    → look up ToolRegistration (metadata + handler)
-    → check required capabilities against CapabilityMatrix
-    → if denied → PermissionDenied result
-    → if allowed → route to tool implementation handler
-    → audit-log the execution
+  call_tool(tool_id) â†’ ToolRegistry.execute_tool()
+    â†’ look up ToolRegistration (metadata + handler)
+    â†’ check required capabilities against CapabilityMatrix
+    â†’ if denied â†’ PermissionDenied result
+    â†’ if allowed â†’ route to tool implementation handler
+    â†’ audit-log the execution
 
 Registered tool families (all 5 from openclaw_like_tools/):
   - file.*      (FileTools)
@@ -38,9 +38,9 @@ from .capability_matrix import Capability, capability_matrix
 logger = logging.getLogger("AsimNexus.ToolRegistry")
 
 
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Enums & Data
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class RiskLevel(Enum):
     """Risk classification for each tool"""
@@ -129,7 +129,7 @@ class ToolExecutionResult:
     required_capabilities: List[str] = field(default_factory=list)
 
 
-# ── Fallback helpers for MicroKernel tools ──────────────────────────
+# â”€â”€ Fallback helpers for MicroKernel tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _get_gpu_status_fallback() -> dict:
     """Get GPU status using psutil (no dedicated GPU method in MicroKernel)."""
@@ -189,9 +189,9 @@ def _get_battery_status_fallback() -> dict:
         return {"category": "battery", "name": "Battery", "status": "unknown", "metrics": {}, "details": "psutil not available"}
 
 
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Registry
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class ToolRegistry:
     """
@@ -213,14 +213,14 @@ class ToolRegistry:
         self.logger = logging.getLogger("AsimNexus.ToolRegistry")
         self._register_openclaw_tools()
 
-    # ── Registration ──────────────────────────────────────────────────
+    # â”€â”€ Registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def register_tool(self, reg: ToolRegistration) -> None:
         """Register (or re-register) a single tool."""
         self._registrations[reg.tool_id] = reg
         caps = ", ".join(c.value for c in reg.required_capabilities)
         self.logger.info(
-            f"📦 Tool registered: {reg.tool_id} "
+            f"ðŸ“¦ Tool registered: {reg.tool_id} "
             f"[risk={reg.risk_level.value}, caps={{{caps}}}]"
         )
 
@@ -237,7 +237,7 @@ class ToolRegistry:
         reg = self.get_tool(tool_id)
         return reg.required_capabilities if reg else set()
 
-    # ── Execution ─────────────────────────────────────────────────────
+    # â”€â”€ Execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async def execute_tool(
         self,
@@ -253,14 +253,14 @@ class ToolRegistry:
         1. Look up the tool's ``ToolRegistration``.
         2. For each required capability, call
            ``CapabilityMatrix.check_capability_allowed()``.
-        3. If **any** capability is denied → return ``DENIED`` result.
-        4. If all allowed → invoke the registered handler with *parameters*.
+        3. If **any** capability is denied â†’ return ``DENIED`` result.
+        4. If all allowed â†’ invoke the registered handler with *parameters*.
         5. Audit-log the execution (both denied and allowed).
         """
         t_start = time.monotonic()
         call_id = str(uuid.uuid4())[:12]
 
-        # ── Step 1 — Look up registration ─────────────────────────────
+        # â”€â”€ Step 1 â€” Look up registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         reg = self.get_tool(tool_id)
         if reg is None:
             return ToolExecutionResult(
@@ -270,7 +270,7 @@ class ToolRegistry:
                 call_id=call_id,
             )
 
-        # ── Step 2 — Capability check ─────────────────────────────────
+        # â”€â”€ Step 2 â€” Capability check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         denied_caps: List[str] = []
         for cap in reg.required_capabilities:
             allowed, reason = capability_matrix.check_capability_allowed(
@@ -293,7 +293,7 @@ class ToolRegistry:
             self._audit_log(result, reg, parameters, agent_name)
             return result
 
-        # ── Step 3 — Invoke handler ───────────────────────────────────
+        # â”€â”€ Step 3 â€” Invoke handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         handler = reg.handler
         if handler is None:
             result = ToolExecutionResult(
@@ -326,7 +326,7 @@ class ToolRegistry:
 
         except Exception as exc:
             elapsed_ms = (time.monotonic() - t_start) * 1000
-            self.logger.error(f"❌ Tool execution error [{tool_id}]: {exc}")
+            self.logger.error(f"âŒ Tool execution error [{tool_id}]: {exc}")
             result = ToolExecutionResult(
                 success=False,
                 verdict=ToolVerdict.ERROR,
@@ -338,7 +338,7 @@ class ToolRegistry:
             self._audit_log(result, reg, parameters, agent_name)
             return result
 
-    # ── Audit ─────────────────────────────────────────────────────────
+    # â”€â”€ Audit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _audit_log(
         self,
@@ -369,7 +369,7 @@ class ToolRegistry:
         if len(self._audit_buffer) > self._max_buffer_size:
             self._audit_buffer = self._audit_buffer[-self._max_buffer_size:]
 
-    # ── Helpers ───────────────────────────────────────────────────────
+    # â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @staticmethod
     def _safe_params(params: Dict[str, Any]) -> str:
@@ -393,7 +393,7 @@ class ToolRegistry:
             entries = [e for e in entries if e["tool_id"] == tool_id]
         return entries
 
-    # ── Built-in tool registration ────────────────────────────────────
+    # â”€â”€ Built-in tool registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _register_openclaw_tools(self) -> None:
         """
@@ -422,7 +422,7 @@ class ToolRegistry:
         nt = get_notification_tools()
         mki = MicroKernelInterface()
 
-        # ── File tools ────────────────────────────────────────────────
+        # â”€â”€ File tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self.register_tool(ToolRegistration(
             tool_id="file.list",
             description="List directory contents with safety filtering",
@@ -491,7 +491,7 @@ class ToolRegistry:
             allowed_args=["path"],
         ))
 
-        # ── Process tools ─────────────────────────────────────────────
+        # â”€â”€ Process tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self.register_tool(ToolRegistration(
             tool_id="process.list",
             description="List running processes with optional name filter",
@@ -523,7 +523,7 @@ class ToolRegistry:
             allowed_args=["app_name", "force"],
         ))
 
-        # ── System monitor tools ──────────────────────────────────────
+        # â”€â”€ System monitor tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self.register_tool(ToolRegistration(
             tool_id="system.cpu",
             description="Get CPU metrics: percent, count, frequency, per-core",
@@ -581,7 +581,7 @@ class ToolRegistry:
             handler=sm.get_all_metrics,
         ))
 
-        # ── Clipboard tools ───────────────────────────────────────────
+        # â”€â”€ Clipboard tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self.register_tool(ToolRegistration(
             tool_id="clipboard.read",
             description="Read clipboard content (requires user consent)",
@@ -604,7 +604,7 @@ class ToolRegistry:
             allowed_args=["text", "user_id"],
         ))
 
-        # ── Notification tools ────────────────────────────────────────
+        # â”€â”€ Notification tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         self.register_tool(ToolRegistration(
             tool_id="notification.send",
             description="Send a system notification to the user",
@@ -615,7 +615,7 @@ class ToolRegistry:
             allowed_args=["title", "message", "urgency", "timeout_seconds"],
         ))
 
-        # ── MicroKernel hardware tools ─────────────────────────────────
+        # â”€â”€ MicroKernel hardware tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # Read-only hardware status (INFO risk)
         self.register_tool(ToolRegistration(
             tool_id="hw.status",
@@ -778,7 +778,7 @@ class ToolRegistry:
             handler=mki.get_all_hardware_status,
         ))
 
-        # Power management (CONTROL/POWER risk — requires confirmation)
+        # Power management (CONTROL/POWER risk â€” requires confirmation)
         self.register_tool(ToolRegistration(
             tool_id="hw.power.shutdown",
             description="Shutdown the system (requires human confirmation)",
@@ -828,7 +828,7 @@ class ToolRegistry:
             allowed_args=["scheme"],
         ))
 
-        # Driver management (DRIVER risk — requires confirmation)
+        # Driver management (DRIVER risk â€” requires confirmation)
         self.register_tool(ToolRegistration(
             tool_id="hw.drivers.list",
             description="List installed drivers (Windows only)",
@@ -849,13 +849,13 @@ class ToolRegistry:
         ))
 
         self.logger.info(
-            f"✅ ToolRegistry initialised — "
+            f"âœ… ToolRegistry initialised â€” "
             f"{len(self._registrations)} openclaw + microkernel tools registered"
         )
 
 
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Global singleton
-# ══════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 tool_registry = ToolRegistry()

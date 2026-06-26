@@ -1,0 +1,266 @@
+# STATUS: NEW — K8s Deployment
+# ASIMNEXUS Kubernetes Deployment
+# ================================
+
+# ── Namespace ──────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: asimnexus
+
+---
+# ── ConfigMap ────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asimnexus-config
+  namespace: asimnexus
+data:
+  ASIM_ENVIRONMENT: "production"
+  ASIM_SYNC_INTERVAL: "15"
+  ASIM_SYNC_BATCH_SIZE: "50"
+  PYTHONUNBUFFERED: "1"
+
+---
+# ── Secrets ────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: asimnexus-secrets
+  namespace: asimnexus
+type: Opaque
+stringData:
+  ASIM_JWT_SECRET: "CHANGE_ME_IN_PRODUCTION"
+  ASIM_API_KEY: "CHANGE_ME_IN_PRODUCTION"
+
+---
+# ── PostgreSQL PVC ─────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: asimnexus-postgres
+  namespace: asimnexus
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# ── Data PVC ───────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: asimnexus-data
+  namespace: asimnexus
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# ── PostgreSQL Deployment ─────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asimnexus-postgres
+  namespace: asimnexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "asimnexus"
+        - name: POSTGRES_USER
+          value: "asimnexus"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: asimnexus-secrets
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: asimnexus-postgres
+
+---
+# ── Backend Deployment ────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asimnexus-backend
+  namespace: asimnexus
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: asimnexus/backend:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: asimnexus-config
+        - secretRef:
+            name: asimnexus-secrets
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://asimnexus:$(POSTGRES_PASSWORD)@asimnexus-postgres:5432/asimnexus"
+        - name: ASIM_NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: models
+          mountPath: /app/models
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: asimnexus-data
+      - name: models
+        emptyDir: {}
+
+---
+# ── Frontend Deployment ──────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asimnexus-frontend
+  namespace: asimnexus
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: asimnexus/frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: REACT_APP_API_URL
+          value: "http://asimnexus-service:80"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+
+---
+# ── Services ─────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-postgres
+  namespace: asimnexus
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-service
+  namespace: asimnexus
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asimnexus-frontend
+  namespace: asimnexus
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: LoadBalancer
+
+---
+# ── Ingress ──────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: asimnexus-ingress
+  namespace: asimnexus
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: asimnexus.local
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: asimnexus-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: asimnexus-frontend
+            port:
+              number: 80

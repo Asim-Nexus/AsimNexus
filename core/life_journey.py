@@ -601,28 +601,41 @@ class LifeJourneyModule:
                         "to_stage": stage.value,
                         "criteria": transition.criteria,
                         "requires_verification": transition.requires_verification,
-                        "services_activated": transition.services_activated,
+"services_activated": transition.services_activated,
                     })
 
             return valid
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get life journey module statistics."""
+        """
+        Get life journey module statistics including Mirror data.
+
+        Returns:
+            Statistics including profile counts and Mirror integration status.
+        """
         with self._lock:
-            stage_counts: Dict[str, int] = {}
+            stage_counts = {}
+            total_transitions = 0
             for profile in self._profiles.values():
-                stage = profile.current_stage.value
-                stage_counts[stage] = stage_counts.get(stage, 0) + 1
-
-            total_transitions = sum(
-                len(p.stage_history) for p in self._profiles.values()
-            )
-
+                stage_counts[profile.current_stage.value] = stage_counts.get(profile.current_stage.value, 0) + 1
+                total_transitions += len(profile.stage_history)
+            
+            # Try to include Mirror stats if available
+            mirror_stats = {}
+            try:
+                from core.mirror.mirror_module import get_mirror
+                mirror = get_mirror("stats_check")
+                if mirror and hasattr(mirror, 'get_daily_report'):
+                    mirror_stats = mirror.get_daily_report()
+            except ImportError:
+                mirror_stats = {"mirror_available": False}
+            
             return {
                 "total_profiles": len(self._profiles),
                 "stage_distribution": stage_counts,
                 "total_transitions": total_transitions,
                 "stages_defined": len(LIFE_JOURNEY_MACHINE),
+                "mirror_integration": mirror_stats,
             }
 
     # ─── Persistence ─────────────────────────────────────────────────────────

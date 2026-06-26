@@ -1,9 +1,0 @@
-{
-  "key_id": "6b12704947c1b2f3",
-  "algorithm": "ML-KEM-768",
-  "public_key": "a840cb52537e5470be2757a562dce53194e916fa5e8ea02794629b27d407fb1a12586b432031d5c73a36826c6c053451818c8a138ab2c91a976787ca195c74b4",
-  "private_key": "39e50e425f0935a1f12336eebdb30349248d6471f8179f9c0144f3daa039de96eec888d685dadcdad14a7dac7da12cfa0e590490adf542a182321ab9e16f1038c63c1ecbdb533f5ed4ec14112c863608db952312eb67a4fa804482aa9bd9ddb4",
-  "created_at": "2026-05-24T21:57:00Z",
-  "did": "did:asim:future_proof_test",
-  "security_bits": 192
-}

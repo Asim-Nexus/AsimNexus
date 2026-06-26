@@ -19,9 +19,10 @@ import hashlib
 import asyncio
 
 if TYPE_CHECKING:
-    from mesh.p2p_transport import P2PTransport, P2PMessage
-
-from mesh.p2p_transport import WSMessageType, PeerInfo
+    from mesh.p2p_transport import P2PTransport, P2PMessage, PeerInfo
+else:
+    # Runtime import to avoid circular dependency
+    pass
 
 logger = logging.getLogger("AsimNexus.Mesh.CrdtSync")
 
@@ -467,16 +468,16 @@ class CRDTStore:
     
     def __init__(self, node_id: str, transport: Optional['P2PTransport'] = None):
         self.node_id = node_id
-        self.crdts: Dict[str, Any] = {}  # crdt_id -> CRDT instance
+        self.crdts: Dict[str, Any] = {}
         self.operation_log: List[CRDTOperation] = []
         self.pending_operations: List[CRDTOperation] = []
         self.transport = transport
         self._running = False
         
-        logger.info(f"🔄 CRDTStore initialized - Node: {node_id}")
+        logger.info(f"CRDTStore initialized - Node: {node_id}")
     
     # ------------------------------------------------------------------
-    # Lifecycle — WebSocket handler registration
+    # Lifecycle - WebSocket handler registration
     # ------------------------------------------------------------------
     
     async def start(self, transport: Optional['P2PTransport'] = None):
@@ -485,15 +486,16 @@ class CRDTStore:
             self.transport = transport
         
         if self.transport is None:
-            logger.warning("No P2PTransport provided — CRDT running in local-only mode")
+            logger.warning("No P2PTransport provided - CRDT running in local-only mode")
             return
         
         # Register WebSocket message handlers for sync
+        from mesh.p2p_transport import WSMessageType
         self.transport.on_ws_message(WSMessageType.SYNC_REQUEST.value, self._handle_sync_request)
         self.transport.on_ws_message(WSMessageType.SYNC_OPERATIONS.value, self._handle_sync_operations)
         
         self._running = True
-        logger.info("🔄 CRDTStore sync handlers registered on P2PTransport")
+        logger.info("CRDTStore sync handlers registered on P2PTransport")
     
     async def stop(self):
         """Stop sync."""
@@ -563,7 +565,7 @@ class CRDTStore:
     # Outbound sync methods
     # ------------------------------------------------------------------
     
-    async def request_sync(self, peer: PeerInfo, since: float = 0.0) -> bool:
+    async def request_sync(self, peer: "PeerInfo", since: float = 0.0) -> bool:
         """
         Request sync from a remote peer.
         Sends a SYNC_REQUEST via WebSocket and applies the response.
@@ -589,7 +591,7 @@ class CRDTStore:
         
         return True
     
-    async def push_operations(self, peer: PeerInfo, operations: Optional[List[CRDTOperation]] = None) -> bool:
+    async def push_operations(self, peer: "PeerInfo", operations: Optional[List[CRDTOperation]] = None) -> bool:
         """
         Push pending operations to a peer via WebSocket.
         """

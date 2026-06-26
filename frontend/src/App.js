@@ -25,6 +25,7 @@ import AIHub from './components/pages/AIHub';
 import IdentityHub from './components/pages/IdentityHub';
 import NetworkHub from './components/pages/NetworkHub';
 import LifeHub from './components/pages/LifeHub';
+import MirrorDashboard from './components/mirror/MirrorDashboard';
 
 // Odysseus Agent Integration
 import AgentChat from './components/odysseus/AgentChat';
@@ -107,7 +108,13 @@ function AppShell({ currentUser, onLogout }) {
 
   // Health check on app start — verify backend connectivity
   useEffect(() => {
-    checkBackendHealth();
+    healthAPI.check().then(res => {
+      if (res.data?.status === 'ok' || res.data?.success) {
+        console.log('[AsimNexus] Backend connected');
+      }
+    }).catch(() => {
+      console.warn('[AsimNexus] Backend unreachable');
+    });
   }, []);
 
   // Poll for pending tool executions requiring human approval
@@ -347,7 +354,7 @@ function AppShell({ currentUser, onLogout }) {
           <div style={{ position: 'relative', zIndex: 2, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Routes>
               {/* Core Routes */}
-              <Route path="/" element={<AgentChat user={currentUser} onCommand={handleChatCommand} />} />
+              <Route path="/" element={<UniversalChat user={currentUser} onCommand={handleChatCommand} />} />
               <Route path="/chat" element={<UniversalChat user={currentUser} onCommand={handleChatCommand} />} />
               <Route path="/dashboard" element={<div style={{ flex: 1, overflow: 'auto', padding: 16 }}><Dashboard user={currentUser} universeMode={universeMode} theme={theme} /></div>} />
 
@@ -357,6 +364,7 @@ function AppShell({ currentUser, onLogout }) {
 
               {/* Consolidated Hubs */}
               <Route path="/os" element={<OSHub user={currentUser} />} />
+              <Route path="/mirror" element={<div style={{ flex: 1, overflow: 'auto', padding: 16 }}><MirrorDashboard userId={currentUser?.id || 'default'} /></div>} />
               <Route path="/marketplace" element={<EconomyHub user={currentUser} />} />
               <Route path="/ai" element={<AIHub user={currentUser} />} />
               <Route path="/identity" element={<IdentityHub user={currentUser} />} />

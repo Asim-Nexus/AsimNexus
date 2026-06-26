@@ -56,6 +56,13 @@ class Capability(Enum):
     
     # Notification capabilities
     NOTIFICATION_SEND = "notification.send"
+    
+    # Additional capabilities for AsimNexus
+    NETWORK_ACCESS = "network.access"
+    DATABASE_ACCESS = "database.access"
+    AI_GENERATION = "ai.generation"
+    AI_COMPUTE = "ai.compute"
+    ROBOTICS_CONTROL = "robotics.control"
 
 @dataclass
 class AgentCapabilityProfile:
