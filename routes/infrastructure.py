@@ -350,3 +350,32 @@ async def federation_consent_peer(peer_id: str = Body(..., embed=True)):
     except Exception as e:
         logger.error(f"Consent error: {e}")
         return error(str(e))
+
+
+# ─── Plugin Marketplace ──────────────────────────────────────────────────────────
+
+@router.get("/api/marketplace/apps")
+async def marketplace_list(category: Optional[str] = None):
+    """List apps in marketplace."""
+    try:
+        from core.plugin_marketplace import get_marketplace
+        mp = get_marketplace()
+        return ok(data=mp.list_apps(category))
+    except Exception as e:
+        logger.error(f"Marketplace list error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/marketplace/apps/{app_id}")
+async def marketplace_get(app_id: str):
+    """Get specific app details."""
+    try:
+        from core.plugin_marketplace import get_marketplace
+        mp = get_marketplace()
+        app = mp.get_app(app_id)
+        if not app:
+            return error("App not found")
+        return ok(data=app)
+    except Exception as e:
+        logger.error(f"Marketplace get error: {e}")
+        return error(str(e))
