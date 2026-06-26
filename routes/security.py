@@ -5,6 +5,7 @@ Security, Level-3 confirmation, integration, and HSM biometric endpoints.
 """
 
 import logging
+from typing import List
 from fastapi import APIRouter, Body
 from routes.response import ok, error
 
@@ -355,4 +356,46 @@ async def restore_backup(backup_name: str = Body(..., embed=True)):
         return ok(data=result)
     except Exception as e:
         logger.error(f"Restore error: {e}")
+        return error(str(e))
+
+
+# ─── DePIN Bridge ──────────────────────────────────────────────────────────────
+
+@router.post("/api/depin/register")
+async def depin_register(node_id: str = Body(..., embed=True),
+                          capabilities: List[str] = Body(default=[], embed=True)):
+    """Register a DePIN node."""
+    try:
+        from core.depin_bridge import get_depin_bridge
+        bridge = get_depin_bridge()
+        result = await bridge.register_node(node_id, capabilities)
+        return ok(data=result)
+    except Exception as e:
+        logger.error(f"DePIN register error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/depin/stats")
+async def depin_stats():
+    """Get DePIN network statistics."""
+    try:
+        from core.depin_bridge import get_depin_bridge
+        bridge = get_depin_bridge()
+        return ok(data=bridge.get_stats())
+    except Exception as e:
+        logger.error(f"DePIN stats error: {e}")
+        return error(str(e))
+
+
+# ─── Blockchain Constitution ───────────────────────────────────────────────────
+
+@router.get("/api/constitution/status")
+async def constitution_status():
+    """Get blockchain constitution anchor status."""
+    try:
+        from core.governance.blockchain_constitution_anchor import get_constitution_anchor
+        anchor = get_constitution_anchor()
+        return ok(data=anchor.get_status())
+    except Exception as e:
+        logger.error(f"Constitution status error: {e}")
         return error(str(e))

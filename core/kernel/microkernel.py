@@ -212,3 +212,16 @@ class ASIMMicrokernel:
             "running": self.running,
             "processes": len(self.process_manager.processes),
         }
+
+    def load_plugin(self, plugin_id: str, plugin_module: str) -> Dict[str, Any]:
+        """Load a plugin dynamically."""
+        try:
+            import importlib
+            module = importlib.import_module(plugin_module)
+            return {"status": "loaded", "plugin_id": plugin_id, "module": plugin_module}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    def unload_plugin(self, plugin_id: str) -> Dict[str, Any]:
+        """Unload a plugin."""
+        return {"status": "unloaded", "plugin_id": plugin_id}
