@@ -309,3 +309,44 @@ async def language_set(lang_code: str = Body(..., embed=True)):
     except Exception as e:
         logger.error(f"Language set error: {e}")
         return error(str(e))
+
+
+# ─── Federation Network ────────────────────────────────────────────────────────────
+
+@router.get("/api/federation/status")
+async def federation_status():
+    """Get federation status."""
+    try:
+        from core.federation.global_federation import get_federation
+        fed = get_federation()
+        return ok(data=fed.status())
+    except Exception as e:
+        logger.error(f"Federation status error: {e}")
+        return error(str(e))
+
+
+@router.post("/api/federation/peer/add")
+async def federation_add_peer(did: str = Body(..., embed=True),
+                             endpoint: str = Body(..., embed=True)):
+    """Add a federation peer."""
+    try:
+        from core.federation.global_federation import get_federation
+        fed = get_federation()
+        peer = fed.add_peer(did, endpoint)
+        return ok(data=peer)
+    except Exception as e:
+        logger.error(f"Add peer error: {e}")
+        return error(str(e))
+
+
+@router.post("/api/federation/peer/consent")
+async def federation_consent_peer(peer_id: str = Body(..., embed=True)):
+    """Consent to sync with a peer."""
+    try:
+        from core.federation.global_federation import get_federation
+        fed = get_federation()
+        fed.consent_peer(peer_id)
+        return ok(data={"status": "consented", "peer_id": peer_id})
+    except Exception as e:
+        logger.error(f"Consent error: {e}")
+        return error(str(e))
