@@ -375,7 +375,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
                         "/api/microkernel/status", "/api/depin/stats", "/api/constitution/status",
                         "/api/language/status", "/api/language/set", "/api/federation/status",
                         "/api/marketplace/apps",
-                        "/api/ai/status"]
+                        "/api/ai/status",
+                        "/api/nepal/ministries",
+                        "/api/nepal/provinces",
+                        "/api/nepal/districts",
+                        "/api/nepal/gov-layer/status",
+                        "/api/nepal/gov-layer/submit"]
         if request.url.path in public_paths:
             return await call_next(request)
 

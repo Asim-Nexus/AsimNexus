@@ -409,3 +409,80 @@ async def ai_finetune_nepali(model: str = Body(..., embed=True)):
     except Exception as e:
         logger.error(f"Finetune error: {e}")
         return error(str(e))
+
+# ─── Nepal Government Layer ─────────────────────────────────────────────────────
+
+@router.get("/api/nepal/ministries")
+async def nepal_ministries():
+    """Get all Nepal ministries."""
+    try:
+        from connectors.nepal.government import MINISTRIES
+        return ok(data=list(MINISTRIES.values()))
+    except Exception as e:
+        logger.error(f"Nepal ministries error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/nepal/provinces")
+async def nepal_provinces():
+    """Get all Nepal provinces."""
+    try:
+        from connectors.nepal.government import PROVINCES
+        return ok(data=list(PROVINCES.values()))
+    except Exception as e:
+        logger.error(f"Nepal provinces error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/nepal/districts")
+async def nepal_districts(province: Optional[str] = None):
+    """Get Nepal districts, optionally filtered by province."""
+    try:
+        from connectors.nepal.government import DISTRICTS
+        if province:
+            filtered = [d for d in DISTRICTS.values() if d["province"] == province]
+            return ok(data=filtered)
+        return ok(data=list(DISTRICTS.values()))
+    except Exception as e:
+        logger.error(f"Nepal districts error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/nepal/gov-layer/status")
+async def nepal_gov_layer_status():
+    """Get Nepal government layer status."""
+    try:
+        from core.governance.national_gov_layer import get_national_gov_layer
+        layer = get_national_gov_layer()
+        return ok(data=layer.get_stats())
+    except Exception as e:
+        logger.error(f"Gov layer status error: {e}")
+        return error(str(e))
+
+
+@router.post("/api/nepal/gov-layer/submit")
+async def nepal_gov_layer_submit(
+    action_type: str = Body(..., embed=True),
+    entity: str = Body(..., embed=True),
+    jurisdiction: str = Body(..., embed=True),
+    description: str = Body(..., embed=True)
+):
+    """Submit government action for Nepal."""
+    try:
+        from core.governance.national_gov_layer import (
+            get_national_gov_layer, GovernmentActionType, OversightSector
+        )
+        layer = get_national_gov_layer()
+        action_type_enum = GovernmentActionType(action_type) if action_type in [a.value for a in GovernmentActionType] else GovernmentActionType.DATA_REQUEST
+        sector = OversightSector.INFRASTRUCTURE if action_type == "infrastructure" else None
+        result = layer.submit_action(
+            action_type=action_type_enum,
+            government_entity=entity,
+            jurisdiction=jurisdiction,
+            description=description,
+            sector=sector
+        )
+        return ok(data={"action_id": result})
+    except Exception as e:
+        logger.error(f"Gov layer submit error: {e}")
+        return error(str(e))
