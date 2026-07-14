@@ -63,5 +63,5 @@ requests>=2.31.0
 # Testing (optional in production)
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
-pytest-cov>=4.1.0
+pytest-cov>=7.1.0
 pytest-timeout>=2.2.0
