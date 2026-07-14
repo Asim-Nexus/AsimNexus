@@ -17,7 +17,7 @@ import logging
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
-from mesh.offline_sync_engine import (
+from core.mesh.offline_sync_engine import (
     OfflineSyncEngine as _RealEngine,
     SyncOperation as _RealOperation,
     SyncPriority as _RealPriority,

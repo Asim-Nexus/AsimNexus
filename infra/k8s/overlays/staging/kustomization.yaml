@@ -1,0 +1,71 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: asimnexus
+
+resources:
+  - ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+  app.kubernetes.io/environment: staging
+
+patches:
+  - target:
+      kind: Deployment
+      name: asimnexus-backend
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "500m"
+  - target:
+      kind: Deployment
+      name: asimnexus-frontend
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: asimnexus-backend-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: asimnexus-frontend-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+
+configMapGenerator:
+  - name: asimnexus-config
+    behavior: merge
+    literals:
+      - APP_ENV=staging
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=*
+      - RATE_LIMIT_REQUESTS=500
+      - RATE_LIMIT_WINDOW=60

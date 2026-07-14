@@ -20,6 +20,10 @@ from datetime import datetime
 from enum import Enum
 import secrets
 
+from core.mesh.dht.kademlia import KademliaDHT, get_dht, DHTPeer
+from core.mesh.crdt_sync import CRDTStore
+from core.mesh.nat_traversal import NATTraversal, get_nat_traversal, NATType
+
 logger = logging.getLogger("ASIM_MESH")
 
 class NodeType(Enum):
@@ -90,6 +94,10 @@ class MeshCoordinator:
         self.routing_table: Dict[str, List[str]] = {}  # node_id -> path
         self.connections: Dict[str, asyncio.Queue] = {}
         self.sync_states: Dict[str, Dict] = {}
+        # Real implementations
+        self.dht: Optional[KademliaDHT] = None
+        self.crdt: Optional[CRDTStore] = None
+        self.nat: NATTraversal = get_nat_traversal()
         
     async def initialize_local_node(self, node_type: NodeType, 
                                    name: str, country: str) -> MeshNode:
@@ -133,7 +141,13 @@ class MeshCoordinator:
         self.local_node = node
         self.nodes[node_id] = node
         
-        logger.info(f"🌐 Mesh node initialized: {node_id} ({name})")
+        # Initialize DHT
+        self.dht = KademliaDHT(local_peer_id=node_id, local_address="0.0.0.0:0")
+        
+        # Initialize CRDT sync engine
+        self.crdt = CRDTStore(node_id=node_id)
+        
+        logger.info(f"Mesh node initialized: {node_id} ({name}) with DHT + CRDT + NAT")
         return node
     
     def _generate_node_id(self, node_type: NodeType, country: str, name: str) -> str:
@@ -198,30 +212,70 @@ class MeshCoordinator:
             return None
     
     async def _dht_discovery(self) -> List[MeshNode]:
-        """DHT-based peer discovery"""
-        # Distributed hash table lookup
-        return []
+        """DHT-based peer discovery using Kademlia"""
+        if not self.dht:
+            return []
+        try:
+            dht_peers = self.dht.routing_table.get_all_peers()
+            mesh_nodes = []
+            for dp in dht_peers:
+                node = MeshNode(
+                    node_id=dp.node_id,
+                    node_type=NodeType.RELAY,
+                    tier=NodeTier.TIER_5_LOCAL,
+                    name=f"DHT_{dp.node_id[:8]}",
+                    country_code="XX",
+                    region="global",
+                    public_key="dht_key",
+                    addresses=[dp.address],
+                    peers=set(),
+                )
+                self.nodes[dp.node_id] = node
+                mesh_nodes.append(node)
+            return mesh_nodes
+        except Exception as e:
+            logger.warning(f"DHT discovery error: {e}")
+            return []
     
     async def sync_with_mesh(self, data_type: str, data: Dict) -> bool:
-        """Synchronize data with mesh network"""
-        if not self.local_node:
+        """Synchronize data with mesh network using CRDT"""
+        if not self.local_node or not self.crdt:
             return False
+        
+        # Store data in CRDT engine
+        if data_type == "config":
+            m = self.crdt.create_g_map("mesh_config")
+            for key, value in data.items():
+                m.put(key, value, self.local_node.node_id)
+        elif data_type == "counter":
+            c = self.crdt.create_pn_counter("mesh_counters")
+            if isinstance(data, dict) and "increment" in data:
+                for _ in range(data["increment"]):
+                    c.increment(self.local_node.node_id)
+        elif data_type == "members":
+            s = self.crdt.create_or_set("mesh_members")
+            if isinstance(data, dict) and "member" in data:
+                s.add(data["member"], self.local_node.node_id)
+        
+        # Generate CRDT sync payload
+        sync_payload = self.crdt.get_sync_state()
         
         # Prepare sync message
         sync_msg = {
             'type': 'sync',
             'data_type': data_type,
             'payload': data,
+            'crdt_payload': sync_payload,
             'source': self.local_node.node_id,
             'timestamp': datetime.now().isoformat(),
-            'ttl': 10  # Time to live (hops)
+            'ttl': 10
         }
         
         # Flood to peers
         for peer_id in self.local_node.peers:
             await self._send_to_peer(peer_id, sync_msg)
         
-        logger.info(f"🔄 Synced {data_type} to {len(self.local_node.peers)} peers")
+        logger.info(f"Synced {data_type} to {len(self.local_node.peers)} peers via CRDT")
         return True
     
     async def _send_to_peer(self, peer_id: str, message: Dict):
@@ -233,7 +287,7 @@ class MeshCoordinator:
         self.sync_states[peer_id]['queue'].append(message)
     
     def get_mesh_stats(self) -> Dict[str, Any]:
-        """Get mesh network statistics"""
+        """Get mesh network statistics including DHT + CRDT + NAT"""
         by_type = {}
         by_tier = {}
         by_country = {}
@@ -243,7 +297,7 @@ class MeshCoordinator:
             by_tier[f"tier_{node.tier.value}"] = by_tier.get(f"tier_{node.tier.value}", 0) + 1
             by_country[node.country_code] = by_country.get(node.country_code, 0) + 1
         
-        return {
+        stats = {
             'total_nodes': len(self.nodes),
             'local_node': self.local_node.to_dict() if self.local_node else None,
             'by_type': by_type,
@@ -251,8 +305,22 @@ class MeshCoordinator:
             'by_country': len(by_country),
             'peers_connected': len(self.local_node.peers) if self.local_node else 0,
             'routing_table_size': len(self.routing_table),
-            'sync_states': len(self.sync_states)
+            'sync_states': len(self.sync_states),
         }
+        
+        # Add DHT stats
+        if self.dht:
+            stats['dht'] = self.dht.get_stats()
+        
+        # Add CRDT stats
+        if self.crdt:
+            stats['crdt'] = self.crdt.get_state()
+        
+        # Add NAT stats
+        if self.nat:
+            stats['nat'] = self.nat.to_dict()
+        
+        return stats
     
     def get_connection_graph(self) -> Dict[str, List[str]]:
         """Get mesh connection graph"""

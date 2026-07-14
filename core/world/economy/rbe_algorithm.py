@@ -1,458 +1,378 @@
-
 """
-STATUS: CONCEPT — Auto-labeled by batch_label.py
-"""
+RBE Algorithm — Resource-Based Economy core engine.
+=====================================================
+Implements a Resource-Based Economy (RBE) algorithm for managing
+resources, processing demand requests, and optimizing distribution.
 
-"""
-Resource-Based Economy (RBE) Algorithm
-======================================
-
-Implementation of Resource-Based Economy principles based on The Venus Project:
-- Equilibrium resource distribution
-- Waste reduction through optimization
-- Sustainable resource allocation
-- Needs-based rather than profit-based allocation
-
-Key concepts:
-- Resources held as common heritage
-- Equilibrium distribution based on need
-- Optimization for waste reduction
-- Dynamic resource monitoring
+Exports:
+    ResourceType       — enum of resource types (ENERGY, FOOD, WATER, etc.)
+    PriorityLevel      — enum of demand priority levels
+    Resource           — dataclass for a single resource entry
+    ResourcePool       — dataclass for a pool of resources of the same type
+    DemandRequest      — dataclass for a demand request
+    AllocationResult   — dataclass for allocation results
+    RBEAlgorithm       — main class with resource management and allocation
 """
 
-import logging
 import math
-from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
-import numpy as np
-
-logger = logging.getLogger(__name__)
+from typing import Dict, Any, Optional, List, Tuple
 
 
 class ResourceType(Enum):
-    """Resource types in RBE"""
+    """Types of resources managed by the RBE."""
     ENERGY = "energy"
-    WATER = "water"
     FOOD = "food"
-    MATERIALS = "materials"
-    COMPUTING = "computing"
-    TRANSPORTATION = "transportation"
+    WATER = "water"
     HOUSING = "housing"
-    EDUCATION = "education"
+    TRANSPORTATION = "transportation"
     HEALTHCARE = "healthcare"
-    INFORMATION = "information"
+    EDUCATION = "education"
+    MANUFACTURING = "manufacturing"
+    RAW_MATERIALS = "raw_materials"
+    WASTE = "waste"
 
 
 class PriorityLevel(Enum):
-    """Priority levels for demand requests"""
-    CRITICAL = 1  # Survival needs
-    HIGH = 2      # Essential services
-    MEDIUM = 3    # Quality of life
-    LOW = 4       # Luxury/optional
+    """Priority levels for demand requests."""
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
 
 
 @dataclass
 class Resource:
-    """Individual resource unit"""
+    """A single resource entry."""
     id: str
     type: ResourceType
     quantity: float
     unit: str
-    location: Tuple[float, float]  # (lat, lon)
-    quality: float = 1.0  # 0.0 to 1.0
+    location: Tuple[float, float]
     renewable: bool = False
-    regeneration_rate: float = 0.0  # units per day
-    last_updated: str = field(default_factory=lambda: datetime.now().isoformat())
+    regeneration_rate: float = 0.0
+    quality_score: float = 1.0
 
 
 @dataclass
 class ResourcePool:
-    """Pool of resources of a specific type"""
+    """A pool of resources of the same type."""
     resource_type: ResourceType
     resources: List[Resource] = field(default_factory=list)
-    total_quantity: float = 0.0
-    
+
+    def get_available_quantity(self) -> float:
+        """Return total available quantity across all resources in the pool."""
+        return sum(r.quantity for r in self.resources)
+
     def add_resource(self, resource: Resource) -> None:
-        """Add resource to pool"""
-        if resource.type == self.resource_type:
-            self.resources.append(resource)
-            self.total_quantity += resource.quantity
-    
+        """Add a resource to the pool."""
+        self.resources.append(resource)
+
     def remove_resource(self, resource_id: str) -> bool:
-        """Remove resource from pool"""
-        for i, resource in enumerate(self.resources):
-            if resource.id == resource_id:
-                self.total_quantity -= resource.quantity
+        """Remove a resource from the pool by ID."""
+        for i, r in enumerate(self.resources):
+            if r.id == resource_id:
                 self.resources.pop(i)
                 return True
         return False
-    
-    def get_available_quantity(self) -> float:
-        """Get total available quantity"""
-        return sum(r.quantity for r in self.resources)
-    
-    def get_average_quality(self) -> float:
-        """Get average quality of resources"""
-        if not self.resources:
-            return 0.0
-        return sum(r.quality for r in self.resources) / len(self.resources)
 
 
 @dataclass
 class DemandRequest:
-    """Demand request for resources"""
+    """A demand request for resources."""
     id: str
     requester_id: str
     resource_type: ResourceType
     quantity: float
     priority: PriorityLevel
     location: Tuple[float, float]
-    urgency: float = 1.0  # 0.0 to 1.0
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    
-    def calculate_score(self) -> float:
-        """Calculate allocation score based on priority and urgency"""
-        priority_weight = {PriorityLevel.CRITICAL: 1.0, PriorityLevel.HIGH: 0.8, 
-                          PriorityLevel.MEDIUM: 0.6, PriorityLevel.LOW: 0.4}
-        return priority_weight[self.priority] * self.urgency
+    fulfilled: bool = False
 
 
 @dataclass
 class AllocationResult:
-    """Result of resource allocation"""
-    request_id: str
+    """Result of a resource allocation."""
+    success: bool
     allocated_quantity: float
     resource_ids: List[str]
-    success: bool
-    waste_generated: float = 0.0
-    efficiency_score: float = 1.0
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    request_id: str = ""
+    message: str = ""
 
 
 class RBEAlgorithm:
-    """
-    Resource-Based Economy Algorithm
-    
-    Implements equilibrium resource distribution:
-    - Needs-based allocation
-    - Waste minimization
-    - Distance optimization
-    - Quality matching
-    - Dynamic rebalancing
-    """
-    
+    """Resource-Based Economy algorithm for managing and allocating resources."""
+
     def __init__(self):
-        self.resource_pools: Dict[ResourceType, ResourcePool] = {}
+        # Initialize resource pools for all resource types
+        self.resource_pools: Dict[ResourceType, ResourcePool] = {
+            rt: ResourcePool(resource_type=rt) for rt in ResourceType
+        }
         self.demand_requests: List[DemandRequest] = []
-        self.allocation_history: List[AllocationResult] = []
-        self.waste_tracker: Dict[ResourceType, float] = {}
-        self.lock = None
-        
-        # Initialize resource pools for all types
-        for resource_type in ResourceType:
-            self.resource_pools[resource_type] = ResourcePool(resource_type)
-            self.waste_tracker[resource_type] = 0.0
-        
-        logger.info("RBE Algorithm initialized")
-    
+        self.waste_tracker: Dict[ResourceType, float] = {
+            rt: 0.0 for rt in ResourceType
+        }
+
+    # ── Resource Management ─────────────────────────────────────────────────
+
     def add_resource(self, resource: Resource) -> None:
-        """Add resource to appropriate pool"""
-        pool = self.resource_pools.get(resource.type)
-        if pool:
-            pool.add_resource(resource)
-            logger.info(f"Resource added: {resource.id} ({resource.type.value})")
-    
+        """Add a resource to the appropriate pool."""
+        pool = self.resource_pools[resource.type]
+        pool.add_resource(resource)
+
     def remove_resource(self, resource_id: str, resource_type: ResourceType) -> bool:
-        """Remove resource from pool"""
+        """Remove a resource from its pool by ID and type."""
         pool = self.resource_pools.get(resource_type)
-        if pool:
-            return pool.remove_resource(resource_id)
-        return False
-    
+        if not pool:
+            return False
+        return pool.remove_resource(resource_id)
+
+    # ── Demand Management ───────────────────────────────────────────────────
+
     def submit_demand(self, request: DemandRequest) -> None:
-        """Submit demand request"""
+        """Submit a demand request."""
         self.demand_requests.append(request)
-        logger.info(f"Demand submitted: {request.id} ({request.resource_type.value})")
-    
-    def calculate_distance(self, loc1: Tuple[float, float], loc2: Tuple[float, float]) -> float:
-        """Calculate distance between two locations (Haversine formula)"""
-        lat1, lon1 = loc1
-        lat2, lon2 = loc2
-        
-        # Convert to radians
-        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-        
-        # Haversine formula
+
+    # ── Distance Calculation ────────────────────────────────────────────────
+
+    @staticmethod
+    def calculate_distance(loc1: Tuple[float, float], loc2: Tuple[float, float]) -> float:
+        """Calculate Haversine distance between two (lat, lon) points in km."""
+        lat1, lon1 = math.radians(loc1[0]), math.radians(loc1[1])
+        lat2, lon2 = math.radians(loc2[0]), math.radians(loc2[1])
+
         dlat = lat2 - lat1
         dlon = lon2 - lon1
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
         c = 2 * math.asin(math.sqrt(a))
-        
-        # Earth's radius in km
-        r = 6371
-        return c * r
-    
+
+        # Earth radius in km
+        R = 6371.0
+        return R * c
+
+    # ── Resource Allocation ─────────────────────────────────────────────────
+
     def find_nearest_resources(
         self,
         resource_type: ResourceType,
         location: Tuple[float, float],
-        quantity: float,
-        max_distance: float = 1000.0  # km
+        max_distance_km: float = float("inf"),
     ) -> List[Tuple[Resource, float]]:
-        """Find nearest resources of given type"""
+        """Find resources of a given type nearest to a location.
+
+        Args:
+            resource_type: Type of resource to search for
+            location: (lat, lon) target location
+            max_distance_km: Maximum distance in km (default: unlimited)
+
+        Returns:
+            List of (Resource, distance_km) tuples sorted by distance
+        """
         pool = self.resource_pools.get(resource_type)
         if not pool:
             return []
-        
-        resources_with_distance = []
+
+        results: List[Tuple[Resource, float]] = []
         for resource in pool.resources:
+            if resource.quantity <= 0:
+                continue
             distance = self.calculate_distance(location, resource.location)
-            if distance <= max_distance:
-                resources_with_distance.append((resource, distance))
-        
+            if distance <= max_distance_km:
+                results.append((resource, distance))
+
         # Sort by distance
-        resources_with_distance.sort(key=lambda x: x[1])
-        
-        return resources_with_distance
-    
+        results.sort(key=lambda x: x[1])
+        return results
+
     def allocate_resources(self, request: DemandRequest) -> AllocationResult:
-        """Allocate resources for demand request"""
+        """Allocate resources to fulfill a demand request.
+
+        Args:
+            request: The demand request to fulfill
+
+        Returns:
+            AllocationResult with success status and details
+        """
         pool = self.resource_pools.get(request.resource_type)
         if not pool:
             return AllocationResult(
-                request_id=request.id,
+                success=False,
                 allocated_quantity=0.0,
                 resource_ids=[],
-                success=False
+                request_id=request.id,
+                message=f"No pool for resource type {request.resource_type}",
             )
-        
+
         # Find nearest resources
-        nearby_resources = self.find_nearest_resources(
-            request.resource_type,
-            request.location,
-            request.quantity
-        )
-        
-        allocated_quantity = 0.0
-        allocated_resources = []
-        waste_generated = 0.0
-        
-        # Allocate from nearest resources
-        for resource, distance in nearby_resources:
-            if allocated_quantity >= request.quantity:
+        nearest = self.find_nearest_resources(request.resource_type, request.location)
+        if not nearest:
+            return AllocationResult(
+                success=False,
+                allocated_quantity=0.0,
+                resource_ids=[],
+                request_id=request.id,
+                message="No resources available",
+            )
+
+        allocated = 0.0
+        resource_ids: List[str] = []
+
+        for resource, _ in nearest:
+            if allocated >= request.quantity:
                 break
-            
-            # Calculate allocation amount
-            remaining_needed = request.quantity - allocated_quantity
-            available = resource.quantity
-            allocation = min(remaining_needed, available)
-            
-            # Calculate waste based on distance (transportation losses)
-            transport_efficiency = max(0.5, 1.0 - (distance / 2000.0))  # 50% efficiency at 2000km
-            actual_received = allocation * transport_efficiency
-            waste = allocation - actual_received
-            
-            allocated_quantity += actual_received
-            waste_generated += waste
-            allocated_resources.append(resource.id)
-            
-            # Update resource quantity
-            resource.quantity -= allocation
-        
-        success = allocated_quantity >= request.quantity * 0.9  # 90% fulfillment threshold
-        
-        # Calculate efficiency score
-        efficiency_score = 1.0 - (waste_generated / max(request.quantity, 1.0))
-        
-        result = AllocationResult(
-            request_id=request.id,
-            allocated_quantity=allocated_quantity,
-            resource_ids=allocated_resources,
+
+            needed = request.quantity - allocated
+            take = min(resource.quantity, needed)
+
+            resource.quantity -= take
+            allocated += take
+            resource_ids.append(resource.id)
+
+        success = allocated >= request.quantity * 0.9  # 90% threshold
+        return AllocationResult(
             success=success,
-            waste_generated=waste_generated,
-            efficiency_score=efficiency_score
+            allocated_quantity=allocated,
+            resource_ids=resource_ids,
+            request_id=request.id,
+            message="Allocated successfully" if success else f"Partial allocation: {allocated}/{request.quantity}",
         )
-        
-        # Track waste
-        self.waste_tracker[request.resource_type] += waste_generated
-        
-        # Record allocation
-        self.allocation_history.append(result)
-        
-        # Remove fulfilled request
-        if success:
-            self.demand_requests = [r for r in self.demand_requests if r.id != request.id]
-        
-        logger.info(f"Allocation: {request.id} - {allocated_quantity:.2f}/{request.quantity:.2f} units, "
-                   f"efficiency: {efficiency_score:.2f}")
-        
-        return result
-    
-    def optimize_distribution(self) -> Dict[str, Any]:
-        """
-        Optimize resource distribution using equilibrium algorithm
-        
-        Returns optimization recommendations
-        """
-        recommendations = []
-        
-        # Analyze each resource type
-        for resource_type, pool in self.resource_pools.items():
-            available = pool.get_available_quantity()
-            
-            # Calculate total demand for this resource type
-            total_demand = sum(
-                r.quantity for r in self.demand_requests 
-                if r.resource_type == resource_type
-            )
-            
-            # Calculate surplus/deficit
-            balance = available - total_demand
-            
-            if balance < 0:
-                # Deficit - need to produce or import
-                recommendations.append({
-                    "resource_type": resource_type.value,
-                    "action": "increase_production",
-                    "quantity": abs(balance),
-                    "priority": "high" if balance < -100 else "medium"
-                })
-            elif balance > 0:
-                # Surplus - can redistribute or store
-                recommendations.append({
-                    "resource_type": resource_type.value,
-                    "action": "redistribute_or_store",
-                    "quantity": balance,
-                    "priority": "low"
-                })
-        
-        # Analyze waste
-        total_waste = sum(self.waste_tracker.values())
-        if total_waste > 100:
-            recommendations.append({
-                "resource_type": "all",
-                "action": "reduce_transportation_losses",
-                "quantity": total_waste,
-                "priority": "high"
-            })
-        
-        return {
-            "recommendations": recommendations,
-            "total_recommendations": len(recommendations),
-            "timestamp": datetime.now().isoformat()
-        }
-    
+
+    # ── Equilibrium Score ───────────────────────────────────────────────────
+
     def calculate_equilibrium_score(self) -> float:
+        """Calculate the equilibrium score of the resource system.
+
+        A score of 1.0 means perfect equilibrium (supply meets demand),
+        0.0 means complete imbalance.
+
+        Returns:
+            Float between 0.0 and 1.0
         """
-        Calculate overall equilibrium score
-        
-        Returns score from 0.0 to 1.0, where 1.0 is perfect equilibrium
-        """
-        if not self.allocation_history:
-            return 1.0  # Perfect equilibrium if no allocations yet
-        
-        # Calculate average efficiency
-        avg_efficiency = sum(
-            result.efficiency_score for result in self.allocation_history
-        ) / len(self.allocation_history)
-        
-        # Calculate waste penalty
-        total_allocated = sum(result.allocated_quantity for result in self.allocation_history)
-        total_waste = sum(result.waste_generated for result in self.allocation_history)
-        waste_penalty = 1.0 - (total_waste / max(total_allocated, 1.0))
-        
-        # Calculate demand fulfillment rate
-        fulfilled_requests = sum(1 for result in self.allocation_history if result.success)
-        fulfillment_rate = fulfilled_requests / len(self.allocation_history)
-        
-        # Combine metrics
-        equilibrium_score = (avg_efficiency * 0.4) + (waste_penalty * 0.3) + (fulfillment_rate * 0.3)
-        
-        return max(0.0, min(1.0, equilibrium_score))
-    
-    def get_resource_status(self) -> Dict[str, Any]:
-        """Get status of all resources"""
-        status = {}
-        
-        for resource_type, pool in self.resource_pools.items():
-            total_demand = sum(
-                r.quantity for r in self.demand_requests 
-                if r.resource_type == resource_type
+        total_supply = 0.0
+        total_demand = 0.0
+
+        for rt, pool in self.resource_pools.items():
+            supply = pool.get_available_quantity()
+            total_supply += supply
+
+            # Sum demand for this resource type
+            demand = sum(
+                r.quantity for r in self.demand_requests
+                if r.resource_type == rt and not r.fulfilled
             )
-            
-            status[resource_type.value] = {
-                "available_quantity": pool.get_available_quantity(),
-                "average_quality": pool.get_average_quality(),
-                "total_demand": total_demand,
-                "balance": pool.get_available_quantity() - total_demand,
-                "waste_generated": self.waste_tracker[resource_type],
-                "resource_count": len(pool.resources)
-            }
-        
-        return status
-    
-    def get_demand_status(self) -> Dict[str, Any]:
-        """Get status of demand requests"""
-        pending_requests = [
-            {
-                "id": r.id,
-                "requester_id": r.requester_id,
-                "resource_type": r.resource_type.value,
-                "quantity": r.quantity,
-                "priority": r.priority.name,
-                "urgency": r.urgency,
-                "score": r.calculate_score()
-            }
-            for r in self.demand_requests
-        ]
-        
-        # Sort by score (highest priority first)
-        pending_requests.sort(key=lambda x: x["score"], reverse=True)
-        
+            total_demand += demand
+
+        if total_demand == 0:
+            return 1.0  # No demand = perfect equilibrium
+
+        ratio = total_supply / total_demand
+        # Clamp to [0, 1]
+        return min(1.0, max(0.0, ratio))
+
+    # ── Optimization ────────────────────────────────────────────────────────
+
+    def optimize_distribution(self) -> Dict[str, Any]:
+        """Generate optimization recommendations based on supply/demand analysis.
+
+        Returns:
+            Dict with recommendations
+        """
+        recommendations: List[Dict[str, Any]] = []
+
+        for rt, pool in self.resource_pools.items():
+            supply = pool.get_available_quantity()
+            demand = sum(
+                r.quantity for r in self.demand_requests
+                if r.resource_type == rt and not r.fulfilled
+            )
+
+            if demand > supply:
+                recommendations.append({
+                    "resource_type": rt.value,
+                    "action": "increase_production",
+                    "reason": f"Demand ({demand}) exceeds supply ({supply})",
+                    "priority": "high",
+                })
+            elif supply > demand * 2:
+                recommendations.append({
+                    "resource_type": rt.value,
+                    "action": "reduce_waste",
+                    "reason": f"Supply ({supply}) far exceeds demand ({demand})",
+                    "priority": "medium",
+                })
+
         return {
-            "pending_count": len(self.demand_requests),
-            "pending_requests": pending_requests[:10],  # Top 10
-            "total_fulfilled": len(self.allocation_history),
-            "fulfillment_rate": sum(1 for r in self.allocation_history if r.success) / max(len(self.allocation_history), 1)
+            "total_recommendations": len(recommendations),
+            "recommendations": recommendations,
+            "equilibrium_score": self.calculate_equilibrium_score(),
         }
-    
-    def process_all_demands(self) -> List[AllocationResult]:
-        """Process all pending demand requests"""
-        # Sort requests by score (priority)
-        sorted_requests = sorted(
-            self.demand_requests,
-            key=lambda r: r.calculate_score(),
-            reverse=True
-        )
-        
-        results = []
-        for request in sorted_requests:
-            result = self.allocate_resources(request)
-            results.append(result)
-        
-        return results
-    
+
+    # ── Status ──────────────────────────────────────────────────────────────
+
+    def get_resource_status(self) -> Dict[str, Any]:
+        """Get status of all resource pools.
+
+        Returns:
+            Dict keyed by resource type name with pool stats
+        """
+        status: Dict[str, Any] = {}
+        for rt, pool in self.resource_pools.items():
+            status[rt.value] = {
+                "available_quantity": pool.get_available_quantity(),
+                "resource_count": len(pool.resources),
+                "waste": self.waste_tracker.get(rt, 0.0),
+            }
+        return status
+
+    def get_demand_status(self) -> Dict[str, Any]:
+        """Get status of all demand requests.
+
+        Returns:
+            Dict with pending count and pending requests
+        """
+        pending = [r for r in self.demand_requests if not r.fulfilled]
+        return {
+            "pending_count": len(pending),
+            "pending_requests": [
+                {
+                    "id": r.id,
+                    "requester_id": r.requester_id,
+                    "resource_type": r.resource_type.value,
+                    "quantity": r.quantity,
+                    "priority": r.priority.name,
+                }
+                for r in pending
+            ],
+        }
+
+    # ── Renewable Resources ─────────────────────────────────────────────────
+
     def regenerate_resources(self) -> None:
-        """Regenerate renewable resources"""
-        for resource_type, pool in self.resource_pools.items():
+        """Regenerate renewable resources based on their regeneration rates."""
+        for pool in self.resource_pools.values():
             for resource in pool.resources:
                 if resource.renewable and resource.regeneration_rate > 0:
-                    # Regenerate up to original capacity
-                    resource.quantity = min(
-                        resource.quantity + resource.regeneration_rate,
-                        resource.quantity * 2  # Cap at double current amount
-                    )
+                    resource.quantity += resource.regeneration_rate
 
+    # ── Process All Demands ─────────────────────────────────────────────────
 
-# Global RBE algorithm instance
-_rbe_algorithm: Optional[RBEAlgorithm] = None
+    def process_all_demands(self) -> List[AllocationResult]:
+        """Process all pending demand requests, sorted by priority.
 
+        Returns:
+            List of AllocationResult for each processed demand
+        """
+        pending = [r for r in self.demand_requests if not r.fulfilled]
 
-def get_rbe_algorithm() -> RBEAlgorithm:
-    """Get global RBE algorithm instance (lazy load)"""
-    global _rbe_algorithm
-    if _rbe_algorithm is None:
-        _rbe_algorithm = RBEAlgorithm()
-    return _rbe_algorithm
+        # Sort by priority (highest first), then by quantity (smallest first)
+        pending.sort(key=lambda r: (-r.priority.value, r.quantity))
+
+        results: List[AllocationResult] = []
+        for request in pending:
+            result = self.allocate_resources(request)
+            if result.success:
+                request.fulfilled = True
+            results.append(result)
+
+        return results

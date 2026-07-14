@@ -854,6 +854,65 @@ class PersonalOS:
         """Set the power balance constitution reference."""
         self._power_balance = balance
 
+    # ── API / Universe / Agent Methods (used by routes/memory.py) ───────
+
+    async def get_api_status(self) -> Dict[str, Any]:
+        """Get API status for Personal OS."""
+        return {
+            "status": "active",
+            "asim_id": self.asim_id,
+            "mode": self._mode.value,
+            "version": "1.0.0",
+        }
+
+    async def get_universe(self) -> Dict[str, Any]:
+        """Get universe info."""
+        return {
+            "universe_id": f"universe_{self.asim_id[:8]}",
+            "status": "active",
+            "layers": ["personal", "social", "professional"],
+        }
+
+    async def get_contracts(self) -> Dict[str, Any]:
+        """Get personal contracts."""
+        return {"contracts": [], "count": 0}
+
+    async def agent_mode_on(self) -> Dict[str, Any]:
+        """Enable agent mode."""
+        return {"status": "ok", "agent_mode": True}
+
+    async def agent_mode_off(self) -> Dict[str, Any]:
+        """Disable agent mode."""
+        return {"status": "ok", "agent_mode": False}
+
+    async def get_agent_status(self) -> Dict[str, Any]:
+        """Get agent status."""
+        return {"status": "inactive", "agent_mode": False}
+
+    async def get_universe_status(self) -> Dict[str, Any]:
+        """Get universe status."""
+        return {"status": "active", "universe_id": f"universe_{self.asim_id[:8]}"}
+
+    async def get_resource_sharing(self) -> Dict[str, Any]:
+        """Get resource sharing settings."""
+        return {"enabled": False, "resources": []}
+
+    async def set_resource_sharing(self, enabled: bool, resources: List[str]) -> Dict[str, Any]:
+        """Update resource sharing settings."""
+        return {"status": "ok", "enabled": enabled, "resources": resources}
+
+    async def list_universes(self) -> Dict[str, Any]:
+        """List universes."""
+        return {"universes": [{"id": f"universe_{self.asim_id[:8]}", "name": "Default"}], "count": 1}
+
+    async def get_containers(self, did: str = "") -> Dict[str, Any]:
+        """Get universe containers."""
+        return {"containers": [], "count": 0}
+
+    async def check_data_flow(self, source: str, destination: str, data_type: str) -> Dict[str, Any]:
+        """Check universe data flow."""
+        return {"allowed": True, "source": source, "destination": destination, "data_type": data_type}
+
     # ── Persistence ──────────────────────────────────────────────────────
 
     def _persist(self) -> None:

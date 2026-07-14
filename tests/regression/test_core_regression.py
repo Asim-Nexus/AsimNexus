@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-
 class TestDharmaRegression:
     """Dharma Veto must never allow critical patterns."""
 
@@ -31,7 +30,6 @@ class TestDharmaRegression:
         result = veto.check(action="exec", content="override human decision with ai")
         assert result.blocked is True
         assert result.requires_human is True  # BLOCK patterns require human override
-
 
 class TestDeltaTRegression:
     """ΔT Engine must always detect concentration."""
@@ -67,7 +65,6 @@ class TestDeltaTRegression:
         total = sum(influences.values())
         assert abs(total - 1.0) < 0.001
 
-
 class TestDreamingRegression:
     """Dreaming Engine must consolidate memory correctly."""
 
@@ -84,23 +81,26 @@ class TestDreamingRegression:
         topics = detect_topics("I need help with farming and weather")
         assert "farming" in topics or "weather" in topics or "general" in topics
 
-
 class TestBackendAPIRegression:
     """Backend endpoints must always respond correctly."""
 
     def test_health_always_200(self):
         from fastapi.testclient import TestClient
-        from simple_backend import app
+        from app import app
         client = TestClient(app)
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json()["status"] == "healthy"
+        assert response.json()["status"] == "ok"
 
     def test_dharma_status_always_returns_data(self):
         from fastapi.testclient import TestClient
-        from simple_backend import app
+        from app import app
         client = TestClient(app)
-        response = client.get("/api/dharma/status")
+        
+        from unittest.mock import patch
+        with patch("core.security.auth_middleware.decode_token", return_value=type("MockToken", (), {"user_id": "test", "roles": [], "permissions": []})):
+            response = client.get("/api/dharma/status", headers={"Authorization": "Bearer mock_token"})
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, dict)
@@ -108,7 +108,7 @@ class TestBackendAPIRegression:
 
     def test_agent_mode_toggle(self):
         from fastapi.testclient import TestClient
-        from simple_backend import app
+        from app import app
         client = TestClient(app)
 
         # Turn on
@@ -119,19 +119,18 @@ class TestBackendAPIRegression:
         r2 = client.post("/api/agent/mode/off", json={})
         assert r2.status_code in [200, 401]
 
-
 class TestMeshRegression:
     """Mesh routing must handle failures gracefully."""
 
     def test_no_devices_raises(self):
-        from mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2
+        from core.mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2
         agent = MeshRoutingAgentV2(p2p_node=None)
         import asyncio
         with pytest.raises(Exception):
             asyncio.run(agent.route_task({"type": "test"}))
 
     def test_local_fallback_works(self):
-        from mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2, DeviceState
+        from core.mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2, DeviceState
         agent = MeshRoutingAgentV2(p2p_node=None)
         agent.device_registry.devices["local"] = DeviceState(
             device_id="local", capabilities=["compute"], status="online"
@@ -139,7 +138,6 @@ class TestMeshRegression:
         import asyncio
         success, result, device = asyncio.run(agent.route_task({"type": "test"}))
         assert success is True
-
 
 class TestZKPRegression:
     """ZKP v2 must maintain mathematical correctness."""
@@ -162,3 +160,4 @@ class TestZKPRegression:
         proof = prove_knowledge(42, 12345, "test")
         proof["s1"] = (proof["s1"] + 1)
         assert verify(proof, "test") is False
+

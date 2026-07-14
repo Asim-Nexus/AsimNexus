@@ -1,0 +1,280 @@
+{
+    "__inputs": [],
+    "__requires": [],
+    "dashboard": {
+        "title": "AsimNexus Production Dashboard",
+        "description": "Comprehensive monitoring dashboard for AsimNexus self-aware AI system",
+        "tags": [
+            "asimnexus",
+            "production",
+            "self-awareness"
+        ],
+        "timezone": "browser",
+        "editable": true,
+        "refresh": "30s",
+        "panels": [
+            {
+                "title": "System Overview",
+                "type": "stat",
+                "gridPos": {
+                    "h": 3,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0
+                },
+                "targets": [
+                    {
+                        "expr": "up{job=\"asimnexus-backend\"}",
+                        "legendFormat": "Backend"
+                    },
+                    {
+                        "expr": "up{job=\"postgres\"}",
+                        "legendFormat": "PostgreSQL"
+                    },
+                    {
+                        "expr": "up{job=\"redis\"}",
+                        "legendFormat": "Redis"
+                    }
+                ],
+                "description": "Service up/down status"
+            },
+            {
+                "title": "HTTP Request Rate",
+                "type": "graph",
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 3
+                },
+                "targets": [
+                    {
+                        "expr": "rate(http_requests_total[5m])",
+                        "legendFormat": "All"
+                    },
+                    {
+                        "expr": "rate(http_requests_total{status=~\"2..\"}[5m])",
+                        "legendFormat": "2xx"
+                    },
+                    {
+                        "expr": "rate(http_requests_total{status=~\"4..\"}[5m])",
+                        "legendFormat": "4xx"
+                    },
+                    {
+                        "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+                        "legendFormat": "5xx"
+                    }
+                ],
+                "description": "HTTP request rate by status code"
+            },
+            {
+                "title": "Request Latency (p95)",
+                "type": "graph",
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 3
+                },
+                "targets": [
+                    {
+                        "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                        "legendFormat": "p95"
+                    },
+                    {
+                        "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+                        "legendFormat": "p50"
+                    }
+                ],
+                "description": "Request latency percentiles"
+            },
+            {
+                "title": "Self-Awareness: Modules & Routes",
+                "type": "stat",
+                "gridPos": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 0,
+                    "y": 11
+                },
+                "targets": [
+                    {
+                        "expr": "self_awareness_modules_total",
+                        "legendFormat": "Modules"
+                    },
+                    {
+                        "expr": "self_awareness_routes_total",
+                        "legendFormat": "Routes"
+                    }
+                ],
+                "description": "Total known modules and routes"
+            },
+            {
+                "title": "Self-Awareness: Issues",
+                "type": "stat",
+                "gridPos": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 8,
+                    "y": 11
+                },
+                "targets": [
+                    {
+                        "expr": "self_awareness_open_issues_total",
+                        "legendFormat": "Open"
+                    },
+                    {
+                        "expr": "self_awareness_issues_total",
+                        "legendFormat": "Total"
+                    }
+                ],
+                "description": "Issue counts"
+            },
+            {
+                "title": "Self-Awareness: Build Actions",
+                "type": "stat",
+                "gridPos": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 16,
+                    "y": 11
+                },
+                "targets": [
+                    {
+                        "expr": "self_awareness_build_actions_total",
+                        "legendFormat": "Total"
+                    },
+                    {
+                        "expr": "rate(self_awareness_build_actions_total[1h])",
+                        "legendFormat": "Rate (1h)"
+                    }
+                ],
+                "description": "Build action statistics"
+            },
+            {
+                "title": "Mesh Network: Connected Peers",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 15
+                },
+                "targets": [
+                    {
+                        "expr": "mesh_connected_peers",
+                        "legendFormat": "Peers"
+                    }
+                ],
+                "description": "Number of connected mesh peers over time"
+            },
+            {
+                "title": "Memory Usage",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 12,
+                    "y": 15
+                },
+                "targets": [
+                    {
+                        "expr": "process_resident_memory_bytes / 1024 / 1024",
+                        "legendFormat": "RSS (MB)"
+                    }
+                ],
+                "description": "Process memory usage"
+            },
+            {
+                "title": "Evolution Engine: Suggestions",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 21
+                },
+                "targets": [
+                    {
+                        "expr": "evolution_suggestions_total",
+                        "legendFormat": "Total"
+                    },
+                    {
+                        "expr": "evolution_suggestions_approved_total",
+                        "legendFormat": "Approved"
+                    },
+                    {
+                        "expr": "evolution_suggestions_applied_total",
+                        "legendFormat": "Applied"
+                    }
+                ],
+                "description": "Evolution suggestion statistics"
+            },
+            {
+                "title": "Dreaming Engine: Cycles",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 12,
+                    "y": 21
+                },
+                "targets": [
+                    {
+                        "expr": "dreaming_cycles_total",
+                        "legendFormat": "Cycles"
+                    },
+                    {
+                        "expr": "dreaming_lessons_extracted_total",
+                        "legendFormat": "Lessons"
+                    }
+                ],
+                "description": "Dreaming engine cycle statistics"
+            },
+            {
+                "title": "Auth: Login Activity",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 27
+                },
+                "targets": [
+                    {
+                        "expr": "rate(auth_logins_total[5m])",
+                        "legendFormat": "Successful"
+                    },
+                    {
+                        "expr": "rate(auth_failed_logins_total[5m])",
+                        "legendFormat": "Failed"
+                    }
+                ],
+                "description": "Authentication activity"
+            },
+            {
+                "title": "Federation: Sync Activity",
+                "type": "graph",
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 12,
+                    "y": 27
+                },
+                "targets": [
+                    {
+                        "expr": "rate(federation_sync_messages_total[5m])",
+                        "legendFormat": "Sync"
+                    },
+                    {
+                        "expr": "rate(federation_handshakes_total[5m])",
+                        "legendFormat": "Handshakes"
+                    }
+                ],
+                "description": "Federation protocol activity"
+            }
+        ],
+        "schemaVersion": 27,
+        "version": 1
+    }
+}

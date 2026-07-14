@@ -21,7 +21,7 @@ class TestHSMIntegration:
     @pytest.mark.asyncio
     async def test_hsm_initialization(self):
         """Test HSM initializes correctly"""
-        from security.hsm_production import HSMProduction
+        from core.security.hsm_production import HSMProduction
         hsm = HSMProduction()
         
         status = hsm.status()
@@ -31,7 +31,7 @@ class TestHSMIntegration:
     @pytest.mark.asyncio
     async def test_hsm_signature_verification(self):
         """Test HSM signature verification"""
-        from security.hsm_production import HSMProduction
+        from core.security.hsm_production import HSMProduction
         hsm = HSMProduction()
         
         # Test signature verification (stub mode)
@@ -44,7 +44,7 @@ class TestHSMIntegration:
     @pytest.mark.asyncio
     async def test_level3_approval_flow(self):
         """Test complete Level-3 approval flow"""
-        from security.hsm_production import HSMProduction
+        from core.security.hsm_production import HSMProduction
         hsm = HSMProduction()
         
         action = {
@@ -67,7 +67,7 @@ class TestZKPPrivacy:
     @pytest.mark.asyncio
     async def test_zkp_initialization(self):
         """Test ZKP initializes correctly"""
-        from security.zkp_production import ZKPProduction
+        from core.security.zkp_production import ZKPProduction
         zkp = ZKPProduction()
         
         status = zkp.status()
@@ -77,7 +77,7 @@ class TestZKPPrivacy:
     @pytest.mark.asyncio
     async def test_identity_proof_generation(self):
         """Test identity proof generation (fallback mode)"""
-        from security.zkp_production import ZKPProduction
+        from core.security.zkp_production import ZKPProduction
         zkp = ZKPProduction()
         
         citizen_data = {
@@ -96,7 +96,7 @@ class TestZKPPrivacy:
     @pytest.mark.asyncio
     async def test_identity_proof_verification(self):
         """Test identity proof verification"""
-        from security.zkp_production import ZKPProduction
+        from core.security.zkp_production import ZKPProduction
         zkp = ZKPProduction()
         
         citizen_data = {
@@ -123,7 +123,7 @@ class TestZKPPrivacy:
     @pytest.mark.asyncio
     async def test_tax_compliance_proof(self):
         """Test tax compliance proof generation"""
-        from security.zkp_production import ZKPProduction
+        from core.security.zkp_production import ZKPProduction
         zkp = ZKPProduction()
         
         proof = await zkp.prove_tax_compliance(
@@ -140,7 +140,7 @@ class TestmTLSIntegration:
     
     def test_mtls_initialization(self):
         """Test mTLS initializes correctly"""
-        from security.mtls import MTLSManager
+        from core.security.mtls import MTLSManager
         mtls = MTLSManager()
         
         status = mtls.status()
@@ -149,7 +149,7 @@ class TestmTLSIntegration:
     
     def test_ssl_context_creation(self):
         """Test SSL context creation for mTLS"""
-        from security.mtls import MTLSManager
+        from core.security.mtls import MTLSManager
         mtls = MTLSManager()
         
         try:
@@ -163,7 +163,7 @@ class TestmTLSIntegration:
     @pytest.mark.asyncio
     async def test_client_cert_verification(self):
         """Test client certificate verification"""
-        from security.mtls import MTLSManager
+        from core.security.mtls import MTLSManager
         mtls = MTLSManager()
         
         # Test with dummy cert data
@@ -250,9 +250,9 @@ class TestCompleteIntegration:
     @pytest.mark.asyncio
     async def test_system_status(self):
         """Get complete system status"""
-        from security.hsm_production import get_hsm
-        from security.zkp_production import get_zkp
-        from security.mtls import get_mtls
+        from core.security.hsm_production import get_hsm
+        from core.security.zkp_production import get_zkp
+        from core.security.mtls import get_mtls
         from database.migrations.postgresql import get_migration
         from models.nepal.whisper_finetune import get_nepali_asr
         

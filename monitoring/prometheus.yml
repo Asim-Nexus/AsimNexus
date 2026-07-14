@@ -1,0 +1,64 @@
+# AsimNexus Prometheus Configuration
+# ====================================
+# Scrapes the AsimNexus backend /metrics endpoint and self-awareness metrics.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: asimnexus
+    environment: production
+
+# Alerting rules
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # ── AsimNexus Backend ──────────────────────────────────────
+  - job_name: "asimnexus-backend"
+    scrape_interval: 10s
+    metrics_path: "/metrics"
+    scheme: http
+    static_configs:
+      - targets: ["backend:8000"]
+        labels:
+          service: backend
+          tier: api
+
+  # ── Self-Awareness Metrics ─────────────────────────────────
+  - job_name: "asimnexus-self-awareness"
+    scrape_interval: 30s
+    metrics_path: "/api/self/knowledge/summary"
+    scheme: http
+    static_configs:
+      - targets: ["backend:8000"]
+        labels:
+          service: self-awareness
+          tier: monitoring
+
+  # ── Node Exporter (host metrics) ───────────────────────────
+  - job_name: "node"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          service: node-exporter
+          tier: infrastructure
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  - job_name: "postgres"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: postgres
+          tier: database
+
+  # ── Redis ──────────────────────────────────────────────────
+  - job_name: "redis"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: redis
+          tier: cache

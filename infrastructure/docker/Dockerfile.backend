@@ -1,0 +1,56 @@
+# AsimNexus Backend Dockerfile (infrastructure/docker)
+# ====================================================
+# Production multi-stage build
+# Build: docker build -f infrastructure/docker/Dockerfile.backend -t asimnexus-backend .
+
+# ── Stage 1: Build Dependencies ──────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make libssl-dev libffi-dev libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    grep -vi "cudf\|cupy-cuda\|^torch\|sentence-transformers" requirements.txt > /tmp/requirements-docker.txt && \
+    pip install --no-cache-dir --use-deprecated=legacy-resolver -r /tmp/requirements-docker.txt
+
+# ── Stage 2: Runtime ─────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+RUN groupadd -r asimnexus && useradd -r -g asimnexus -d /app -s /sbin/nologin asimnexus
+
+# ── Copy application code ────────────────────────────────────
+COPY app.py .
+COPY asim_config.py .
+COPY core/ ./core/
+COPY routes/ ./routes/
+COPY data/ ./data/
+COPY database/ ./database/
+COPY monitoring/ ./monitoring/
+COPY infrastructure/ ./infrastructure/
+COPY knowledge/ ./knowledge/
+COPY models/ ./models/
+COPY scripts/ ./scripts/
+
+RUN mkdir -p /app/data /app/logs /app/models && \
+    chown -R asimnexus:asimnexus /app
+
+EXPOSE 8000
+USER asimnexus
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health/live || exit 1
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--limit-concurrency", "1000"]

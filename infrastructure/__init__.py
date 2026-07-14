@@ -1,4 +1,17 @@
-# Infrastructure Compliance Package
-from .gcloud_compliance import GCloudCompliance
+"""
+Infrastructure Package
+=====================
+Cloud compliance, AI infrastructure, and Docker deployment files.
+"""
 
-__all__ = ['GCloudCompliance']
+from .gcloud_compliance import GCloudCompliance
+from .ai_infrastructure import (
+    NVIDIAFactory,
+    ModalServerless,
+)
+
+__all__ = [
+    'GCloudCompliance',
+    'NVIDIAFactory',
+    'ModalServerless',
+]

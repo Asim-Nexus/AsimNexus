@@ -20,25 +20,24 @@ from datetime import datetime, timedelta
 
 # ── Import All Economy Modules ───────────────────────────────────────────────
 
-from economy.wallet import (
+from core.economy.wallet import (
     WalletEngine, get_wallet_engine, reset_wallet_engine,
 )
-from economy.tokens import (
+from core.economy.tokens import (
     TokenRegistry, initialize_default_tokens, get_token_registry, reset_token_registry,
 )
-from economy.escrow import (
+from core.economy.escrow import (
     EscrowEngine, get_escrow_engine, reset_escrow_engine,
 )
-from economy.marketplace import (
+from core.economy.marketplace import (
     MarketplaceEngine, get_marketplace_engine, reset_marketplace_engine,
 )
-from economy.staking import (
+from core.economy.staking import (
     StakingEngine, get_staking_engine, reset_staking_engine,
 )
 from core.security.real_zkp import (
     RealZKPManager, ZKProof, get_zkp_manager_real,
 )
-
 
 # ── Data file paths to clear between tests ───────────────────────────────────
 
@@ -50,11 +49,9 @@ _DATA_FILES = [
     StakingEngine.LEDGER_PATH,
 ]
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # Fixtures
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.fixture(autouse=True)
 def reset_all():
@@ -81,47 +78,38 @@ def reset_all():
     reset_marketplace_engine()
     reset_staking_engine()
 
-
 @pytest.fixture
 def wallet():
     return get_wallet_engine()
 
-
 @pytest.fixture
 def tokens():
     return get_token_registry()
-
 
 @pytest.fixture
 async def initialized_tokens(tokens):
     await initialize_default_tokens(tokens)
     return tokens
 
-
 @pytest.fixture
 def escrow():
     return get_escrow_engine()
-
 
 @pytest.fixture
 def marketplace():
     return get_marketplace_engine()
 
-
 @pytest.fixture
 def staking():
     return get_staking_engine()
-
 
 @pytest.fixture
 def zkp():
     return get_zkp_manager_real()
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 1: Economy Wallet — Full Lifecycle
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_wallet_full_lifecycle(wallet):
@@ -182,11 +170,9 @@ async def test_e2e_wallet_full_lifecycle(wallet):
     assert stats["total_transactions"] >= 3  # deposit(1), transfer(1), withdraw(1)
     assert stats["frozen_wallets"] == 1
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 2: Token Registry — Full Lifecycle
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_token_full_lifecycle(initialized_tokens):
@@ -248,11 +234,9 @@ async def test_e2e_token_full_lifecycle(initialized_tokens):
     assert stats["total_tokens"] >= 4  # NEXUS, SVT, HDT, E2E
     assert stats["total_holdings"] >= 1
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 3: Escrow — Full Lifecycle with Dispute
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_escrow_dispute_lifecycle(escrow):
@@ -313,11 +297,9 @@ async def test_e2e_escrow_dispute_lifecycle(escrow):
     assert stats["total_escrows"] >= 1
     assert stats["resolved_disputes"] >= 1
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 4: Marketplace — Full Commerce Lifecycle
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_marketplace_full_flow(marketplace):
@@ -388,11 +370,9 @@ async def test_e2e_marketplace_full_flow(marketplace):
     assert stats["completed_orders"] >= 1
     assert stats["total_revenue"] >= 500.0  # 2 * 250
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 5: Staking — Full Rewards Lifecycle
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_staking_full_lifecycle(staking):
@@ -464,11 +444,9 @@ async def test_e2e_staking_full_lifecycle(staking):
     assert stats["total_stake_positions"] >= 1
     assert stats["total_rewards_distributed"] > 0
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 6: ZKP — Privacy Proof Lifecycle
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 def test_e2e_zkp_full_lifecycle(zkp):
     """
@@ -515,11 +493,9 @@ def test_e2e_zkp_full_lifecycle(zkp):
     assert stats["total_commitments"] >= 2
     assert "verifier_key_hash" in stats
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 7: Cross-System Integration
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_cross_system_integration(
@@ -631,11 +607,9 @@ async def test_e2e_cross_system_integration(
     staking_stats = await staking.get_stats()
     assert staking_stats["total_stake_positions"] >= 1
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 8: Error Recovery
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_error_recovery_patterns(wallet, escrow, marketplace):
@@ -691,11 +665,9 @@ async def test_e2e_error_recovery_patterns(wallet, escrow, marketplace):
     lst_final = await marketplace.get_listing(lst.listing_id)
     assert lst_final.available == 0  # 1 available, 1 ordered
 
-
 # ═════════════════════════════════════════════════════════════════════════════
 # E2E Flow 9: Economy System Statistics
 # ═════════════════════════════════════════════════════════════════════════════
-
 
 @pytest.mark.asyncio
 async def test_e2e_economy_statistics(wallet, initialized_tokens, escrow, marketplace, staking):

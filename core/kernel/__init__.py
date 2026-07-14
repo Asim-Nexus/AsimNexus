@@ -1,13 +1,18 @@
+"""AsimNexus Kernel module."""
 
-"""
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
+# Re-export from root-level module: event_bus.py
+from core.event_bus import (
+    ASIMEvent,
+    ASIMEventBus,
+    AllocationPriority,
+    EventType,
+    event_bus,
+)
 
-"""
-Core Kernel - Micro-kernel for ASIMNEXUS
-This module contains the micro-kernel logic that runs on all devices.
-"""
 
-from .kernel import ASIMKernel, get_kernel
+# Re-export from root-level module: platform.py
+from core.platform import (
+    PlatformManager,
+    get_platform_manager,
+)
 
-__all__ = ['ASIMKernel', 'get_kernel']

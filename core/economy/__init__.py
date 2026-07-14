@@ -16,6 +16,7 @@ Central wiring point for all economy subsystems:
 - JobMarketplace (SQLite-backed job board)
 - DecentralizedTaskBus (distributed task execution)
 - TokenBridge (cross-chain bridge)
+- LedgerEngine (double-entry accounting ledger)
 """
 
 from .job_marketplace import marketplace, JobMarketplace, JobStatus, PaymentStatus, JobCategory
@@ -87,8 +88,19 @@ from .token_bridge import (
     reset_token_bridge,
 )
 
-# Also wire the user-facing NexusCredits from economy/
-from economy.nexus_credits import (
+# Saga Orchestrator for distributed transactions
+from .saga_orchestrator import (
+    SagaOrchestrator,
+    SagaTransaction,
+    SagaStep,
+    SagaStatus,
+    SagaStepStatus,
+    get_saga_orchestrator,
+    reset_saga_orchestrator,
+)
+
+# Also wire the user-facing NexusCredits (now local)
+from .nexus_credits import (
     NexusCredits,
     NexusCredit,
     Transaction,
@@ -100,7 +112,39 @@ from economy.nexus_credits import (
     reset_nexus_credits,
 )
 
+# Ledger Engine — Double-Entry Accounting (Stripe/Visa pattern)
+from .ledger_engine import (
+    LedgerEngine,
+    JournalEntry,
+    AccountBalance,
+    AccountType,
+    EntrySide,
+    CHART_OF_ACCOUNTS,
+    NEPAL_TAX_RATES,
+    get_ledger_engine,
+    reset_ledger_engine,
+)
+
+
+# Re-export from root-level module: plugin_marketplace.py
+from core.plugin_marketplace import (
+    Marketplace,
+    PluginSDK,
+    get_marketplace,
+    get_plugin_sdk,
+    reset_plugin_system,
+)
+
+
 __all__ = [
+    # Saga Orchestrator
+    "SagaOrchestrator",
+    "SagaTransaction",
+    "SagaStep",
+    "SagaStatus",
+    "SagaStepStatus",
+    "get_saga_orchestrator",
+    "reset_saga_orchestrator",
     # Contract Executor
     "ContractExecutor",
     "ContractStatus",
@@ -177,4 +221,14 @@ __all__ = [
     "JobStatus",
     "PaymentStatus",
     "JobCategory",
+    # Ledger Engine
+    "LedgerEngine",
+    "JournalEntry",
+    "AccountBalance",
+    "AccountType",
+    "EntrySide",
+    "CHART_OF_ACCOUNTS",
+    "NEPAL_TAX_RATES",
+    "get_ledger_engine",
+    "reset_ledger_engine",
 ]

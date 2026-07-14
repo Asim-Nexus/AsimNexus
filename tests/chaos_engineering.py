@@ -26,7 +26,6 @@ if PROJECT_ROOT not in sys.path:
 # ──────────────────────────────────────────────────────────────────────────── #
 _import_orig = __builtins__["__import__"] if isinstance(__builtins__, dict) else __builtins__.__import__
 
-
 def _patched_import(name, *args, **kwargs):
     if name == "mesh.p2p_transport":
         mod = _import_orig(name, *args, **kwargs)
@@ -48,20 +47,17 @@ def _patched_import(name, *args, **kwargs):
         return mod
     return _import_orig(name, *args, **kwargs)
 
-
 if isinstance(__builtins__, dict):
     __builtins__["__import__"] = _patched_import
 else:
     __builtins__.__import__ = _patched_import
 
-
 @pytest.fixture(scope="module")
 def app():
     """Build a FastAPI app once per module."""
     with patch("backend.mesh.setup_mesh_routes", lambda app, node_id="local": None):
-        from simple_backend import create_app
-        return create_app()
-
+        from app import app as backend_app
+        return backend_app
 
 @pytest.fixture
 def client(app):
@@ -69,7 +65,6 @@ def client(app):
     from fastapi.testclient import TestClient
     with TestClient(app) as c:
         yield c
-
 
 class TestChaosEngineering:
     """Real chaos engineering tests with dependency injection failures."""

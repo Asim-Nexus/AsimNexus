@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: asimnexus
+
+commonLabels:
+  app.kubernetes.io/name: asimnexus
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - pvc.yaml
+  - serviceaccount.yaml
+  - networkpolicy.yaml
+  - pdb.yaml
+
+images:
+  - name: ghcr.io/asimnexus/asimnexus
+    newTag: latest

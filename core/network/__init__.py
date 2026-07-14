@@ -1,27 +1,18 @@
-
-"""
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
-
-"""
-ASIMNEXUS Network Module
-========================
-
-P2P networking, DHT, and mesh routing for decentralized operations.
-"""
-
+"""Network package for P2P networking and mesh routing."""
 from .p2p_network import (
     P2PNetwork,
     DHTNode,
     MeshRouter,
     Peer,
-    NetworkMessage
+    NetworkMessage,
+    PeerState,
 )
 
 __all__ = [
-    'P2PNetwork',
-    'DHTNode',
-    'MeshRouter',
-    'Peer',
-    'NetworkMessage'
+    "P2PNetwork",
+    "DHTNode",
+    "MeshRouter",
+    "Peer",
+    "NetworkMessage",
+    "PeerState",
 ]

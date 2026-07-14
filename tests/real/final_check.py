@@ -7,7 +7,6 @@ All systems integrated and ready for production.
 import sys
 sys.path.insert(0, '.')
 
-
 def main():
     print("=" * 60)
     print("ASIMNEXUS FINAL INTEGRATION STATUS CHECK")
@@ -19,7 +18,7 @@ def main():
         ("Sandbox System", lambda: __import__('core.sandbox.sandbox')),
         ("Veto Engine", lambda: __import__('core.dharma_chakra.veto_engine')),
         ("Life Journey", lambda: __import__('core.life_journey')),
-        ("Power Balance", lambda: __import__('security.power_balance_constitution')),
+        ("Power Balance", lambda: __import__('core.security.power_balance_constitution')),
         ("Mesh P2P", lambda: __import__('mesh.p2p_transport')),
         ("OS Control", lambda: __import__('os_control')),
         ("Tool Guard", lambda: __import__('core.sandbox.executor')),
@@ -46,7 +45,6 @@ def main():
         print("Ready for production deployment.")
     else:
         print(f"\n{failed} systems need attention")
-
 
 if __name__ == "__main__":
     main()

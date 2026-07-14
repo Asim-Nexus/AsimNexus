@@ -22,7 +22,6 @@ from core.agi_core import ReasoningMode
 from core.quantum_bridge import QuantumAlgorithm, QuantumProvider
 from core.blockchain_identity_advanced import BlockchainNetwork, AttestationType
 
-
 async def test_complete_integration():
     """Test complete integration of all 21 components"""
     print("=" * 70)
@@ -214,7 +213,6 @@ async def test_complete_integration():
         print("\n[Cleanup] Shutting down...")
         await asim.shutdown()
         print("[OK] Shutdown complete")
-
 
 if __name__ == "__main__":
     asyncio.run(test_complete_integration())

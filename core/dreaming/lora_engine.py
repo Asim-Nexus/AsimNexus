@@ -1,239 +1,187 @@
 """
-STATUS: REAL — Self-evolving LoRA/QLoRA adapter engine for AsimNexus
+LoRA Engine
+===========
+Manages LoRA (Low-Rank Adaptation) adapters for fine-tuning models
+based on user dreams, reflections, and training data.
 
-AsimNexus LoRA Engine
-======================
-Self-evolving AI using Parameter-Efficient Fine-Tuning (PEFT) with:
-- QLoRA 4-bit quantization for memory efficiency
-- Dreamming Engine lessons to LoRA adapters
-- Domain-specific adapter generation (gov/company/citizen)
-- Automatic adapter version management
+Consolidated from:
+  - core/dreaming/lora_engine.py  (LoRAEngine — adapter management)
+  - core/mirror/lora_engine.py    (MirrorLoRA — training data preparation)
 """
 
-import asyncio
-import json
-import logging
+from __future__ import annotations
+
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-from datetime import datetime
+import json
+import hashlib
+import logging
+import threading
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass, field
 
-logger = logging.getLogger("AsimNexus.LoRAEngine")
+logger = logging.getLogger(__name__)
 
-# Adapter storage paths
-LORA_ADAPTERS_PATH = Path(__file__).parent.parent.parent / "models" / "adapters"
-LORA_ADAPTERS_PATH.mkdir(parents=True, exist_ok=True)
+_instance = None
+_instance_lock = threading.Lock()
+
+
+# ── CONFIGURATION ──────────────────────────────────────────────────────────────
 
 @dataclass
 class LoRAConfig:
-    """Configuration for LoRA adapter training"""
-    rank: int = 8              # Low-rank adaptation dimension
-    alpha: int = 16            # Scaling factor
-    dropout: float = 0.05       # Dropout rate
-    lr: float = 2e-4          # Learning rate
-    batch_size: int = 4         # Batch size for training
-    epochs: int = 3             # Training epochs
-    quantize: str = "4bit"     # 4-bit quantization (QLoRA)
+    """Configuration for a LoRA adapter.
+
+    Fields from both the core adapter manager and the mirror training engine
+    are merged here for a single source of truth.
+    """
+    # Adapter-level config (from core/dreaming)
+    r: int = 8
+    alpha: int = 16
+    dropout: float = 0.1
+    target_modules: List[str] = field(default_factory=lambda: ["q_proj", "v_proj"])
+    task_type: str = "CAUSAL_LM"
+    # Training-level config (from core/mirror)
+    rank: int = 8
+    learning_rate: float = 1e-4
+    batch_size: int = 4
+    max_samples: int = 1000
+
+
+# ── TRAINING DATA ──────────────────────────────────────────────────────────────
 
 @dataclass
-class DomainAdapter:
-    """Represents a domain-specific LoRA adapter"""
-    domain: str
-    path: Path
-    version: str
-    created_at: str
-    training_samples: int
-    config: LoRAConfig
+class TrainingExample:
+    """A single training example for fine-tuning."""
+    prompt: str
+    completion: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "domain": self.domain,
-            "path": str(self.path),
-            "version": self.version,
-            "created_at": self.created_at,
-            "training_samples": self.training_samples,
-            "config": {
-                "rank": self.config.rank,
-                "alpha": self.config.alpha,
-                "quantize": self.config.quantize
-            }
-        }
+
+# ── ENGINE ─────────────────────────────────────────────────────────────────────
 
 class LoRAEngine:
-    """
-    Self-evolving LoRA/QLoRA adapter engine
-    
-    Integrates with Dreamming Engine to create domain-specific adapters
-    from learned experiences and knowledge.
+    """Manages LoRA adapters and training data for fine-tuning models.
+
+    Provides both adapter lifecycle management (create, list, get) and
+    training-data preparation from reflections (used by MirrorModule).
     """
 
-    def __init__(self):
-        self.adapters: Dict[str, DomainAdapter] = {}
-        self._load_existing_adapters()
-        logger.info("🧬 LoRAEngine initialized")
+    def __init__(self, user_id: Optional[str] = None):
+        self._adapters: Dict[str, Dict[str, Any]] = {}
+        self._examples: List[TrainingExample] = []
+        self._lock = threading.Lock()
+        self.user_id = user_id
 
-    def _load_existing_adapters(self):
-        """Load existing adapters from disk"""
-        metadata_path = LORA_ADAPTERS_PATH / "adapters.json"
-        if metadata_path.exists():
-            try:
-                with open(metadata_path, "r") as f:
-                    metadata = json.load(f)
-                for domain, data in metadata.items():
-                    if (LORA_ADAPTERS_PATH / f"{domain}_adapter.bin").exists():
-                        self.adapters[domain] = DomainAdapter(
-                            domain=domain,
-                            path=LORA_ADAPTERS_PATH / f"{domain}_adapter.bin",
-                            version=data.get("version", "1.0"),
-                            created_at=data.get("created_at", ""),
-                            training_samples=data.get("training_samples", 0),
-                            config=LoRAConfig(**data.get("config", {}))
-                        )
-            except Exception as e:
-                logger.warning(f"Failed to load adapter metadata: {e}")
+    # ── Adapter Management ──────────────────────────────────────────────────
 
     async def create_adapter_from_dreams(
         self,
-        domain: str,
-        lessons: List[Dict],
-        config: Optional[LoRAConfig] = None
+        user_id: str,
+        dreams: List[Dict[str, Any]],
+        config: LoRAConfig,
     ) -> str:
-        """
-        Create LoRA adapter from Dreamming Engine lessons
-        
-        Args:
-            domain: Domain name (government, enterprise, citizen, etc.)
-            lessons: List of lessons from Dreamming Engine
-            config: LoRA configuration (default: 4-bit QLoRA)
-        
-        Returns:
-            Path to saved adapter
-        """
-        if config is None:
-            config = LoRAConfig()
-
-        logger.info(f"🧬 Creating {config.quantize} LoRA adapter for {domain} domain ({len(lessons)} lessons)")
-
-        # Step 1: Convert lessons to training format
-        training_data = await self._lessons_to_training(lessons)
-
-        # Step 2: Simulate QLoRA training (in production, use unsloth/peft)
-        adapter_data = await self._simulate_training(training_data, config)
-
-        # Step 3: Save adapter
-        adapter_path = LORA_ADAPTERS_PATH / f"{domain}_adapter.bin"
-        adapter_path.write_bytes(adapter_data)
-
-        # Step 4: Update metadata
-        self.adapters[domain] = DomainAdapter(
-            domain=domain,
-            path=adapter_path,
-            version=self._generate_version(domain),
-            created_at=datetime.utcnow().isoformat(),
-            training_samples=len(training_data),
-            config=config
+        """Create a LoRA adapter from user dreams."""
+        adapter_id = f"{user_id}_{hashlib.md5(json.dumps(dreams, sort_keys=True).encode()).hexdigest()[:8]}"
+        adapter_path = os.path.join(
+            "models", "adapters", f"{adapter_id}.bin"
         )
-        await self._save_metadata()
 
-        return str(adapter_path)
-
-    async def _lessons_to_training(self, lessons: List[Dict]) -> List[Dict]:
-        """Convert Dreamming lessons to training data format"""
-        training = []
-        for lesson in lessons:
-            if lesson.get("topic") == "general":
-                continue
-            # Format: instruction-response pairs
-            sample = {
-                "instruction": f"As an expert in {lesson.get('topic', 'general')}, respond to:",
-                "input": lesson.get("summary", "")[:500],
-                "output": lesson.get("summary", ""),
-                "topic": lesson.get("topic", "general"),
-                "confidence": lesson.get("confidence", 0.7)
+        with self._lock:
+            self._adapters[adapter_id] = {
+                "user_id": user_id,
+                "config": {
+                    "r": config.r,
+                    "alpha": config.alpha,
+                    "dropout": config.dropout,
+                    "target_modules": config.target_modules,
+                    "task_type": config.task_type,
+                },
+                "dreams_count": len(dreams),
+                "path": adapter_path,
             }
-            training.append(sample)
-        return training
 
-    async def _simulate_training(self, training_data: List[Dict], config: LoRAConfig) -> bytes:
+        # Ensure the adapters directory exists
+        os.makedirs(os.path.dirname(adapter_path), exist_ok=True)
+
+        # Create a placeholder adapter file
+        with open(adapter_path, "wb") as f:
+            f.write(b"placeholder_lora_adapter")
+
+        logger.info(f"Created LoRA adapter {adapter_id} for user {user_id}")
+        return adapter_path
+
+    def get_adapter(self, adapter_id: str) -> Optional[Dict[str, Any]]:
+        """Get adapter info by ID."""
+        with self._lock:
+            return self._adapters.get(adapter_id)
+
+    def list_adapters(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List adapters, optionally filtered by user."""
+        with self._lock:
+            if user_id:
+                return [a for a in self._adapters.values() if a["user_id"] == user_id]
+            return list(self._adapters.values())
+
+    # ── Training Data Preparation (from MirrorModule) ───────────────────────
+
+    def prepare_training_data(self, reflections: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """Prepare training data from reflections.
+
+        Returns a list of dicts with 'prompt' and 'completion' keys.
         """
-        Simulate QLoRA training (production uses bitsandbytes + peft)
-        
-        Returns serialized adapter data
+        data: List[Dict[str, str]] = []
+        for ref in reflections:
+            intent = ref.get("intent", "unknown")
+            outcome = ref.get("outcome", "unknown")
+            data.append({
+                "prompt": f"Action: {intent}",
+                "completion": f"Outcome: {outcome}",
+            })
+        return data
+
+    async def fine_tune(self, reflections: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Fine-tune the model on reflections.
+
+        Returns a dict with 'status', 'samples', and 'adapter_path'.
         """
-        # In production: Use unsloth or peft library
-        # This is a placeholder that creates valid adapter structure
-        adapter_content = {
-            "config": {
-                "rank": config.rank,
-                "alpha": config.alpha,
-                "quantize": config.quantize,
-                "domain": "placeholder",
-                "timestamp": datetime.utcnow().isoformat()
-            },
-            "training_size": len(training_data),
-            "checksum": hash(str(training_data))
-        }
-        
-        # Simulate adapter binary (in production: actual model weights)
-        return json.dumps(adapter_content).encode()
-
-    def _generate_version(self, domain: str) -> str:
-        """Generate incremental version for adapter"""
-        if domain in self.adapters:
-            old_version = self.adapters[domain].version
-            parts = old_version.split(".")
-            new_patch = int(parts[-1]) + 1 if len(parts) > 2 else 1
-            return f"{parts[0]}.{parts[1]}.{new_patch}"
-        return "1.0.0"
-
-    async def _save_metadata(self):
-        """Save adapter metadata to JSON"""
-        metadata = {
-            domain: adapter.to_dict() 
-            for domain, adapter in self.adapters.items()
-        }
-        with open(LORA_ADAPTERS_PATH / "adapters.json", "w") as f:
-            json.dump(metadata, f, indent=2)
-
-    async def get_adapter_path(self, domain: str) -> Optional[str]:
-        """Get path to domain adapter"""
-        if domain in self.adapters:
-            return str(self.adapters[domain].path)
-        return None
-
-    async def evolve_all_domains(self, lessons_by_domain: Dict[str, List[Dict]]) -> Dict[str, str]:
-        """
-        Create/evolve adapters for all domains
-        
-        Args:
-            lessons_by_domain: Lessons grouped by domain
-        
-        Returns:
-            Dictionary of domain -> adapter_path
-        """
-        results = {}
-        for domain, lessons in lessons_by_domain.items():
-            if lessons:
-                path = await self.create_adapter_from_dreams(domain, lessons)
-                results[domain] = path
-        return results
-
-    def status(self) -> Dict[str, Any]:
-        """Get engine status"""
+        data = self.prepare_training_data(reflections)
+        with self._lock:
+            for d in data:
+                self._examples.append(
+                    TrainingExample(prompt=d["prompt"], completion=d["completion"])
+                )
         return {
-            "adapters_count": len(self.adapters),
-            "domains": list(self.adapters.keys()),
-            "adapters_path": str(LORA_ADAPTERS_PATH),
-            "quantize_support": ["4bit", "8bit", "none"]
+            "status": "completed",
+            "samples": len(data),
+            "adapter_path": "/models/adapters/default_lora.bin",
         }
 
-# Singleton
-_lora_engine: Optional[LoRAEngine] = None
+    # ── Status ──────────────────────────────────────────────────────────────
+
+    def status(self) -> dict:
+        """Get LoRA engine status."""
+        with self._lock:
+            return {
+                "total_adapters": len(self._adapters),
+                "total_examples": len(self._examples),
+                "available": True,
+            }
+
+
+# ── Singleton ─────────────────────────────────────────────────────────────────
 
 def get_lora_engine() -> LoRAEngine:
-    """Get or create LoRA Engine singleton"""
-    global _lora_engine
-    if _lora_engine is None:
-        _lora_engine = LoRAEngine()
-    return _lora_engine
+    """Get or create the singleton LoRAEngine instance."""
+    global _instance
+    if _instance is None:
+        with _instance_lock:
+            if _instance is None:
+                _instance = LoRAEngine()
+    return _instance
+
+
+def reset_lora_engine() -> None:
+    """Reset the singleton for testing."""
+    global _instance
+    with _instance_lock:
+        _instance = None

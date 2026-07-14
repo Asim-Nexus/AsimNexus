@@ -116,7 +116,7 @@ def test_lora_engine_integration():
 def test_sms_gateway():
     """Test SMS gateway"""
     try:
-        from mesh.sms_gateway import get_sms_gateway
+        from core.mesh.sms_gateway import get_sms_gateway
         gateway = get_sms_gateway()
         
         status = gateway.status()

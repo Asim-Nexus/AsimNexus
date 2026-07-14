@@ -1,0 +1,229 @@
+# ASIMNEXUS Production Docker Compose (infrastructure/docker)
+# ===========================================================
+# Production-grade deployment
+#
+# Usage:
+#   docker compose -f infrastructure/docker/docker-compose.prod.yml up -d
+#   docker compose -f infrastructure/docker/docker-compose.prod.yml down
+
+services:
+  backend:
+    image: ghcr.io/asimnexus/asimnexus:latest
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://asimnexus:${POSTGRES_PASSWORD}@postgres:5432/asimnexus
+      - ASIM_NODE_ID=backend-${HOSTNAME}
+      - ASIM_ENVIRONMENT=production
+      - ASIM_COUNTRY=NP
+      - PYTHONUNBUFFERED=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+      - JWT_SECRET=${JWT_SECRET:-change-me-to-a-random-64-char-hex-string}
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - ASIM_LOG_LEVEL=INFO
+      - ASIM_DATA_DIR=/app/data
+      - ASIM_DB_PATH=/app/data/asim_core.db
+      - ASIM_MEMORY_PATH=/app/data/memory
+      - ASIM_CLONE_STORAGE_PATH=/app/data/memory/clones
+      - ASIM_VECTOR_DB_PATH=/app/data/vector_memory.db
+      - ASIM_CHROMA_PATH=/app/data/chromadb
+      - ASIM_KNOWLEDGE_DIR=/app/data/self_knowledge
+      - ASIM_SYNC_DB_PATH=/app/data/offline_sync.jsonl
+      - ASIM_LIFE_DB_PATH=/app/data/life_journey.jsonl
+      - ASIM_POWER_BALANCE_DB_PATH=/app/data/power_balance_constitution.jsonl
+      - ASIM_LEVEL3_AUDIT_DB=/app/data/level3_audit.db
+      - ASIM_GOV_AUDIT_DB_PATH=/app/data/governance_audit.jsonl
+      - ASIM_GOV_DB_PATH=/app/data/national_gov_layer.jsonl
+      - ASIM_ANCHOR_DB_PATH=/app/data/constitution_anchors.jsonl
+      - ASIM_FED_DATA_DIR=/app/data/federation
+      - ASIM_COMPLIANCE_CROSS_BORDER_DB=/app/data/cross_border_compliance.jsonl
+      - ASIM_MESH_DB_PATH=/app/data/mesh_routing.jsonl
+      - ASIM_MESH_NODE_REGISTRY_DB=/app/data/node_registry.db
+      - ASIM_AGENT_CONTRACT_DB_PATH=/app/data/agent_contracts.jsonl
+      - ASIM_DHARMA_AUDIT_MAX=10000
+      - ASIM_VETO_AUDIT_MAX=10000
+      - ASIM_GOV_AUDIT_MAX=100000
+      - ASIM_LOCAL_MODEL_ENABLED=false
+      - ASIM_CLOUD_ENABLED=true
+      - ASIM_CLOUD_URL=https://api.asim-nexus.ai
+      - ASIM_SECURITY_MODE=strict
+      - ASIM_REQUIRE_MTLS=false
+      - ASIM_REQUIRE_OAUTH2=false
+      - ASIM_TEST_MODE=false
+      - ASIM_RELEASE_CHANNEL=stable
+      - ASIM_LOCALE=ne-NP
+      - ASIM_LANGUAGE=ne
+      - ASIM_CURRENCY=NPR
+      - ASIM_SINGLE_MACHINE_PEERS=
+      - OFFLINE_MODE=false
+    env_file:
+      - ../../.env
+    volumes:
+      - asimnexus_data:/app/data
+      - asimnexus_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health/live" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    image: ghcr.io/asimnexus/asimnexus-frontend:latest
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:80/" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: asimnexus
+      POSTGRES_USER: asimnexus
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    secrets:
+      - postgres_password
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U asimnexus" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+
+volumes:
+  asimnexus_data:
+  asimnexus_logs:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

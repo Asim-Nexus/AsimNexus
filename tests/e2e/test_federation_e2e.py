@@ -22,7 +22,6 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-
 @pytest.fixture
 def fed_manager_a(monkeypatch, tmp_path):
     """Create federation manager A (node_a) with isolated data dir."""
@@ -40,7 +39,6 @@ def fed_manager_a(monkeypatch, tmp_path):
     manager = gf_mod.get_federation()
     return manager
 
-
 @pytest.fixture
 def fed_manager_b(monkeypatch, tmp_path):
     """Create federation manager B (node_b) with isolated data dir."""
@@ -57,7 +55,6 @@ def fed_manager_b(monkeypatch, tmp_path):
 
     manager = gf_mod.get_federation()
     return manager
-
 
 class TestFederationE2E:
     """End-to-end tests for federation between two nodes."""

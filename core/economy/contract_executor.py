@@ -519,7 +519,7 @@ class ContractExecutor:
         transfer_success = False
         transfer_tx_id = None
         try:
-            from economy.nexus_credits import get_nexus_credits
+            from core.economy.nexus_credits import get_nexus_credits
             nc = get_nexus_credits()
             if nc:
                 if amount > 0:

@@ -1,0 +1,1 @@
+"""AsimNexus Routes module."""

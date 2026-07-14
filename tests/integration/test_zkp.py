@@ -19,7 +19,7 @@ class TestZKPProduction:
     @pytest.mark.asyncio
     async def test_zkp_initialization(self):
         """Test ZKP singleton creation"""
-        from security.zkp_production import get_zkp
+        from core.security.zkp_production import get_zkp
         zkp = get_zkp()
         
         status = zkp.status()
@@ -29,7 +29,7 @@ class TestZKPProduction:
     @pytest.mark.asyncio
     async def test_identity_proof(self):
         """Test identity proof generation"""
-        from security.zkp_production import get_zkp
+        from core.security.zkp_production import get_zkp
         zkp = get_zkp()
         
         citizen_data = {
@@ -48,7 +48,7 @@ class TestZKPProduction:
     @pytest.mark.asyncio
     async def test_tax_compliance_proof(self):
         """Test tax compliance proof"""
-        from security.zkp_production import get_zkp
+        from core.security.zkp_production import get_zkp
         zkp = get_zkp()
         
         proof = await zkp.prove_tax_compliance(
@@ -63,7 +63,7 @@ class TestZKPProduction:
     @pytest.mark.asyncio
     async def test_proof_verification(self):
         """Test proof verification"""
-        from security.zkp_production import get_zkp
+        from core.security.zkp_production import get_zkp
         zkp = get_zkp()
         
         proof = await zkp.prove_identity({

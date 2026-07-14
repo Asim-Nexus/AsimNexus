@@ -4,18 +4,15 @@ Phase 3: Monitoring & Security Tests
 import pytest
 from fastapi.testclient import TestClient
 
-
 def test_monitoring_middleware_exists():
     """Monitoring middleware module exists and has required class."""
     from core.monitoring_middleware import PrometheusMonitoringMiddleware
     assert PrometheusMonitoringMiddleware is not None
 
-
 def test_security_headers_middleware_exists():
     """Security headers middleware module exists and has required class."""
     from core.security_headers_middleware import SecurityHeadersMiddleware
     assert SecurityHeadersMiddleware is not None
-
 
 def test_metrics_endpoint():
     """Metrics endpoint returns valid structure."""
@@ -23,8 +20,10 @@ def test_metrics_endpoint():
     client = TestClient(app)
     response = client.get("/metrics")
     assert response.status_code == 200
-    assert "status" in response.json()
-
+    data = response.json()
+    # The metrics dict contains system metrics keys (auth, dreaming, evolution, etc.)
+    assert isinstance(data, dict)
+    assert len(data) > 0
 
 def test_security_headers_present():
     """Security headers are present in responses."""
@@ -37,7 +36,6 @@ def test_security_headers_present():
     assert response.headers["X-Frame-Options"] == "DENY"
     assert "Strict-Transport-Security" in response.headers
 
-
 def test_vapt_status_endpoint():
     """VAPT status endpoint returns security check results."""
     from app import app
@@ -49,7 +47,6 @@ def test_vapt_status_endpoint():
     assert "data" in data
     assert "checks" in data.get("data", {})
 
-
 def test_disaster_recovery_backup():
     """Disaster recovery backup endpoint works."""
     from app import app
@@ -58,7 +55,6 @@ def test_disaster_recovery_backup():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-
 
 def test_disaster_recovery_list_backups():
     """List backups endpoint works."""

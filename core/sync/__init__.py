@@ -1,15 +1,10 @@
-"""
-AsimNexus Sync Bridge
-=====================
-Provides the offline_sync module's public API via core.sync namespace.
+"""AsimNexus Sync — Offline sync engine with CRDT-based conflict resolution."""
 
-Exports:
-    OpType       — Enum: CREATE, UPDATE, DELETE
-    SyncEngine   — Sync engine wrapper (enqueue, flush, status, stats)
-    get_sync_engine  — Singleton factory
-    reset_sync_engine — Reset singleton (for testing)
-"""
+from .offline_sync import SyncEngine, OpType, get_sync_engine, reset_sync_engine
 
-from core.sync.offline_sync import OpType, SyncEngine, get_sync_engine, reset_sync_engine
-
-__all__ = ["OpType", "SyncEngine", "get_sync_engine", "reset_sync_engine"]
+__all__ = [
+    "SyncEngine",
+    "OpType",
+    "get_sync_engine",
+    "reset_sync_engine",
+]

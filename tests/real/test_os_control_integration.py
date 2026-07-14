@@ -7,7 +7,6 @@ Test sandbox execution for OS tools.
 import sys
 sys.path.insert(0, '.')
 
-
 def test_os_control():
     """Test OS Control with sandbox integration."""
     print("=== OS CONTROL + SANDBOX INTEGRATION ===")
@@ -15,7 +14,7 @@ def test_os_control():
     # Test 1: Tool Registry
     print("[1/3] Tool Registry...")
     try:
-        from os_control.tool_registry import tool_registry
+        from core.orchestrator.tool_registry import tool_registry
         if tool_registry:
             tools = list(tool_registry._tools.keys())
             print(f"  Tools registered: {len(tools)}")
@@ -45,7 +44,6 @@ def test_os_control():
         print(f"  Error: {e}")
     
     print("=== INTEGRATION COMPLETE ===")
-
 
 if __name__ == "__main__":
     test_os_control()

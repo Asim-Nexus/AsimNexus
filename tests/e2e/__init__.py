@@ -1,3 +1,1 @@
-"""
-STATUS: REAL — E2E test suite for AsimNexus
-"""
+"""E2E test suite for AsimNexus."""

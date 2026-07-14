@@ -1,46 +1,79 @@
-"""
-AsimNexus — Nepal Integration Module
-=====================================
-Nepal-specific features: banking, telecom, government, language, and culture.
+"""AsimNexus Nepal — Nepal-specific integrations (banking, government, language, tax, telecom)."""
 
-Sub-modules:
-    banking_integrations    — eSewa, Khalti, ConnectIPS, etc.
-    telecom_integrations    — NTC, Ncell, SmartCell
-    government_integrations — Nagarik App, DoIT, e-ID bridge
-    language_support        — Nepali NLP, Devanagari utilities
-    cultural_features       — Festival calendar, cultural context
-"""
-
-from core.nepal.banking_integrations import (
-    get_banking_status,
-    get_supported_payment_methods,
-    process_payment,
+from .banking_integrations import (
+    NepalBankingIntegration,
+    PaymentProvider,
+    PaymentRequest,
+    PaymentResponse,
+    PaymentStatus,
+    WebhookEventType,
+    WebhookPayload,
+    WebhookVerifier,
+    IdempotencyStore,
+    LedgerSyncEngine,
+    SecretManager,
+    get_banking_integration,
+    reset_banking_integration,
 )
-from core.nepal.telecom_integrations import (
-    get_telecom_status,
-    get_supported_operators,
-    send_sms,
-)
-from core.nepal.government_integrations import (
-    get_government_status,
-    get_eid_countries,
-    verify_identity,
-)
-from core.nepal.language_support import (
-    get_language_status,
-    transliterate,
-    detect_language,
-)
-from core.nepal.cultural_features import (
+from .cultural_features import (
+    get_cultural_context,
     get_cultural_status,
     get_festival_calendar,
-    get_cultural_context,
+    get_upcoming_festivals,
+)
+from .government_integrations import (
+    get_eid_countries,
+    get_government_status,
+    verify_identity,
+)
+from .language_support import (
+    detect_language,
+    get_language_status,
+    transliterate,
+)
+from .tax_llm import (
+    NepalTaxLLM,
+    TaxBracket,
+    TaxLiability,
+    get_tax_llm,
+)
+from .telecom_integrations import (
+    detect_operator,
+    get_supported_operators,
+    get_telecom_status,
+    send_sms,
 )
 
 __all__ = [
-    "get_banking_status", "get_supported_payment_methods", "process_payment",
-    "get_telecom_status", "get_supported_operators", "send_sms",
-    "get_government_status", "get_eid_countries", "verify_identity",
-    "get_language_status", "transliterate", "detect_language",
-    "get_cultural_status", "get_festival_calendar", "get_cultural_context",
+    "NepalBankingIntegration",
+    "PaymentProvider",
+    "PaymentRequest",
+    "PaymentResponse",
+    "PaymentStatus",
+    "WebhookEventType",
+    "WebhookPayload",
+    "WebhookVerifier",
+    "IdempotencyStore",
+    "LedgerSyncEngine",
+    "SecretManager",
+    "get_banking_integration",
+    "reset_banking_integration",
+    "get_cultural_context",
+    "get_cultural_status",
+    "get_festival_calendar",
+    "get_upcoming_festivals",
+    "get_eid_countries",
+    "get_government_status",
+    "verify_identity",
+    "detect_language",
+    "get_language_status",
+    "transliterate",
+    "NepalTaxLLM",
+    "TaxBracket",
+    "TaxLiability",
+    "get_tax_llm",
+    "detect_operator",
+    "get_supported_operators",
+    "get_telecom_status",
+    "send_sms",
 ]

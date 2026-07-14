@@ -9,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from core.security.bulletproof_zkp import commit, prove_knowledge, verify, BulletProofZKP, P, G, H
 
-
 class TestPedersenCommitment:
     def test_commit_is_hiding(self):
         c1, r1 = commit(42)
@@ -21,7 +20,6 @@ class TestPedersenCommitment:
         c, _ = commit(v, r)
         expected = (pow(G, v, P) * pow(H, r, P)) % P
         assert c == expected
-
 
 class TestSchnorrProof:
     def test_honest_proof_verifies(self):
@@ -40,7 +38,6 @@ class TestSchnorrProof:
         proof = prove_knowledge(v, r, "test")
         proof["s1"] = (proof["s1"] + 1)  # tamper
         assert verify(proof, "test") is False
-
 
 class TestBulletProofZKP:
     def test_create_and_verify(self):

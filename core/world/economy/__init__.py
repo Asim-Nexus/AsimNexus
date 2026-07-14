@@ -1,30 +1,22 @@
-
 """
-STATUS: PARTIAL — Auto-labeled by batch_label.py
+Economy module — Resource-Based Economy algorithm.
 """
-
-"""
-ASIMNEXUS World Economy Module
-==============================
-
-Resource-Based Economy (RBE) implementation:
-- Equilibrium resource distribution
-- Waste reduction optimization
-- Sustainable resource allocation
-"""
-
-from .rbe_algorithm import (
+from core.world.economy.rbe_algorithm import (
     RBEAlgorithm,
     Resource,
     ResourcePool,
     DemandRequest,
-    AllocationResult
+    AllocationResult,
+    ResourceType,
+    PriorityLevel,
 )
 
 __all__ = [
-    'RBEAlgorithm',
-    'Resource',
-    'ResourcePool',
-    'DemandRequest',
-    'AllocationResult'
+    "RBEAlgorithm",
+    "Resource",
+    "ResourcePool",
+    "DemandRequest",
+    "AllocationResult",
+    "ResourceType",
+    "PriorityLevel",
 ]

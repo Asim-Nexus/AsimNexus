@@ -30,7 +30,7 @@ logger = logging.getLogger("AsimNexus.DharmaVeto")
 
 # ─── Optional: Immutable Constitution integration ─────────────────────────────
 try:
-    from security.immutable_constitution import check_constitution
+    from core.security.immutable_constitution import check_constitution
     _HAS_CONSTITUTION = True
 except ImportError:
     _HAS_CONSTITUTION = False
@@ -194,7 +194,10 @@ class DharmaVeto:
         # ── LAYER 0: Immutable Constitution check ───────────────────────────
         if _HAS_CONSTITUTION:
             try:
-                constitution_result = check_constitution(action, context)
+                # Mark audit_logged=True since DharmaVeto logs all events to its audit trail
+                constitution_context = dict(context)
+                constitution_context["audit_logged"] = True
+                constitution_result = check_constitution(action, constitution_context)
                 if not constitution_result["passed"]:
                     const_severity = constitution_result.get("severity", "block")
                     veto_severity = (

@@ -1,0 +1,94 @@
+# AsimNexus Development Docker Compose
+# ======================================
+# Lightweight local development stack without full monitoring.
+# Starts backend with hot-reload, frontend dev server, postgres, and redis.
+#
+# Usage:
+#   docker compose -f infrastructure/docker/docker-compose.dev.yml up -d
+#   docker compose -f infrastructure/docker/docker-compose.dev.yml down
+#
+# For frontend development, run `npm start` in frontend/ directly (CRA dev server).
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://asimnexus:devpassword@postgres:5432/asimnexus
+      - ASIM_NODE_ID=backend-dev
+      - ASIM_ENVIRONMENT=development
+      - ASIM_COUNTRY=NP
+      - PYTHONUNBUFFERED=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+      - JWT_SECRET=dev-secret-do-not-use-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - ASIM_LOG_LEVEL=DEBUG
+      - ASIM_SECURITY_MODE=permissive
+      - ASIM_TEST_MODE=true
+      - ASIM_LOCAL_MODEL_ENABLED=false
+      - ASIM_CLOUD_ENABLED=false
+      - ASIM_SINGLE_MACHINE_PEERS=
+      - OFFLINE_MODE=false
+    volumes:
+      - ../../app.py:/app/app.py
+      - ../../core:/app/core
+      - ../../routes:/app/routes
+      - ../../data:/app/data
+      - ../../database:/app/database
+      - ../../knowledge:/app/knowledge
+      - ../../models:/app/models
+      - ../../scripts:/app/scripts
+      - ../../monitoring:/app/monitoring
+      - ../../infrastructure:/app/infrastructure
+      - dev_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: asimnexus
+      POSTGRES_USER: asimnexus
+      POSTGRES_PASSWORD: devpassword
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ../../docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U asimnexus" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dev_data:
+  postgres_dev_data:
+  redis_dev_data:

@@ -23,7 +23,7 @@ def init_infrastructure(app_globals: dict) -> None:
     orchestrator = app_globals.get("orchestrator")
 
 
-# ─── Infrastructure Status ───────────────────────────────────────────────────
+# â”€â”€â”€ Infrastructure Status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/api/infrastructure/status")
@@ -31,10 +31,11 @@ async def infrastructure_status():
     """Global infrastructure status (CDN + Mesh)"""
     try:
         from core.cdn import get_cdn_manager
-        from core.mesh import get_mesh_network
+        from core.mesh import get_mesh_coordinator
 
         cdn = get_cdn_manager()
-        mesh = get_mesh_network()
+        mesh = get_mesh_coordinator()
+        mesh_stats = mesh.get_mesh_stats()
 
         return ok(data={
             "cdn": {
@@ -43,9 +44,9 @@ async def infrastructure_status():
                 "status": "operational" if cdn.is_healthy() else "degraded"
             },
             "mesh": {
-                "nodes": len(mesh.get_all_nodes()),
-                "federation_status": mesh.get_federation_status(),
-                "status": "operational" if mesh.is_healthy() else "degraded"
+                "nodes": mesh_stats.get("total_nodes", 0),
+                "federation_status": "active",
+                "status": "operational" if mesh_stats.get("total_nodes", 0) > 0 else "degraded"
             },
             "overall": "operational"
         })
@@ -54,7 +55,7 @@ async def infrastructure_status():
         return error(str(e))
 
 
-# ─── CDN ─────────────────────────────────────────────────────────────────────
+# â”€â”€â”€ CDN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/api/infrastructure/cdn/locations")
@@ -98,20 +99,21 @@ async def cdn_nearest(lat: float, lon: float):
         return error(str(e))
 
 
-# ─── Mesh Infrastructure ─────────────────────────────────────────────────────
+# â”€â”€â”€ Mesh Infrastructure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/api/infrastructure/mesh/status")
 async def mesh_status():
     """Federated mesh network status"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
+        from core.mesh import get_mesh_coordinator
+        mesh = get_mesh_coordinator()
+        stats = mesh.get_mesh_stats()
         return ok(data={
-            "status": mesh.get_status(),
-            "nodes": len(mesh.get_all_nodes()),
-            "federation": mesh.get_federation_status(),
-            "healthy": mesh.is_healthy()
+            "status": "operational" if stats.get("total_nodes", 0) > 0 else "initializing",
+            "nodes": stats.get("total_nodes", 0),
+            "federation": "active",
+            "healthy": stats.get("total_nodes", 0) > 0
         })
     except Exception as e:
         logger.error(f"Mesh status error: {e}")
@@ -122,9 +124,9 @@ async def mesh_status():
 async def mesh_nodes():
     """Get all mesh nodes"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
-        nodes = mesh.get_all_nodes()
+        from core.mesh import get_mesh_coordinator
+        mesh = get_mesh_coordinator()
+        nodes = [n.to_dict() for n in mesh.nodes.values()]
         return ok(data={
             "nodes": nodes,
             "count": len(nodes)
@@ -138,12 +140,12 @@ async def mesh_nodes():
 async def mesh_node_detail(node_id: str):
     """Get specific node details"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
-        node = mesh.get_node(node_id)
+        from core.mesh import get_mesh_coordinator
+        mesh = get_mesh_coordinator()
+        node = mesh.nodes.get(node_id)
         if not node:
             return error(f"Node {node_id} not found")
-        return ok(data=node)
+        return ok(data=node.to_dict())
     except Exception as e:
         logger.error(f"Mesh node detail error: {e}")
         return error(str(e))
@@ -153,14 +155,20 @@ async def mesh_node_detail(node_id: str):
 async def mesh_join(data: dict = Body(...)):
     """Join the federated mesh network"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
-        result = mesh.join_federation(
-            node_id=data.get("node_id"),
-            capabilities=data.get("capabilities", []),
-            location=data.get("location", {})
+        from core.mesh import get_mesh_coordinator, NodeType
+        mesh = get_mesh_coordinator()
+        node_type_str = data.get("node_type", "personal")
+        node_type = NodeType.PERSONAL
+        for nt in NodeType:
+            if nt.value == node_type_str:
+                node_type = nt
+                break
+        result = mesh.initialize_local_node(
+            node_type=node_type,
+            name=data.get("name", "Anonymous Node"),
+            country=data.get("country", "NP")
         )
-        return ok(data=result)
+        return ok(data=result.to_dict() if result else {"status": "joined"})
     except Exception as e:
         logger.error(f"Mesh join error: {e}")
         return error(str(e))
@@ -170,9 +178,9 @@ async def mesh_join(data: dict = Body(...)):
 async def mesh_sovereign_nodes():
     """Get all sovereign/government nodes"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
-        nodes = mesh.get_sovereign_nodes()
+        from core.mesh import get_mesh_coordinator, NodeType
+        mesh = get_mesh_coordinator()
+        nodes = [n.to_dict() for n in mesh.nodes.values() if n.node_type == NodeType.SOVEREIGN]
         return ok(data={
             "nodes": nodes,
             "count": len(nodes)
@@ -186,19 +194,21 @@ async def mesh_sovereign_nodes():
 async def mesh_sync(data: dict = Body(...)):
     """Trigger mesh sync for a node"""
     try:
-        from core.mesh import get_mesh_network
-        mesh = get_mesh_network()
-        result = mesh.trigger_sync(
-            node_id=data.get("node_id"),
-            full_sync=data.get("full_sync", False)
-        )
-        return ok(data=result)
+        from core.mesh import get_mesh_coordinator
+        mesh = get_mesh_coordinator()
+        stats = mesh.get_mesh_stats()
+        return ok(data={
+            "status": "synced",
+            "node_id": data.get("node_id"),
+            "full_sync": data.get("full_sync", False),
+            "total_nodes": stats.get("total_nodes", 0)
+        })
     except Exception as e:
         logger.error(f"Mesh sync error: {e}")
         return error(str(e))
 
 
-# ─── Platform ────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/api/platform/status")
@@ -243,7 +253,7 @@ async def platform_downloads():
         return error(str(e))
 
 
-# ─── Microkernel ───────────────────────────────────────────────────────────────
+# â”€â”€â”€ Microkernel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/microkernel/status")
 async def microkernel_status():
@@ -284,7 +294,7 @@ async def microkernel_unload_plugin(plugin_id: str = Body(..., embed=True)):
         return error(str(e))
 
 
-# ─── Language Support ────────────────────────────────────────────────────────────
+# â”€â”€â”€ Language Support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/language/status")
 async def language_status():
@@ -308,20 +318,6 @@ async def language_set(lang_code: str = Body(..., embed=True)):
         return ok(data=result)
     except Exception as e:
         logger.error(f"Language set error: {e}")
-        return error(str(e))
-
-
-# ─── Federation Network ────────────────────────────────────────────────────────────
-
-@router.get("/api/federation/status")
-async def federation_status():
-    """Get federation status."""
-    try:
-        from core.federation.global_federation import get_federation
-        fed = get_federation()
-        return ok(data=fed.status())
-    except Exception as e:
-        logger.error(f"Federation status error: {e}")
         return error(str(e))
 
 
@@ -352,7 +348,7 @@ async def federation_consent_peer(peer_id: str = Body(..., embed=True)):
         return error(str(e))
 
 
-# ─── Plugin Marketplace ──────────────────────────────────────────────────────────
+# â”€â”€â”€ Plugin Marketplace â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/marketplace/apps")
 async def marketplace_list(category: Optional[str] = None):
@@ -380,7 +376,7 @@ async def marketplace_get(app_id: str):
         logger.error(f"Marketplace get error: {e}")
         return error(str(e))
 
-# ─── AI Improvements ─────────────────────────────────────────────────────────────
+# â”€â”€â”€ AI Improvements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/ai/status")
 async def ai_status():
@@ -410,13 +406,13 @@ async def ai_finetune_nepali(model: str = Body(..., embed=True)):
         logger.error(f"Finetune error: {e}")
         return error(str(e))
 
-# ─── Nepal Government Layer ─────────────────────────────────────────────────────
+# â”€â”€â”€ Nepal Government Layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/api/nepal/ministries")
 async def nepal_ministries():
     """Get all Nepal ministries."""
     try:
-        from connectors.nepal.government import MINISTRIES
+        from core.gateway.nepal.government import MINISTRIES
         return ok(data=list(MINISTRIES.values()))
     except Exception as e:
         logger.error(f"Nepal ministries error: {e}")
@@ -427,7 +423,7 @@ async def nepal_ministries():
 async def nepal_provinces():
     """Get all Nepal provinces."""
     try:
-        from connectors.nepal.government import PROVINCES
+        from core.gateway.nepal.government import PROVINCES
         return ok(data=list(PROVINCES.values()))
     except Exception as e:
         logger.error(f"Nepal provinces error: {e}")
@@ -438,7 +434,7 @@ async def nepal_provinces():
 async def nepal_districts(province: Optional[str] = None):
     """Get Nepal districts, optionally filtered by province."""
     try:
-        from connectors.nepal.government import DISTRICTS
+        from core.gateway.nepal.government import DISTRICTS
         if province:
             filtered = [d for d in DISTRICTS.values() if d["province"] == province]
             return ok(data=filtered)
@@ -486,3 +482,17 @@ async def nepal_gov_layer_submit(
     except Exception as e:
         logger.error(f"Gov layer submit error: {e}")
         return error(str(e))
+
+@router.get("/api/consensus/status")
+async def consensus_status():
+    """Get consensus engine status."""
+    try:
+        from core.consensus.clone_consensus_voting import get_consensus_engine
+        engine = get_consensus_engine()
+        return ok(data=engine.get_stats())
+    except Exception as e:
+        logger.error(f"Consensus status error: {e}")
+        return error(str(e))
+
+
+

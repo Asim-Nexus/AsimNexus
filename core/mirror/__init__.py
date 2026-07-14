@@ -1,24 +1,31 @@
 """
 AsimNexus Mirror Module
 =======================
-Digital Twin for every user - reflection and evolution engine.
+Digital Twin for every user with full self-evolution capabilities.
+- LoRA/QLoRA Auto Fine-Tuning
+- Dreaming Engine for pattern discovery
+- Log analysis from StructuredLogger
+- Integration with Data Lake for OLAP analytics
+- Code improvement via evolution engine
 """
 
-from .mirror_module import MirrorModule, MirrorReflection
-from .consciousness import ConsciousnessLayer, Thought, ThoughtType, MirrorState, MirrorDailyReport
+from __future__ import annotations
+
+from .consciousness import ConsciousnessLayer, Thought, ThoughtType
+from .mirror_module import MirrorModule, MirrorReflection, EvolutionSuggestion, get_mirror
 from .lora_engine import MirrorLoRA
 from .dreaming_engine import DreamingEngine, Dream, DreamType
 
 __all__ = [
-    "MirrorModule",
-    "ConsciousnessLayer", 
-    "MirrorLoRA",
-    "DreamingEngine",
-    "MirrorReflection",
+    "ConsciousnessLayer",
     "Thought",
     "ThoughtType",
-    "MirrorState",
-    "MirrorDailyReport",
+    "MirrorModule",
+    "MirrorReflection",
+    "EvolutionSuggestion",
+    "get_mirror",
+    "MirrorLoRA",
+    "DreamingEngine",
     "Dream",
     "DreamType",
 ]

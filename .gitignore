@@ -48,6 +48,36 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Forensic reports
+forensics/
+forensic_report_*.json
+
+# Binary data files
+*.bin
+*.data
+*.index
+*.chroma
+
+# TPM keys
+data/tpm_keys/
+
+# Vector store binaries
+knowledge/vector_store/
+
+# Model adapters
+models/adapters/
+
+# Audit databases
+core/security/level3_audit.db
+core/audit_store.json
+
+# Worktree sandbox
+worktree_sandbox/
+
+# Old backups
+backups/
+.backups/
 .env.*.local
 
 # Temporary files
@@ -69,11 +99,34 @@ opencode/
 
 # Testing
 .pytest_cache/
+
+# Runtime data lake artifacts
+data/data_lake/aggregations/
+data/data_lake/snapshots/
+data/data_lake/views/
+
+# Runtime databases
+data/*.db
+data/*.jsonl
+
+# Runtime evolution/federation/mirror data
+data/evolution/
+data/federation/
+data/mirror/
+data/self_awareness/
+
+# ChromaDB vector store
+data/chromadb/
+
+# Runtime stats/logs
+stats_output.txt
+server.log
 .coverage
 htmlcov/
 
 # Docker
 docker-compose.override.yml
+infrastructure/docker/secrets/
 node_modules/
 
 # AsimNexus — Large files & test data
@@ -141,6 +194,12 @@ critical_questions_answers.py
 practical_tasks.py
 _techpana_article.html
 
+# AsimNexus — Stale audit scripts (development only)
+scripts/audit/
+
+# AsimNexus — Archive of old plans and test outputs
+.kilo/archive/
+
 # AsimNexus — Temporary / generated files
 _odysseus_temp/
 query
@@ -192,3 +251,7 @@ core/data/chromadb/
 core/data/mesh_messages/*.json
 deploy/release/*.json
 deploy/release/*.jsonl
+
+# HuggingFace / ML model download caches (regenerable, must not be committed)
+models/
+**/models--*/

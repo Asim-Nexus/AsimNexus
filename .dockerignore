@@ -1,68 +1,79 @@
+# AsimNexus .dockerignore
+# ========================
+# Exclude unnecessary files from Docker build context for faster builds.
+
 # Version control
-.git/
-.gitattributes
+.git
 .gitignore
+.gitattributes
+.github
+
+# Environment
+.env
+.env.*
+*.env
 
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
+*.so
 *.egg-info/
+dist/
+build/
+.eggs/
+*.egg
 .venv/
 venv/
 env/
-*.egg
-dist/
-build/
 
-# Node.js
+# Node / Frontend (handled separately in frontend Dockerfile)
 node_modules/
 frontend/node_modules/
-frontend/react/node_modules/
 frontend/build/
-frontend/react/build/
+frontend/.cache
 
-# IDE & OS
+# IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Data
-data/*.db
-data/*.sqlite
-data/*.jsonl
+# Logs
 *.log
+/logs/
 
-# Models (LLM weights are too large for Docker)
-models/
-*.gguf
-*.ggml
-*.bin
+# Data (persistent volumes, not in image)
+/data/
+/database/*.db
+/database/*.sqlite
 
-# Secrets & Config
-.env
-.env.*
-*.key
-*.pem
-*.cert
-config/secrets*.yml
-
-# Test & temp
-tests/results/
-test-results/
-*.report.json
-coverage/
-htmlcov/
-.coverage
-.plans/
-worktree_sandbox/
-
-# Documentation
+# Documentation (not needed at runtime)
 docs/
 plans/
-README.md
-STATUS.md
+*.md
+LICENSE-*
+
+# Tests (not needed at runtime)
+tests/
+_test_*.py
+_live_test.py
+
+# Scripts (not needed at runtime)
+scripts/
+*.ps1
+
+# Monitoring configs (mounted separately)
+monitoring/
+
+# Infrastructure configs (mounted separately)
+infrastructure/
+
+# Models (downloaded at runtime or mounted)
+models/*.bin
+models/*.gguf

@@ -1,66 +1,51 @@
-"""
-core/federation/__init__.py
-AsimNexus — Federation Protocol & Global Governance
-"""
+"""AsimNexus Federation — Cross-instance federation protocol and governance."""
 
+from .federation_manager import FederationManager
+from .federation_protocol_enhanced import (
+    FederationHandshake,
+    HeartbeatMonitor,
+    PeerHealthRecord,
+    PeerStatus,
+    HandshakeStatus,
+    MessageType,
+    SyncScope,
+    ConsensusVoteMessage,
+    SyncStateMessage,
+    create_did_challenge,
+    verify_handshake_signature,
+)
+from .global_federation_governor import (
+    GlobalFederationGovernor,
+    FederationEvent,
+    FederationEventType,
+    JoinProposal,
+    ProposalStatus,
+    reset_global_federation_governor,
+)
 from .global_federation import (
-    GCounter,
-    LWWRegister,
-    ORSet,
-    FederatedPeer,
-    FederatedNodeState,
     GlobalFederationManager,
     get_federation,
 )
 
-from .federation_protocol_enhanced import (
-    FederationHandshake,
-    HandshakeStatus,
-    HeartbeatMonitor,
-    MessageType,
-    PeerStatus,
-    SyncStateMessage,
-    ConsensusVoteMessage,
-    SyncScope,
-    PeerHealthRecord,
-)
-
-from .global_federation_governor import (
-    GlobalFederationGovernor,
-    JoinProposal,
-    ProposalStatus,
-    FederationEvent,
-    FederationEventType,
-    get_global_federation_governor,
-    reset_global_federation_governor,
-)
-
 __all__ = [
-    # CRDT primitives
-    'GCounter',
-    'LWWRegister',
-    'ORSet',
-    # Peer / state
-    'FederatedPeer',
-    'FederatedNodeState',
-    'GlobalFederationManager',
-    'get_federation',
-    # Enhanced protocol
-    'FederationHandshake',
-    'HandshakeStatus',
-    'HeartbeatMonitor',
-    'MessageType',
-    'PeerStatus',
-    'SyncStateMessage',
-    'ConsensusVoteMessage',
-    'SyncScope',
-    'PeerHealthRecord',
-    # Global governor
-    'GlobalFederationGovernor',
-    'JoinProposal',
-    'ProposalStatus',
-    'FederationEvent',
-    'FederationEventType',
-    'get_global_federation_governor',
-    'reset_global_federation_governor',
+    "FederationManager",
+    "FederationHandshake",
+    "HeartbeatMonitor",
+    "PeerHealthRecord",
+    "PeerStatus",
+    "HandshakeStatus",
+    "MessageType",
+    "SyncScope",
+    "ConsensusVoteMessage",
+    "SyncStateMessage",
+    "create_did_challenge",
+    "verify_handshake_signature",
+    "GlobalFederationGovernor",
+    "FederationEvent",
+    "FederationEventType",
+    "JoinProposal",
+    "ProposalStatus",
+    "reset_global_federation_governor",
+    "GlobalFederationManager",
+    "get_federation",
 ]

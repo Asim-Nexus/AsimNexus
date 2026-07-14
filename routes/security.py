@@ -310,7 +310,7 @@ async def security_compliance():
 async def vapt_status():
     """Get VAPT security audit status"""
     try:
-        from compliance.vapt_process import VAPTProcess
+        from core.compliance.vapt_process import VAPTProcess
         vapt = VAPTProcess()
         return ok(data=vapt.run_security_check())
     except Exception as e:
@@ -398,4 +398,120 @@ async def constitution_status():
         return ok(data=anchor.get_status())
     except Exception as e:
         logger.error(f"Constitution status error: {e}")
+        return error(str(e))
+
+
+# ─── Phase 4 — TPM Hardware Key Status ────────────────────────────────────────
+
+
+@router.get("/api/security/tpm/status")
+async def tpm_status():
+    """Get TPM 2.0 hardware security module status (Phase 4)."""
+    try:
+        from core.security.tpm_binding import get_tpm_binding
+        tpm = get_tpm_binding()
+        status = tpm.get_status()
+        return ok(data={
+            "tpm_initialized": status.get("initialized", False),
+            "provider": status.get("provider", "unknown"),
+            "key_count": status.get("key_count", 0),
+            "constitution_anchored": status.get("constitution_anchored", False),
+            "phase": "Phase 4 — Apple Secure Enclave Pattern",
+        })
+    except Exception as e:
+        logger.error(f"TPM status error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/security/tpm/keys")
+async def tpm_keys():
+    """List all TPM-bound hardware keys (Phase 4)."""
+    try:
+        from core.security.tpm_binding import get_tpm_binding
+        tpm = get_tpm_binding()
+        keys = tpm.list_keys()
+        return ok(data={
+            "keys": [k.to_dict() for k in keys],
+            "count": len(keys),
+        })
+    except Exception as e:
+        logger.error(f"TPM keys error: {e}")
+        return error(str(e))
+
+
+@router.post("/api/security/tpm/key/generate")
+async def tpm_generate_key(data: dict = Body(...)):
+    """Generate a new TPM-bound hardware key (Phase 4)."""
+    try:
+        from core.security.tpm_binding import get_tpm_binding, KeyType
+        tpm = get_tpm_binding()
+        key_type_str = data.get("key_type", "SIGNING")
+        key_type = KeyType(key_type_str) if hasattr(KeyType, key_type_str) else KeyType.SIGNING
+        key = tpm.generate_key(
+            key_type=key_type,
+            key_id=data.get("key_id"),
+            metadata=data.get("metadata", {}),
+        )
+        return ok(data=key.to_dict())
+    except Exception as e:
+        logger.error(f"TPM generate key error: {e}")
+        return error(str(e))
+
+
+# ─── Phase 4 — Level-3 with TPM Hardware Key ──────────────────────────────────
+
+
+@router.post("/api/confirm/level3/tpm/verify")
+async def level3_tpm_verify(data: dict = Body(...)):
+    """
+    Phase 4 — Apple Secure Enclave Pattern Verification.
+    
+    Uses TPM 2.0 LEVEL3_APPROVAL signing key for hardware-backed
+    cryptographic challenge-response. Biometric match required
+    before the TPM chip signs the challenge.
+    """
+    try:
+        from core.security.level3_confirmation import get_level3_confirmation_system
+        l3_system = get_level3_confirmation_system()
+        verifier = l3_system.biometric_verifier
+
+        result = await verifier.verify_with_tpm_hardware_key(
+            user_id=data.get("user_id"),
+            action_id=data.get("action_id"),
+            challenge=data.get("challenge"),
+        )
+
+        return ok(data={
+            "status": result.status.value,
+            "verified": result.verified,
+            "method": result.method,
+            "zkp_proof": result.zkp_proof,
+            "hardware_bound": True,
+            "phase": "Phase 4 — Apple Secure Enclave Pattern",
+        })
+    except Exception as e:
+        logger.error(f"Level-3 TPM verify error: {e}")
+        return error(str(e))
+
+
+@router.get("/api/confirm/level3/tpm/key-status")
+async def level3_tpm_key_status():
+    """Get Level-3 TPM hardware key status (Phase 4)."""
+    try:
+        from core.security.level3_confirmation import get_level3_confirmation_system
+        l3_system = get_level3_confirmation_system()
+        verifier = l3_system.biometric_verifier
+
+        tpm_available = verifier._tpm is not None
+        key_id = verifier._level3_key_id
+
+        return ok(data={
+            "tpm_available": tpm_available,
+            "level3_key_id": key_id,
+            "hardware_bound": tpm_available and key_id is not None,
+            "pattern": "Apple Secure Enclave — biometric match required before TPM signs",
+            "phase": "Phase 4",
+        })
+    except Exception as e:
+        logger.error(f"Level-3 TPM key status error: {e}")
         return error(str(e))

@@ -36,7 +36,6 @@ from core.agent_contract import (
     AGENT_CONTRACT_DB_PATH,
 )
 
-
 @pytest.fixture(autouse=True)
 def clean_system():
     """Reset singleton and clean DB file before each test."""
@@ -50,12 +49,10 @@ def clean_system():
     yield
     reset_agent_contract_system()
 
-
 @pytest.fixture
 def contract_system():
     """Create a fresh AgentContractSystem."""
     return AgentContractSystem()
-
 
 @pytest.fixture
 def sample_scope():
@@ -69,7 +66,6 @@ def sample_scope():
         allowed_mesh_types=["local", "personal"],
         max_concurrent_tasks=5,
     )
-
 
 class TestContractLifecycleE2E:
     """End-to-end tests for the full Agent Contract lifecycle."""

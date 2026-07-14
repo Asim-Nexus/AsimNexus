@@ -80,14 +80,16 @@ class IntegrationTester:
                     status = resp.status
                     try:
                         result = await resp.json()
-                    except:
+                    except Exception as e:
+                        logger.exception("Bare except fixed at line 83")
                         result = {"text": await resp.text()}
             elif method == "POST":
                 async with session.post(url, json=data, timeout=10) as resp:
                     status = resp.status
                     try:
                         result = await resp.json()
-                    except:
+                    except Exception as e:
+                        logger.exception("Bare except fixed at line 90")
                         result = {"text": await resp.text()}
             else:
                 return False, {"error": f"Unknown method {method}"}

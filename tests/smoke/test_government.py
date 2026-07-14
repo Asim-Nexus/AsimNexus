@@ -4,13 +4,28 @@ STATUS: REAL — Relocated smoke test
 ASIMNEXUS Phase 5: Government Integration Test
 ================================================
 Test all government endpoints
+
+NOTE: Requires a running server at BASE_URL.
+Set ASIM_SERVER_RUNNING=1 to skip server check.
 """
 
 import requests
 import json
+import os
+import sys
 from datetime import datetime
 
 BASE_URL = "http://127.0.0.1:8000"
+
+def _server_available() -> bool:
+    """Check if the server is running."""
+    if os.environ.get("ASIM_SERVER_RUNNING", "").lower() in ("1", "true", "yes"):
+        return True
+    try:
+        resp = requests.get(f"{BASE_URL}/health/live", timeout=2)
+        return resp.status_code == 200
+    except Exception:
+        return False
 
 def _test_endpoint(url, name, method='GET', data=None):
     """Test a single endpoint"""
@@ -208,8 +223,11 @@ def test_government():
         print(f"\n⚠️ {total - passed} test(s) failed")
     
     print("=" * 60)
-    return passed == total
+    assert passed == total, f"{total - passed} test(s) failed"
 
 if __name__ == "__main__":
+    if not _server_available():
+        print(f"⚠️  Server at {BASE_URL} not available. Set ASIM_SERVER_RUNNING=1 to force.")
+        sys.exit(0)  # Skip gracefully
     success = test_government()
     exit(0 if success else 1)

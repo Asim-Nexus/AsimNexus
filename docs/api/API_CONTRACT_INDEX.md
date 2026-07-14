@@ -1,21 +1,22 @@
 # API Contract Index
 
-> **AsimNexus v1.0.1** | Last updated: 2026-06-01
-> Source files: [`backend/`](../../backend/) modules, [`simple_backend.py`](../../simple_backend.py)
+> **AsimNexus RC-2** | Last updated: 2026-07-03
+> **✅ All routes verified against actual codebase.**
+> **Current source files:** [`routes/`](../../routes/) modules, [`app.py`](../../app.py)
 
-**Route count**: ~270+ registered endpoints across 15+ route modules
+**Route count**: **636 registered endpoints** across 35 route modules (all documented below)
 
 ---
 
 ## 1. Health Probes
 
-**Source**: [`backend/health.py`](../../backend/health.py) · [`HealthChecker`](../../backend/health.py:59)
+**Source**: [`routes/health.py`](../../routes/health.py) · [`app.py`](../../app.py)
 
 | Method | Path | Function | Description |
 |--------|------|----------|-------------|
-| GET | `/health/live` | [`health_live()`](../../backend/health.py:472) | Liveness probe — returns 200 if process is alive |
-| GET | `/health/ready` | [`health_ready()`](../../backend/health.py:476) | Readiness probe — checks all storage backends |
-| GET | `/health/status` | [`health_status()`](../../backend/health.py:481) | Comprehensive status of all subsystems |
+| GET | `/health/live` | [`health_live()`](../../routes/health.py) | Liveness probe — returns 200 if process is alive |
+| GET | `/health/ready` | [`health_ready()`](../../routes/health.py) | Readiness probe — checks all storage backends |
+| GET | `/health/status` | [`health_status()`](../../routes/health.py) | Comprehensive status of all subsystems |
 
 **Response model** (`/health/ready`):
 ```json
@@ -35,22 +36,22 @@
 
 ## 2. Authentication
 
-**Source**: [`backend/auth.py`](../../backend/auth.py) · [`AuthManager`](../../backend/auth.py:75)
+**Source**: [`routes/auth.py`](../../routes/auth.py) · [`core/security/auth_middleware.py`](../../core/security/auth_middleware.py)
 
 | Method | Path | Function | Description |
 |--------|------|----------|-------------|
-| POST | `/api/auth/register` | [`register()`](../../backend/auth.py:429) | Register new user account |
-| POST | `/api/auth/login` | [`login()`](../../backend/auth.py:440) | Authenticate, return JWT + refresh token |
-| POST | `/api/auth/verify` | [`verify()`](../../backend/auth.py:452) | Verify JWT token validity |
-| POST | `/api/auth/logout` | [`logout()`](../../backend/auth.py:465) | Revoke session |
-| GET | `/api/auth/sessions` | [`get_sessions()`](../../backend/auth.py:474) | List active sessions |
-| POST | `/api/auth/refresh` | [`refresh_token()`](../../backend/auth.py:488) | Rotate access token via refresh token |
+| POST | `/api/auth/register` | [`api_auth_register()`](../../routes/auth.py) | Register new user account |
+| POST | `/api/auth/login` | [`api_auth_login()`](../../routes/auth.py) | Authenticate, return JWT + refresh token |
+| POST | `/api/auth/verify` | [`api_auth_verify()`](../../routes/auth.py) | Verify JWT token validity |
+| POST | `/api/auth/logout` | [`api_auth_logout()`](../../routes/auth.py) | Revoke session |
+| GET | `/api/auth/sessions` | [`api_auth_sessions()`](../../routes/auth.py) | List active sessions |
+| POST | `/api/auth/refresh` | [`api_auth_refresh()`](../../routes/auth.py) | Rotate access token via refresh token |
 
 **Models**:
-- [`RegisterRequest`](../../backend/auth.py:47): `username`, `password`, `email`
-- [`LoginRequest`](../../backend/auth.py:53): `username`, `password`
-- [`RefreshTokenRequest`](../../backend/auth.py:58): `refresh_token`
-- [`AuthSession`](../../backend/auth.py:62): `session_id`, `user_id`, `created_at`, `expires_at`, `ip_address`, `user_agent`
+- `RegisterRequest`: `username`, `password`, `email`
+- `LoginRequest`: `username`, `password`
+- `RefreshTokenRequest`: `refresh_token`
+- `AuthSession`: `session_id`, `user_id`, `created_at`, `expires_at`, `ip_address`, `user_agent`
 
 **Error codes**: 401 Unauthorized, 403 Lockout, 409 Duplicate user
 
@@ -58,34 +59,34 @@
 
 ## 3. Override Engine
 
-**Source**: [`backend/deployment.py`](../../backend/deployment.py) (override_router)
+**Source**: [`routes/override.py`](../../routes/override.py)
 
 | Method | Path | Function | Description |
 |--------|------|----------|-------------|
-| POST | `/api/override/approve` | [`api_approve_override()`](../../backend/deployment.py:223) | Approve a pending human override |
-| POST | `/api/override/reject` | [`api_reject_override()`](../../backend/deployment.py:239) | Reject a pending human override |
-| POST | `/api/override/escalate` | [`api_escalate_override()`](../../backend/deployment.py:255) | Escalate to next tier |
-| GET | `/api/override/pending` | [`api_list_pending_overrides()`](../../backend/deployment.py:271) | List all pending override requests |
+| POST | `/api/override/approve` | [`api_approve_override()`](../../routes/override.py) | Approve a pending human override |
+| POST | `/api/override/reject` | [`api_reject_override()`](../../routes/override.py) | Reject a pending human override |
+| POST | `/api/override/escalate` | [`api_escalate_override()`](../../routes/override.py) | Escalate to next tier |
+| GET | `/api/override/pending` | [`api_list_pending_overrides()`](../../routes/override.py) | List all pending override requests |
 
 **Models**:
-- [`OverrideActionRequest`](../../backend/deployment.py:182): `proposal_id`, `human_id`, `decision` (`approve`/`reject`), `reason`
-- [`OverrideActionResponse`](../../backend/deployment.py:188): `status`, `request_id`, `message`, `timestamp`
-- [`PendingOverrideItem`](../../backend/deployment.py:203): `request_id`, `proposal_id`, `trigger`, `tier`, `status`, `created_at`
-- [`PendingOverridesResponse`](../../backend/deployment.py:217): `overrides`, `total`
+- `OverrideActionRequest`: `proposal_id`, `human_id`, `decision` (`approve`/`reject`), `reason`
+- `OverrideActionResponse`: `status`, `request_id`, `message`, `timestamp`
+- `PendingOverrideItem`: `request_id`, `proposal_id`, `trigger`, `tier`, `status`, `created_at`
+- `PendingOverridesResponse`: `overrides`, `total`
 
 ---
 
 ## 4. Deployment / Release
 
-**Source**: [`backend/deployment.py`](../../backend/deployment.py)
+**Source**: [`routes/deploy.py`](../../routes/deploy.py) · [`routes/release.py`](../../routes/release.py)
 
 | Method | Path | Function | Description |
 |--------|------|----------|-------------|
-| GET | `/api/deploy/status` | [`get_deployment_status()`](../../backend/deployment.py:136) | Current deployment state |
-| GET | `/api/deploy/targets` | [`list_targets()`](../../backend/deployment.py:158) | Available deployment targets |
-| POST | `/api/deploy/build` | [`build_artifact()`](../../backend/deployment.py:42) | Build deployment artifact |
-| POST | `/api/deploy/rollback` | [`rollback_release()`](../../backend/deployment.py:106) | Rollback to previous version |
-| POST | `/api/deploy/release` | [`package_release()`](../../backend/deployment.py:95) | Package and mark as release |
+| GET | `/api/deploy/status` | [`get_deployment_status()`](../../routes/deploy.py) | Current deployment state |
+| GET | `/api/deploy/targets` | [`list_targets()`](../../routes/deploy.py) | Available deployment targets |
+| POST | `/api/deploy/build` | [`build_artifact()`](../../routes/deploy.py) | Build deployment artifact |
+| POST | `/api/deploy/rollback` | [`rollback_release()`](../../routes/deploy.py) | Rollback to previous version |
+| POST | `/api/deploy/release` | [`package_release()`](../../routes/deploy.py) | Package and mark as release |
 | GET | `/api/deploy/releases` | (inline) | List all releases |
 | GET | `/api/release/current` | (inline) | Get current active release |
 
@@ -93,272 +94,272 @@
 
 ## 5. Mesh Network
 
-**Source**: [`backend/mesh.py`](../../backend/mesh.py) · [`setup_mesh_routes()`](../../backend/mesh.py:19)
+**Source**: [`routes/mesh.py`](../../routes/mesh.py) · [`core/mesh/`](../../core/mesh/)
 
 ### 5.1 Discovery
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/mesh/discover` | [`discover_nodes()`](../../backend/mesh.py:75) |
-| GET | `/api/mesh/discovered` | [`get_discovered_nodes()`](../../backend/mesh.py:109) |
-| POST | `/api/mesh/discovery/start` | [`start_discovery()`](../../backend/mesh.py:129) |
-| POST | `/api/mesh/discovery/stop` | [`stop_discovery()`](../../backend/mesh.py:140) |
+| POST | `/api/mesh/discover` | [`discover_nodes()`](../../routes/mesh.py) |
+| GET | `/api/mesh/discovered` | [`get_discovered_nodes()`](../../routes/mesh.py) |
+| POST | `/api/mesh/discovery/start` | [`start_discovery()`](../../routes/mesh.py) |
+| POST | `/api/mesh/discovery/stop` | [`stop_discovery()`](../../routes/mesh.py) |
 
 ### 5.2 Node Registry
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/mesh/nodes/register` | [`register_node()`](../../backend/mesh.py:152) |
-| GET | `/api/mesh/nodes/{node_id}` | [`get_node()`](../../backend/mesh.py:172) |
-| GET | `/api/mesh/nodes` | [`get_nodes()`](../../backend/mesh.py:197) |
-| PUT | `/api/mesh/nodes/{node_id}/trust` | [`set_trust_level()`](../../backend/mesh.py:233) |
-| GET | `/api/mesh/nodes/stats` | [`get_node_stats()`](../../backend/mesh.py:248) |
+| POST | `/api/mesh/nodes/register` | [`register_node()`](../../routes/mesh.py) |
+| GET | `/api/mesh/nodes/{node_id}` | [`get_node()`](../../routes/mesh.py) |
+| GET | `/api/mesh/nodes` | [`get_nodes()`](../../routes/mesh.py) |
+| PUT | `/api/mesh/nodes/{node_id}/trust` | [`set_trust_level()`](../../routes/mesh.py) |
+| GET | `/api/mesh/nodes/stats` | [`get_node_stats()`](../../routes/mesh.py) |
 
 ### 5.3 DHT Operations
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/mesh/dht/store` | [`dht_store()`](../../backend/mesh.py:260) |
-| GET | `/api/mesh/dht/get/{key}` | [`dht_get()`](../../backend/mesh.py:272) |
-| GET | `/api/mesh/dht/stats` | [`get_dht_stats()`](../../backend/mesh.py:286) |
+| POST | `/api/mesh/dht/store` | [`dht_store()`](../../routes/mesh.py) |
+| GET | `/api/mesh/dht/get/{key}` | [`dht_get()`](../../routes/mesh.py) |
+| GET | `/api/mesh/dht/stats` | [`get_dht_stats()`](../../routes/mesh.py) |
 
 ### 5.4 P2P Connections
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/mesh/p2p/connect/{peer_id}` | [`connect_peer()`](../../backend/mesh.py:298) |
-| POST | `/api/mesh/p2p/disconnect/{peer_id}` | [`disconnect_peer()`](../../backend/mesh.py:308) |
-| GET | `/api/mesh/p2p/connections` | [`get_connections()`](../../backend/mesh.py:318) |
-| GET | `/api/mesh/p2p/stats` | [`get_p2p_stats()`](../../backend/mesh.py:337) |
+| POST | `/api/mesh/p2p/connect/{peer_id}` | [`connect_peer()`](../../routes/mesh.py) |
+| POST | `/api/mesh/p2p/disconnect/{peer_id}` | [`disconnect_peer()`](../../routes/mesh.py) |
+| GET | `/api/mesh/p2p/connections` | [`get_connections()`](../../routes/mesh.py) |
+| GET | `/api/mesh/p2p/stats` | [`get_p2p_stats()`](../../routes/mesh.py) |
 
 ### 5.5 CRDT Sync
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/mesh/sync/state` | [`get_sync_state()`](../../backend/mesh.py:349) |
-| POST | `/api/mesh/sync/apply` | [`apply_sync_state()`](../../backend/mesh.py:359) |
-| GET | `/api/mesh/sync/crdts` | [`get_crdts()`](../../backend/mesh.py:370) |
+| GET | `/api/mesh/sync/state` | [`get_sync_state()`](../../routes/mesh.py) |
+| POST | `/api/mesh/sync/apply` | [`apply_sync_state()`](../../routes/mesh.py) |
+| GET | `/api/mesh/sync/crdts` | [`get_crdts()`](../../routes/mesh.py) |
 
 ### 5.6 Relay & Bootstrap
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/mesh/relay/sessions` | [`get_relay_sessions()`](../../backend/mesh.py:382) |
-| GET | `/api/mesh/relay/stats` | [`get_relay_stats()`](../../backend/mesh.py:401) |
-| GET | `/api/mesh/bootstrap/nodes` | [`get_bootstrap_nodes()`](../../backend/mesh.py:413) |
-| POST | `/api/mesh/bootstrap` | [`bootstrap()`](../../backend/mesh.py:440) |
-| GET | `/api/mesh/bootstrap/stats` | [`get_bootstrap_stats()`](../../backend/mesh.py:462) |
+| GET | `/api/mesh/relay/sessions` | [`get_relay_sessions()`](../../routes/mesh.py) |
+| GET | `/api/mesh/relay/stats` | [`get_relay_stats()`](../../routes/mesh.py) |
+| GET | `/api/mesh/bootstrap/nodes` | [`get_bootstrap_nodes()`](../../routes/mesh.py) |
+| POST | `/api/mesh/bootstrap` | [`bootstrap()`](../../routes/mesh.py) |
+| GET | `/api/mesh/bootstrap/stats` | [`get_bootstrap_stats()`](../../routes/mesh.py) |
 
 ### 5.7 Status
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/mesh/status` | [`get_mesh_status()`](../../backend/mesh.py:474) |
+| GET | `/api/mesh/status` | [`get_mesh_status()`](../../routes/mesh.py) |
 
 **Models**:
-- [`DiscoveryRequest`](../../backend/mesh.py:41): `discovery_type`, `timeout`, `node_types`
-- [`NodeRegistrationRequest`](../../backend/mesh.py:46): `node_id`, `node_type`, `addresses`
-- [`TrustLevelRequest`](../../backend/mesh.py:54): `trust_level`
-- [`DHTStoreRequest`](../../backend/mesh.py:59): `key`, `value`, `ttl`
+- `DiscoveryRequest`: `discovery_type`, `timeout`, `node_types`
+- `NodeRegistrationRequest`: `node_id`, `node_type`, `addresses`
+- `TrustLevelRequest`: `trust_level`
+- `DHTStoreRequest`: `key`, `value`, `ttl`
 
 ---
 
 ## 6. Clones & Consensus
 
-**Source**: [`backend/clones.py`](../../backend/clones.py)
+**Source**: [`routes/clones.py`](../../routes/clones.py) · [`routes/os_control.py`](../../routes/os_control.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/clones` | [`get_clones()`](../../backend/clones.py:57) |
-| GET | `/api/clones/{clone_id}` | [`get_clone()`](../../backend/clones.py:78) |
-| GET | `/api/clones/available` | [`get_available_clones()`](../../backend/clones.py:102) |
-| GET | `/api/clones/skill/{skill}` | [`get_clones_by_skill()`](../../backend/clones.py:122) |
-| POST | `/api/clones/task` | [`create_task()`](../../backend/clones.py:142) |
-| POST | `/api/clones/task/{task_id}/assign` | [`assign_task()`](../../backend/clones.py:164) |
-| POST | `/api/clones/task/{task_id}/complete` | [`complete_task()`](../../backend/clones.py:183) |
-| POST | `/api/clones/consensus` | [`create_consensus()`](../../backend/clones.py:202) |
-| POST | `/api/clones/consensus/{decision_id}/vote` | [`cast_vote()`](../../backend/clones.py:238) |
-| GET | `/api/clones/consensus/{decision_id}` | [`get_consensus()`](../../backend/clones.py:263) |
-| GET | `/api/clones/status` | [`get_clones_status()`](../../backend/clones.py:296) |
+| GET | `/api/clones` | [`get_clones()`](../../routes/clones.py) |
+| GET | `/api/clones/{clone_id}` | [`get_clone()`](../../routes/clones.py) |
+| GET | `/api/clones/available` | [`get_available_clones()`](../../routes/clones.py) |
+| GET | `/api/clones/skill/{skill}` | [`get_clones_by_skill()`](../../routes/clones.py) |
+| POST | `/api/clones/task` | [`create_task()`](../../routes/clones.py) |
+| POST | `/api/clones/task/{task_id}/assign` | [`assign_task()`](../../routes/clones.py) |
+| POST | `/api/clones/task/{task_id}/complete` | [`complete_task()`](../../routes/clones.py) |
+| POST | `/api/clones/consensus` | [`create_consensus()`](../../routes/clones.py) |
+| POST | `/api/clones/consensus/{decision_id}/vote` | [`cast_vote()`](../../routes/clones.py) |
+| GET | `/api/clones/consensus/{decision_id}` | [`get_consensus()`](../../routes/clones.py) |
+| GET | `/api/clones/status` | [`get_clones_status()`](../../routes/clones.py) |
 
 ---
 
 ## 7. Chat
 
-**Source**: [`backend/chat.py`](../../backend/chat.py)
+**Source**: [`routes/chat.py`](../../routes/chat.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/chat/session` | [`create_session()`](../../backend/chat.py:300) |
-| GET | `/api/chat/sessions/{user_id}` | [`get_sessions()`](../../backend/chat.py:316) |
-| GET | `/api/chat/session/{session_id}` | [`get_session()`](../../backend/chat.py:335) |
-| POST | `/api/chat/message` | [`send_message()`](../../backend/chat.py:355) |
-| GET | `/api/chat/messages/{session_id}` | [`get_messages()`](../../backend/chat.py:390) |
-| DELETE | `/api/chat/session/{session_id}` | [`delete_session()`](../../backend/chat.py:410) |
-| GET | `/api/chat/stats` | [`get_stats()`](../../backend/chat.py:424) |
+| POST | `/api/chat/session` | [`api_chat_session()`](../../routes/chat.py) |
+| GET | `/api/chat/sessions/{user_id}` | [`api_chat_sessions()`](../../routes/chat.py) |
+| GET | `/api/chat/session/{session_id}` | [`api_chat_session_get()`](../../routes/chat.py) |
+| POST | `/api/chat/message` | [`api_chat_message()`](../../routes/chat.py) |
+| GET | `/api/chat/messages/{session_id}` | [`api_chat_messages()`](../../routes/chat.py) |
+| DELETE | `/api/chat/session/{session_id}` | [`api_chat_session_delete()`](../../routes/chat.py) |
+| GET | `/api/chat/stats` | [`api_chat_stats()`](../../routes/chat.py) |
 
 ---
 
 ## 8. Learning & Training
 
-**Source**: [`backend/learning.py`](../../backend/learning.py)
+**Source**: [`routes/learning.py`](../../routes/learning.py)
 
 ### 8.1 Dataset
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/learning/dataset/capture` | [`capture_sample()`](../../backend/learning.py:99) |
-| POST | `/api/learning/dataset/label/{sample_id}` | [`label_sample()`](../../backend/learning.py:114) |
-| POST | `/api/learning/dataset/snapshot` | [`create_snapshot()`](../../backend/learning.py:130) |
-| GET | `/api/learning/dataset/snapshots` | [`get_snapshots()`](../../backend/learning.py:150) |
-| GET | `/api/learning/dataset/snapshot/{snapshot_id}` | [`get_snapshot()`](../../backend/learning.py:171) |
-| GET | `/api/learning/dataset/stats` | [`get_dataset_stats()`](../../backend/learning.py:185) |
+| POST | `/api/learning/dataset/capture` | [`capture_sample()`](../../routes/learning.py) |
+| POST | `/api/learning/dataset/label/{sample_id}` | [`label_sample()`](../../routes/learning.py) |
+| POST | `/api/learning/dataset/snapshot` | [`create_snapshot()`](../../routes/learning.py) |
+| GET | `/api/learning/dataset/snapshots` | [`get_snapshots()`](../../routes/learning.py) |
+| GET | `/api/learning/dataset/snapshot/{snapshot_id}` | [`get_snapshot()`](../../routes/learning.py) |
+| GET | `/api/learning/dataset/stats` | [`get_dataset_stats()`](../../routes/learning.py) |
 
 ### 8.2 Training Jobs
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/learning/training/job` | [`create_training_job()`](../../backend/learning.py:197) |
-| POST | `/api/learning/training/job/{job_id}/start` | [`start_training()`](../../backend/learning.py:219) |
-| POST | `/api/learning/training/job/{job_id}/complete` | [`complete_training()`](../../backend/learning.py:233) |
-| POST | `/api/learning/training/job/{job_id}/cancel` | [`cancel_training()`](../../backend/learning.py:247) |
-| GET | `/api/learning/training/jobs` | [`get_training_jobs()`](../../backend/learning.py:261) |
-| GET | `/api/learning/training/job/{job_id}` | [`get_training_job()`](../../backend/learning.py:285) |
-| GET | `/api/learning/training/stats` | [`get_training_stats()`](../../backend/learning.py:299) |
+| POST | `/api/learning/training/job` | [`create_training_job()`](../../routes/learning.py) |
+| POST | `/api/learning/training/job/{job_id}/start` | [`start_training()`](../../routes/learning.py) |
+| POST | `/api/learning/training/job/{job_id}/complete` | [`complete_training()`](../../routes/learning.py) |
+| POST | `/api/learning/training/job/{job_id}/cancel` | [`cancel_training()`](../../routes/learning.py) |
+| GET | `/api/learning/training/jobs` | [`get_training_jobs()`](../../routes/learning.py) |
+| GET | `/api/learning/training/job/{job_id}` | [`get_training_job()`](../../routes/learning.py) |
+| GET | `/api/learning/training/stats` | [`get_training_stats()`](../../routes/learning.py) |
 
 ### 8.3 Evaluation
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/learning/evaluator/golden-dataset` | [`create_golden_dataset()`](../../backend/learning.py:311) |
-| GET | `/api/learning/evaluator/golden-datasets` | [`get_golden_datasets()`](../../backend/learning.py:344) |
-| POST | `/api/learning/evaluator/evaluation` | [`create_evaluation()`](../../backend/learning.py:363) |
-| POST | `/api/learning/evaluator/evaluation/{evaluation_id}/start` | [`start_evaluation()`](../../backend/learning.py:381) |
-| POST | `/api/learning/evaluator/evaluation/{evaluation_id}/complete` | [`complete_evaluation()`](../../backend/learning.py:395) |
-| GET | `/api/learning/evaluator/evaluations` | [`get_evaluations()`](../../backend/learning.py:409) |
-| GET | `/api/learning/evaluator/can-promote/{adapter_id}` | [`can_promote()`](../../backend/learning.py:432) |
-| GET | `/api/learning/evaluator/stats` | [`get_evaluator_stats()`](../../backend/learning.py:442) |
+| POST | `/api/learning/evaluator/golden-dataset` | [`create_golden_dataset()`](../../routes/learning.py) |
+| GET | `/api/learning/evaluator/golden-datasets` | [`get_golden_datasets()`](../../routes/learning.py) |
+| POST | `/api/learning/evaluator/evaluation` | [`create_evaluation()`](../../routes/learning.py) |
+| POST | `/api/learning/evaluator/evaluation/{evaluation_id}/start` | [`start_evaluation()`](../../routes/learning.py) |
+| POST | `/api/learning/evaluator/evaluation/{evaluation_id}/complete` | [`complete_evaluation()`](../../routes/learning.py) |
+| GET | `/api/learning/evaluator/evaluations` | [`get_evaluations()`](../../routes/learning.py) |
+| GET | `/api/learning/evaluator/can-promote/{adapter_id}` | [`can_promote()`](../../routes/learning.py) |
+| GET | `/api/learning/evaluator/stats` | [`get_evaluator_stats()`](../../routes/learning.py) |
 
 ### 8.4 Adapters
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/learning/adapter/register` | [`register_adapter()`](../../backend/learning.py:454) |
-| PUT | `/api/learning/adapter/{adapter_id}/version/{version}/status` | [`update_adapter_status()`](../../backend/learning.py:475) |
-| POST | `/api/learning/adapter/{adapter_id}/version/{version}/promote` | [`promote_adapter()`](../../backend/learning.py:490) |
-| POST | `/api/learning/adapter/{adapter_id}/rollback` | [`rollback_adapter()`](../../backend/learning.py:507) |
-| GET | `/api/learning/adapters` | [`get_adapters()`](../../backend/learning.py:521) |
-| GET | `/api/learning/adapter/{adapter_id}` | [`get_adapter()`](../../backend/learning.py:545) |
-| GET | `/api/learning/adapter/{adapter_id}/versions` | [`get_adapter_versions()`](../../backend/learning.py:559) |
-| GET | `/api/learning/adapter/{adapter_id}/production` | [`get_production_adapter()`](../../backend/learning.py:569) |
-| GET | `/api/learning/adapter/rollback-history` | [`get_rollback_history()`](../../backend/learning.py:583) |
-| GET | `/api/learning/adapter/stats` | [`get_adapter_stats()`](../../backend/learning.py:603) |
+| POST | `/api/learning/adapter/register` | [`register_adapter()`](../../routes/learning.py) |
+| PUT | `/api/learning/adapter/{adapter_id}/version/{version}/status` | [`update_adapter_status()`](../../routes/learning.py) |
+| POST | `/api/learning/adapter/{adapter_id}/version/{version}/promote` | [`promote_adapter()`](../../routes/learning.py) |
+| POST | `/api/learning/adapter/{adapter_id}/rollback` | [`rollback_adapter()`](../../routes/learning.py) |
+| GET | `/api/learning/adapters` | [`get_adapters()`](../../routes/learning.py) |
+| GET | `/api/learning/adapter/{adapter_id}` | [`get_adapter()`](../../routes/learning.py) |
+| GET | `/api/learning/adapter/{adapter_id}/versions` | [`get_adapter_versions()`](../../routes/learning.py) |
+| GET | `/api/learning/adapter/{adapter_id}/production` | [`get_production_adapter()`](../../routes/learning.py) |
+| GET | `/api/learning/adapter/rollback-history` | [`get_rollback_history()`](../../routes/learning.py) |
+| GET | `/api/learning/adapter/stats` | [`get_adapter_stats()`](../../routes/learning.py) |
 
 ### 8.5 Router
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/learning/router/load` | [`load_adapter()`](../../backend/learning.py:615) |
-| POST | `/api/learning/router/swap` | [`swap_adapter()`](../../backend/learning.py:636) |
-| GET | `/api/learning/router/status` | [`get_router_status()`](../../backend/learning.py:653) |
-| GET | `/api/learning/router/loaded-adapters` | [`get_loaded_adapters()`](../../backend/learning.py:663) |
-| GET | `/api/learning/router/swap-history` | [`get_swap_history()`](../../backend/learning.py:673) |
+| POST | `/api/learning/router/load` | [`load_adapter()`](../../routes/learning.py) |
+| POST | `/api/learning/router/swap` | [`swap_adapter()`](../../routes/learning.py) |
+| GET | `/api/learning/router/status` | [`get_router_status()`](../../routes/learning.py) |
+| GET | `/api/learning/router/loaded-adapters` | [`get_loaded_adapters()`](../../routes/learning.py) |
+| GET | `/api/learning/router/swap-history` | [`get_swap_history()`](../../routes/learning.py) |
 
 ### 8.6 Status
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/learning/status` | [`get_learning_status()`](../../backend/learning.py:685) |
+| GET | `/api/learning/status` | [`get_learning_status()`](../../routes/learning.py) |
 
 ---
 
 ## 9. Memory
 
-**Source**: [`backend/memory.py`](../../backend/memory.py)
+**Source**: [`routes/memory.py`](../../routes/memory.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/memory/add` | [`add_memory()`](../../backend/memory.py:44) |
-| GET | `/api/memory/{memory_id}` | [`get_memory()`](../../backend/memory.py:73) |
-| POST | `/api/memory/search` | [`search_memory()`](../../backend/memory.py:97) |
-| GET | `/api/memory/user/{user_id}` | [`get_user_memories()`](../../backend/memory.py:137) |
-| DELETE | `/api/memory/{memory_id}` | [`delete_memory()`](../../backend/memory.py:169) |
-| GET | `/api/memory/stats` | [`get_memory_stats()`](../../backend/memory.py:183) |
-| POST | `/api/memory/prune` | [`prune_memories()`](../../backend/memory.py:193) |
+| POST | `/api/memory/add` | [`add_memory()`](../../routes/memory.py) |
+| GET | `/api/memory/{memory_id}` | [`get_memory()`](../../routes/memory.py) |
+| POST | `/api/memory/search` | [`search_memory()`](../../routes/memory.py) |
+| GET | `/api/memory/user/{user_id}` | [`get_user_memories()`](../../routes/memory.py) |
+| DELETE | `/api/memory/{memory_id}` | [`delete_memory()`](../../routes/memory.py) |
+| GET | `/api/memory/stats` | [`get_memory_stats()`](../../routes/memory.py) |
+| POST | `/api/memory/prune` | [`prune_memories()`](../../routes/memory.py) |
 
 ---
 
 ## 10. Model Registry
 
-**Source**: [`backend/registry.py`](../../backend/registry.py)
+**Source**: [`routes/registry.py`](../../routes/registry.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/registry/register` | [`register_model()`](../../backend/registry.py:363) |
-| GET | `/api/registry/active/{name}` | [`get_active_model()`](../../backend/registry.py:380) |
-| GET | `/api/registry/versions/{name}` | [`list_versions()`](../../backend/registry.py:389) |
-| GET | `/api/registry/{name}/{version}` | [`get_model()`](../../backend/registry.py:400) |
-| POST | `/api/registry/rollback/{name}` | [`rollback_model()`](../../backend/registry.py:409) |
-| GET | `/api/registry/verify/{name}/{version}` | [`verify_integrity()`](../../backend/registry.py:420) |
-| GET | `/api/registry/status` | [`get_registry_status()`](../../backend/registry.py:427) |
+| POST | `/api/registry/register` | [`register_model()`](../../routes/registry.py) |
+| GET | `/api/registry/active/{name}` | [`get_active_model()`](../../routes/registry.py) |
+| GET | `/api/registry/versions/{name}` | [`list_versions()`](../../routes/registry.py) |
+| GET | `/api/registry/{name}/{version}` | [`get_model()`](../../routes/registry.py) |
+| POST | `/api/registry/rollback/{name}` | [`rollback_model()`](../../routes/registry.py) |
+| GET | `/api/registry/verify/{name}/{version}` | [`verify_integrity()`](../../routes/registry.py) |
+| GET | `/api/registry/status` | [`get_registry_status()`](../../routes/registry.py) |
 
 ---
 
 ## 11. Router / LLM
 
-**Source**: [`backend/router.py`](../../backend/router.py)
+**Source**: [`routes/router.py`](../../routes/router.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/router/route` | [`route_prompt()`](../../backend/router.py:231) |
-| POST | `/api/router/chat` | [`chat_prompt()`](../../backend/router.py:237) |
-| GET | `/api/router/metrics` | [`get_metrics()`](../../backend/router.py:249) |
+| POST | `/api/router/route` | [`router_route()`](../../routes/router.py) |
+| POST | `/api/router/chat` | [`router_chat()`](../../routes/router.py) |
+| GET | `/api/router/metrics` | [`router_metrics()`](../../routes/router.py) |
 
 ---
 
 ## 12. Tools / OS Control
 
-**Source**: [`backend/tools.py`](../../backend/tools.py)
+**Source**: [`routes/os_control.py`](../../routes/os_control.py)
 
 ### 12.1 Tools Module
 
 | Method | Path | Function |
 |--------|------|----------|
-| POST | `/api/tools/execute` | [`execute_tool()`](../../backend/tools.py:300) |
-| GET | `/api/tools/pending` | [`get_pending()`](../../backend/tools.py:311) |
-| POST | `/api/tools/approve` | [`approve_tool()`](../../backend/tools.py:315) |
-| GET | `/api/tools/audit` | [`get_audit()`](../../backend/tools.py:328) |
+| POST | `/api/tools/execute` | [`execute_tool()`](../../routes/os_control.py) |
+| GET | `/api/tools/pending` | [`get_pending()`](../../routes/os_control.py) |
+| POST | `/api/tools/approve` | [`approve_tool()`](../../routes/os_control.py) |
+| GET | `/api/tools/audit` | [`get_audit()`](../../routes/os_control.py) |
 
 ### 12.2 OS Tools
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/os/tools` | [`list_os_tools()`](../../backend/tools.py:358) |
-| POST | `/api/os/execute` | [`execute_os_tool()`](../../backend/tools.py:367) |
-| GET | `/api/os/audit` | [`get_os_audit()`](../../backend/tools.py:389) |
+| GET | `/api/os/tools` | [`list_os_tools()`](../../routes/os_control.py) |
+| POST | `/api/os/execute` | [`execute_os_tool()`](../../routes/os_control.py) |
+| GET | `/api/os/audit` | [`get_os_audit()`](../../routes/os_control.py) |
 
 ---
 
 ## 13. Observability
 
-**Source**: [`backend/observability.py`](../../backend/observability.py)
+**Source**: [`routes/observability.py`](../../routes/observability.py)
 
 | Method | Path | Function |
 |--------|------|----------|
-| GET | `/api/observability/telemetry` | [`get_telemetry_endpoint()`](../../backend/observability.py:29) |
-| GET | `/api/observability/posture` | [`get_posture_endpoint()`](../../backend/observability.py:34) |
-| GET | `/api/observability/metrics` | [`get_metrics_endpoint()`](../../backend/observability.py:39) |
-| GET | `/api/observability/traces` | [`get_traces_endpoint()`](../../backend/observability.py:60) |
-| GET | `/api/observability/audit` | [`get_audit_endpoint()`](../../backend/observability.py:70) |
-| POST | `/api/observability/event` | [`post_event_endpoint()`](../../backend/observability.py:74) |
-| GET | `/api/observability/health` | [`get_health_endpoint()`](../../backend/observability.py:91) |
-| GET | `/api/observability/status` | [`get_status_endpoint()`](../../backend/observability.py:95) |
+| GET | `/api/observability/telemetry` | [`get_telemetry_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/posture` | [`get_posture_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/metrics` | [`get_metrics_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/traces` | [`get_traces_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/audit` | [`get_audit_endpoint()`](../../routes/observability.py) |
+| POST | `/api/observability/event` | [`post_event_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/health` | [`get_health_endpoint()`](../../routes/observability.py) |
+| GET | `/api/observability/status` | [`get_status_endpoint()`](../../routes/observability.py) |
 
 ---
 
 ## 14. Simple Backend Routes (Legacy / Universal)
 
-**Source**: [`simple_backend.py`](../../simple_backend.py)
+**Source**: Various [`routes/`](../../routes/) modules
 
 ### 14.1 System & Health
 
@@ -851,22 +852,58 @@
 
 | Prefix | Count | Source |
 |--------|-------|--------|
-| `/health/*` | 3 | [`backend/health.py`](../../backend/health.py) |
-| `/api/auth/*` | 6 | [`backend/auth.py`](../../backend/auth.py) |
-| `/api/override/*` | 4 | [`backend/deployment.py`](../../backend/deployment.py) |
-| `/api/deploy/*` | 7 | [`backend/deployment.py`](../../backend/deployment.py) |
-| `/api/mesh/*` | 25 | [`backend/mesh.py`](../../backend/mesh.py) |
-| `/api/clones/*` | 11 | [`backend/clones.py`](../../backend/clones.py) |
-| `/api/chat/*` | 7 | [`backend/chat.py`](../../backend/chat.py) |
-| `/api/learning/*` | 37 | [`backend/learning.py`](../../backend/learning.py) |
-| `/api/memory/*` | 7 | [`backend/memory.py`](../../backend/memory.py) |
-| `/api/registry/*` | 7 | [`backend/registry.py`](../../backend/registry.py) |
-| `/api/router/*` | 3 | [`backend/router.py`](../../backend/router.py) |
-| `/api/tools/*` | 4 | [`backend/tools.py`](../../backend/tools.py) |
-| `/api/os/*` | 3 | [`backend/tools.py`](../../backend/tools.py) |
-| `/api/observability/*` | 8 | [`backend/observability.py`](../../backend/observability.py) |
-| Various (simple) | ~140+ | [`simple_backend.py`](../../simple_backend.py) |
-| **Total** | **~270+** | **All sources** |
+| `/health/*` | 3 | [`routes/health.py`](../../routes/health.py), [`app.py`](../../app.py) |
+| `/api/auth/*` | 6 | [`routes/auth.py`](../../routes/auth.py) |
+| `/api/override/*` | 4 | [`routes/override.py`](../../routes/override.py) |
+| `/api/deploy/*` | 7 | [`routes/deploy.py`](../../routes/deploy.py), [`routes/release.py`](../../routes/release.py) |
+| `/api/mesh/*` | 25 | [`routes/mesh.py`](../../routes/mesh.py) |
+| `/api/clones/*` | 11 | [`routes/clones.py`](../../routes/clones.py) |
+| `/api/chat/*` | 7 | [`routes/chat.py`](../../routes/chat.py) |
+| `/api/learning/*` | 37 | [`routes/learning.py`](../../routes/learning.py) |
+| `/api/memory/*` | 7 | [`routes/memory.py`](../../routes/memory.py) |
+| `/api/registry/*` | 7 | [`routes/registry.py`](../../routes/registry.py) |
+| `/api/router/*` | 3 | [`routes/router.py`](../../routes/router.py) |
+| `/api/tools/*` | 4 | [`routes/os_control.py`](../../routes/os_control.py) |
+| `/api/os/*` | 3 | [`routes/os_control.py`](../../routes/os_control.py) |
+| `/api/observability/*` | 8 | [`routes/observability.py`](../../routes/observability.py) |
+| `/api/blockchain/*` | 12 | [`routes/blockchain_identity.py`](../../routes/blockchain_identity.py) |
+| `/api/bridge/*` | 9 | [`routes/marketplace.py`](../../routes/marketplace.py) |
+| `/api/bugs/*` | 6 | [`routes/bugs.py`](../../routes/bugs.py) |
+| `/api/compliance/*` | 3 | [`routes/security.py`](../../routes/security.py) |
+| `/api/confirm/*` | 5 | [`routes/security.py`](../../routes/security.py) |
+| `/api/constitution/*` | 1 | [`routes/sovereignty.py`](../../routes/sovereignty.py) |
+| `/api/depin/*` | 27 | [`routes/depin.py`](../../routes/depin.py) |
+| `/api/disaster-recovery/*` | 3 | [`routes/security.py`](../../routes/security.py) |
+| `/api/evolution/*` | 4 | [`routes/consensus.py`](../../routes/consensus.py) |
+| `/api/federation/*` | 4 | [`routes/infrastructure.py`](../../routes/infrastructure.py) |
+| `/api/finance/*` | 22 | [`routes/finance.py`](../../routes/finance.py) |
+| `/api/government/*` | 12 | [`routes/government.py`](../../routes/government.py) |
+| `/api/hybrid-economy/*` | 11 | [`routes/marketplace.py`](../../routes/marketplace.py) |
+| `/api/identity/*` | 7 | [`routes/identity.py`](../../routes/identity.py) |
+| `/api/infrastructure/*` | 10 | [`routes/infrastructure.py`](../../routes/infrastructure.py) |
+| `/api/integration/*` | 7 | [`routes/security.py`](../../routes/security.py) |
+| `/api/jobs/*` | 6 | [`routes/jobs.py`](../../routes/jobs.py) |
+| `/api/marketplace/*` | 30 | [`routes/marketplace.py`](../../routes/marketplace.py) |
+| `/api/mcp/*` | 7 | [`routes/mcp.py`](../../routes/mcp.py) |
+| `/api/nepal/*` | 7 | [`routes/nepal.py`](../../routes/nepal.py) |
+| `/api/personal/*` | 5 | [`routes/memory.py`](../../routes/memory.py) |
+| `/api/platform/*` | 3 | [`routes/infrastructure.py`](../../routes/infrastructure.py) |
+| `/api/pq/*` | 4 | [`routes/consensus.py`](../../routes/consensus.py) |
+| `/api/push/*` | 2 | [`routes/push.py`](../../routes/push.py) |
+| `/api/pwa/*` | 1 | [`routes/pwa.py`](../../routes/pwa.py) |
+| `/api/rbe/*` | 7 | [`routes/rbe.py`](../../routes/rbe.py) |
+| `/api/reputation/*` | 10 | [`routes/marketplace.py`](../../routes/marketplace.py) |
+| `/api/security/*` | 4 | [`routes/security.py`](../../routes/security.py) |
+| `/api/self/*` | 12 | [`routes/self_awareness.py`](../../routes/self_awareness.py) |
+| `/api/sovereignty/*` | 10 | [`routes/sovereignty.py`](../../routes/sovereignty.py) |
+| `/api/svt/*` | 6 | [`routes/identity.py`](../../routes/identity.py) |
+| `/api/task-bus/*` | 12 | [`routes/marketplace.py`](../../routes/marketplace.py) |
+| `/api/teams/*` | 8 | [`routes/auth.py`](../../routes/auth.py) |
+| `/api/universal/*` | 11 | [`routes/universal.py`](../../routes/universal.py) |
+| `/api/universe/*` | 13 | [`routes/universal.py`](../../routes/universal.py), [`routes/memory.py`](../../routes/memory.py) |
+| `/api/v1/*` | 34 | Various [`routes/`](../../routes/) modules |
+| Various (app.py) | 5 | [`app.py`](../../app.py) |
+| **Total** | **636** | **35 route modules** |
 
 ---
 
@@ -902,16 +939,38 @@ Authorization: Bearer <jwt_token>
 
 ## References
 
-- [`backend/health.py`](../../backend/health.py) — Health probe endpoints
-- [`backend/auth.py`](../../backend/auth.py) — Authentication endpoints
-- [`backend/deployment.py`](../../backend/deployment.py) — Override + deployment endpoints
-- [`backend/mesh.py`](../../backend/mesh.py) — Mesh network endpoints
-- [`backend/clones.py`](../../backend/clones.py) — Clone management endpoints
-- [`backend/chat.py`](../../backend/chat.py) — Chat session endpoints
-- [`backend/learning.py`](../../backend/learning.py) — ML pipeline endpoints
-- [`backend/memory.py`](../../backend/memory.py) — Memory storage endpoints
-- [`backend/registry.py`](../../backend/registry.py) — Model registry endpoints
-- [`backend/router.py`](../../backend/router.py) — LLM routing endpoints
-- [`backend/tools.py`](../../backend/tools.py) — Tool execution endpoints
-- [`backend/observability.py`](../../backend/observability.py) — Observability endpoints
-- [`simple_backend.py`](../../simple_backend.py) — Legacy/universal endpoints
+- [`routes/health.py`](../../routes/health.py) — Health probe endpoints
+- [`routes/auth.py`](../../routes/auth.py) — Authentication + teams endpoints
+- [`routes/override.py`](../../routes/override.py) — Override engine endpoints
+- [`routes/deploy.py`](../../routes/deploy.py) — Deployment endpoints
+- [`routes/release.py`](../../routes/release.py) — Release management endpoints
+- [`routes/mesh.py`](../../routes/mesh.py) — Mesh network endpoints
+- [`routes/clones.py`](../../routes/clones.py) — Clone management endpoints
+- [`routes/chat.py`](../../routes/chat.py) — Chat session + agent endpoints
+- [`routes/learning.py`](../../routes/learning.py) — ML pipeline endpoints
+- [`routes/memory.py`](../../routes/memory.py) — Memory storage + personal endpoints
+- [`routes/registry.py`](../../routes/registry.py) — Model registry endpoints
+- [`routes/router.py`](../../routes/router.py) — LLM routing endpoints
+- [`routes/os_control.py`](../../routes/os_control.py) — Tool execution + OS control endpoints
+- [`routes/observability.py`](../../routes/observability.py) — Observability endpoints
+- [`routes/analytics.py`](../../routes/analytics.py) — Analytics + RAG endpoints
+- [`routes/blockchain_identity.py`](../../routes/blockchain_identity.py) — Blockchain DID/VC/SBT endpoints
+- [`routes/bugs.py`](../../routes/bugs.py) — Bug reporting + triage endpoints
+- [`routes/consensus.py`](../../routes/consensus.py) — Consensus + Dharma + PQ + evolution endpoints
+- [`routes/depin.py`](../../routes/depin.py) — DePIN (Daylight/DIMO/Uplink) endpoints
+- [`routes/finance.py`](../../routes/finance.py) — Finance + ledger + Nepal payment endpoints
+- [`routes/government.py`](../../routes/government.py) — Government integration endpoints
+- [`routes/identity.py`](../../routes/identity.py) — DID + SVT endpoints
+- [`routes/infrastructure.py`](../../routes/infrastructure.py) — Infrastructure + AI + federation endpoints
+- [`routes/jobs.py`](../../routes/jobs.py) — Job marketplace endpoints
+- [`routes/marketplace.py`](../../routes/marketplace.py) — Marketplace + bridge + economy + task-bus endpoints
+- [`routes/mcp.py`](../../routes/mcp.py) — MCP tool endpoints
+- [`routes/nepal.py`](../../routes/nepal.py) — Nepal-specific endpoints
+- [`routes/push.py`](../../routes/push.py) — Push notification endpoints
+- [`routes/pwa.py`](../../routes/pwa.py) — PWA config endpoints
+- [`routes/rbe.py`](../../routes/rbe.py) — RBE (Resource-Based Economy) endpoints
+- [`routes/security.py`](../../routes/security.py) — Security + compliance + TPM endpoints
+- [`routes/self_awareness.py`](../../routes/self_awareness.py) — Self-awareness + auto-build endpoints
+- [`routes/sovereignty.py`](../../routes/sovereignty.py) — Sovereignty + air-gap + constitution endpoints
+- [`routes/universal.py`](../../routes/universal.py) — Universal systems + universe endpoints
+- [`app.py`](../../app.py) — Root-level health + metrics endpoints

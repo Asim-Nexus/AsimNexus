@@ -1,0 +1,101 @@
+# AsimNexus Prometheus Alerting Rules
+# =====================================
+
+groups:
+  - name: asimnexus_alerts
+    interval: 30s
+    rules:
+      # ── Availability ────────────────────────────────────────
+      - alert: BackendDown
+        expr: up{job="asimnexus-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AsimNexus backend is down"
+          description: "Backend has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP error rate ({{ $value | humanizePercentage }})"
+          description: "Error rate exceeds 5% over the last 5 minutes."
+
+      # ── Performance ─────────────────────────────────────────
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency (p95 > 2s)"
+          description: "95th percentile request latency exceeds 2 seconds."
+
+      - alert: SlowResponses
+        expr: rate(http_request_duration_seconds_count{le="1"}[5m]) / rate(http_request_duration_seconds_count[5m]) < 0.9
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Less than 90% of requests complete within 1s"
+
+      # ── Self-Awareness ──────────────────────────────────────
+      - alert: SelfAwarenessStale
+        expr: time() - self_awareness_last_scan_timestamp_seconds > 7200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Self-awareness scan is stale (>2 hours old)"
+          description: "Last codebase scan was {{ $value | humanizeDuration }} ago."
+
+      - alert: TooManyOpenIssues
+        expr: self_awareness_open_issues_total > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "More than 50 open issues in self-awareness"
+          description: "There are {{ $value }} open issues that need attention."
+
+      # ── Resource Usage ──────────────────────────────────────
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage ({{ $value | humanizePercentage }})"
+          description: "Memory usage exceeds 85%."
+
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space critically low (<10%)"
+          description: "Available disk space is {{ $value | humanizePercentage }}."
+
+      # ── Mesh Network ────────────────────────────────────────
+      - alert: MeshNodeDisconnected
+        expr: mesh_connected_peers < 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No mesh peers connected"
+          description: "Mesh network has 0 connected peers."
+
+      # ── Security ────────────────────────────────────────────
+      - alert: FailedLoginsSpike
+        expr: rate(auth_failed_logins_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spike in failed login attempts"
+          description: "Failed login rate is {{ $value }} per second over 5m."

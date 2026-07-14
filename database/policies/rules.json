@@ -1,0 +1,21 @@
+{
+    "citizen": {
+        "allowed_actions": ["tax", "health", "education", "finance", "general", "mesh"],
+        "forbidden_actions": ["policy_change", "delete_system", "bulk_payment"],
+        "max_amount": 50000
+    },
+    "company": {
+        "allowed_actions": ["tax", "finance", "general", "mesh", "register", "compliance", "payroll"],
+        "forbidden_actions": ["view_other_company", "change_national_policy"],
+        "max_amount": 5000000
+    },
+    "government": {
+        "allowed_actions": [
+            "tax", "health", "education", "finance", "general", "mesh",
+            "policy_change", "emergency_action",
+            "audit", "broadcast", "census", "veto_review"
+        ],
+        "forbidden_actions": [],
+        "max_amount": null
+    }
+}

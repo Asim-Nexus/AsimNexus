@@ -22,7 +22,6 @@ import uuid
 
 logger = logging.getLogger("FormalVerification")
 
-
 class VerificationType(Enum):
     """Types of formal verification"""
     INVARIANT = "invariant"
@@ -31,7 +30,6 @@ class VerificationType(Enum):
     TYPE_SAFETY = "type_safety"
     MEMORY_SAFETY = "memory_safety"
 
-
 class VerificationStatus(Enum):
     """Verification statuses"""
     PENDING = "pending"
@@ -39,7 +37,6 @@ class VerificationStatus(Enum):
     PASSED = "passed"
     FAILED = "failed"
     INCONCLUSIVE = "inconclusive"
-
 
 @dataclass
 class VerificationResult:
@@ -55,7 +52,6 @@ class VerificationResult:
     duration_seconds: float
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
-
 @dataclass
 class Invariant:
     """Invariant to verify"""
@@ -64,7 +60,6 @@ class Invariant:
     description: str
     check_function: Callable
     module: str
-
 
 @dataclass
 class Property:
@@ -76,7 +71,6 @@ class Property:
     postconditions: List[str]
     check_function: Callable
     module: str
-
 
 class FormalVerification:
     """Formal verification framework for critical modules"""
@@ -394,10 +388,8 @@ class FormalVerification:
             "pass_rate": (total_properties_passed / total_properties_checked * 100) if total_properties_checked > 0 else 0
         }
 
-
 # Global instance
 _formal_verification: Optional[FormalVerification] = None
-
 
 def get_formal_verification() -> FormalVerification:
     """Get singleton instance"""

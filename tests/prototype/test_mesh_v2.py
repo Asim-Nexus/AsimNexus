@@ -8,8 +8,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2, DeviceRegistry, DeviceState
-
+from core.mesh.mesh_routing_agent_v2 import MeshRoutingAgentV2, DeviceRegistry, DeviceState
 
 class TestMeshRoutingV2:
     def test_local_fallback_no_p2p(self):

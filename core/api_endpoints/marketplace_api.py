@@ -1,224 +1,187 @@
 """
-MarketplaceEngine REST API endpoints for ASIMNEXUS.
-
-Provides REST API access to MarketplaceEngine operations including:
-listing creation/search, order lifecycle, reviews, and statistics.
-NOTE: This wraps the new economy.marketplace module, not the legacy core.economy.marketplace_engine.
+Marketplace API Routes
+======================
+FastAPI router for marketplace endpoints (/api/economy/marketplace/*).
 """
 
-from typing import Optional, List
-from fastapi import HTTPException, Query
-from pydantic import BaseModel, Field
+import logging
+from typing import Optional
 
-from . import router, logger
+from fastapi import APIRouter, HTTPException
 
+logger = logging.getLogger(__name__)
 
-_marketplace = None
+router = APIRouter(prefix="/api/economy/marketplace", tags=["economy-marketplace"])
 
-def _get_mp():
-    global _marketplace
-    if _marketplace is None:
-        try:
-            from economy.marketplace import get_marketplace_engine
-            _marketplace = get_marketplace_engine()
-            logger.info("MarketplaceEngine (new) loaded")
-        except Exception as e:
-            logger.warning(f"MarketplaceEngine (new) unavailable: {e}")
-    return _marketplace
+# Module-level singleton reference (reset by test fixture)
+_mp = None
 
 
-# ─── Request Models ───────────────────────────────────────────────────────────
+def _get_marketplace():
+    global _mp
+    if _mp is None:
+        from core.economy.marketplace import get_marketplace_engine
+        _mp = get_marketplace_engine()
+    return _mp
 
 
-class CreateListingRequest(BaseModel):
-    seller_id: str = Field(..., min_length=1)
-    title: str = Field(..., min_length=1, max_length=200)
-    description: str = ""
-    price: float = Field(..., gt=0)
-    token_type: str = "nexus"
-    category: str = "general"
-    quantity: int = Field(default=1, ge=1)
-    tags: List[str] = Field(default_factory=list)
-    metadata: dict = Field(default_factory=dict)
+# ── Static routes first ────────────────────────────────────────────────── #
 
 
-class SearchListingsRequest(BaseModel):
-    category: Optional[str] = None
-    min_price: Optional[float] = None
-    max_price: Optional[float] = None
-    tags: Optional[List[str]] = None
-    seller_id: Optional[str] = None
-    query: str = ""
+@router.get("/stats")
+async def marketplace_stats():
+    """Get marketplace statistics."""
+    engine = _get_marketplace()
+    stats = await engine.get_stats()
+    return stats
 
 
-class CreateOrderRequest(BaseModel):
-    listing_id: str
-    buyer_id: str = Field(..., min_length=1)
-    quantity: int = Field(default=1, ge=1)
-    shipping_address: str = ""
-    notes: str = ""
+@router.get("/reputation/{user_id}")
+async def user_reputation(user_id: str):
+    """Get user reputation."""
+    engine = _get_marketplace()
+    rep = await engine.get_user_reputation(user_id=user_id)
+    return rep
 
 
-class UpdateOrderStatusRequest(BaseModel):
-    order_id: str
-    status: str = Field(..., pattern="^(paid|shipped|delivered|cancelled)$")
+@router.post("/listings/search")
+async def search_listings(data: dict):
+    """Search listings."""
+    engine = _get_marketplace()
+    category = data.get("category")
+    token_type = data.get("token_type")
+    min_price = data.get("min_price")
+    max_price = data.get("max_price")
+    seller_id = data.get("seller_id")
+    query = data.get("query") or data.get("keyword")
+    listings = await engine.search_listings(
+        category=category,
+        token_type=token_type,
+        min_price=float(min_price) if min_price is not None else None,
+        max_price=float(max_price) if max_price is not None else None,
+        seller_id=seller_id,
+        query=query,
+    )
+    return {
+        "listings": [
+            {
+                "listing_id": l.listing_id,
+                "seller_id": l.seller_id,
+                "title": l.title,
+                "description": l.description,
+                "price": l.price,
+                "token_type": l.token_type,
+                "category": l.category,
+                "tags": l.tags,
+                "status": l.status,
+                "created_at": l.created_at,
+            }
+            for l in listings
+        ]
+    }
 
 
-class SubmitReviewRequest(BaseModel):
-    listing_id: str
-    reviewer_id: str = Field(..., min_length=1)
-    rating: int = Field(..., ge=1, le=5)
-    title: str = ""
-    body: str = ""
-
-
-# ─── Endpoints ────────────────────────────────────────────────────────────────
-
-
-@router.post("/api/economy/marketplace/listings", tags=["Economy Marketplace"])
-async def create_listing(req: CreateListingRequest):
-    """Create a new marketplace listing."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
+@router.post("/listings")
+async def create_listing(data: dict):
+    """Create a new listing."""
+    engine = _get_marketplace()
+    seller_id = data.get("seller_id")
+    title = data.get("title")
+    description = data.get("description", "")
+    price = data.get("price", 0.0)
+    token_type = data.get("token_type", "nexus")
+    category = data.get("category", "general")
+    tags = data.get("tags", [])
+    expiry_days = data.get("expiry_days", 30)
+    if not seller_id or not title:
+        raise HTTPException(status_code=400, detail="seller_id and title are required")
     try:
-        listing = await m.create_listing(
-            seller_id=req.seller_id,
-            title=req.title,
-            description=req.description,
-            price=req.price,
-            token_type=req.token_type,
-            category=req.category,
-            quantity=req.quantity,
-            tags=req.tags,
-            metadata=req.metadata,
+        listing = await engine.create_listing(
+            seller_id=seller_id,
+            title=title,
+            description=description,
+            price=float(price),
+            token_type=token_type,
+            category=category,
+            tags=tags,
+            expiry_days=int(expiry_days),
         )
-    except ValueError as e:
+        return {"success": True, "listing_id": listing.listing_id}
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"success": True, "listing_id": listing.listing_id, "listing": listing.to_dict()}
 
 
-@router.get("/api/economy/marketplace/listings/{listing_id}", tags=["Economy Marketplace"])
+@router.post("/listings/{listing_id}/cancel")
+async def cancel_listing(listing_id: str, data: dict = {}, seller_id: str = ""):
+    """Cancel a listing."""
+    engine = _get_marketplace()
+    # Support seller_id from query param or request body
+    sid = seller_id or data.get("seller_id", "")
+    if not sid:
+        raise HTTPException(status_code=400, detail="seller_id is required")
+    success, msg = await engine.cancel_listing(listing_id=listing_id, seller_id=sid)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}
+
+
+@router.get("/listings/{listing_id}")
 async def get_listing(listing_id: str):
     """Get a listing by ID."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    listing = await m.get_listing(listing_id)
-    if not listing:
-        raise HTTPException(status_code=404, detail=f"Listing {listing_id} not found")
-    return listing.to_dict()
+    engine = _get_marketplace()
+    listing = await engine.get_listing(listing_id=listing_id)
+    if listing is None:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return {
+        "listing_id": listing.listing_id,
+        "seller_id": listing.seller_id,
+        "title": listing.title,
+        "description": listing.description,
+        "price": listing.price,
+        "token_type": listing.token_type,
+        "category": listing.category,
+        "tags": listing.tags,
+        "status": listing.status,
+        "created_at": listing.created_at,
+        "expires_at": listing.expires_at,
+    }
 
 
-@router.post("/api/economy/marketplace/listings/search", tags=["Economy Marketplace"])
-async def search_listings(req: SearchListingsRequest):
-    """Search for listings with filters."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    listings = await m.search_listings(
-        category=req.category,
-        min_price=req.min_price,
-        max_price=req.max_price,
-        tags=req.tags,
-        seller_id=req.seller_id,
+@router.post("/orders")
+async def create_order(data: dict):
+    """Create an order from a listing."""
+    engine = _get_marketplace()
+    listing_id = data.get("listing_id")
+    buyer_id = data.get("buyer_id")
+    quantity = data.get("quantity", 1)
+    if not listing_id or not buyer_id:
+        raise HTTPException(status_code=400, detail="listing_id and buyer_id are required")
+    success, order_id = await engine.create_order(
+        listing_id=listing_id,
+        buyer_id=buyer_id,
+        quantity=int(quantity),
     )
-    return {"listings": [l.to_dict() for l in listings], "count": len(listings)}
+    if not success:
+        raise HTTPException(status_code=400, detail=order_id)
+    return {"success": True, "order_id": order_id}
 
 
-@router.post("/api/economy/marketplace/listings/{listing_id}/cancel", tags=["Economy Marketplace"])
-async def cancel_listing(listing_id: str, seller_id: str = Query(..., description="Seller ID for authorization")):
-    """Cancel a listing."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    result = await m.cancel_listing(listing_id, seller_id)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "listing_id": listing_id}
-
-
-@router.post("/api/economy/marketplace/orders", tags=["Economy Marketplace"])
-async def create_order(req: CreateOrderRequest):
-    """Create a new order from a listing."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    result = await m.create_order(
-        listing_id=req.listing_id,
-        buyer_id=req.buyer_id,
-        quantity=req.quantity,
-        shipping_info={"address": req.shipping_address} if req.shipping_address else None,
-        notes=req.notes,
+@router.post("/reviews")
+async def submit_review(data: dict):
+    """Submit a review for an order."""
+    engine = _get_marketplace()
+    listing_id = data.get("listing_id")  # maps to order_id in engine
+    reviewer_id = data.get("reviewer_id")
+    rating = data.get("rating", 5)
+    body = data.get("body", "")
+    if not listing_id or not reviewer_id:
+        raise HTTPException(status_code=400, detail="listing_id and reviewer_id are required")
+    success, msg = await engine.submit_review(
+        order_id=listing_id,
+        reviewer_id=reviewer_id,
+        rating=int(rating),
+        description=body,
     )
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "order_id": result[1]}
-
-
-@router.post("/api/economy/marketplace/orders/status", tags=["Economy Marketplace"])
-async def update_order_status(req: UpdateOrderStatusRequest):
-    """Update order status (paid/shipped/delivered/cancelled)."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    result = await m.update_order_status(req.order_id, req.status)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "order_id": req.order_id, "status": req.status}
-
-
-@router.get("/api/economy/marketplace/orders/user/{user_id}", tags=["Economy Marketplace"])
-async def get_orders_for_user(user_id: str, role: Optional[str] = Query(None, pattern="^(buyer|seller)$")):
-    """Get all orders for a user, optionally filtered by role."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    orders = await m.get_orders_for_user(user_id, role=role)
-    return {"user_id": user_id, "orders": orders, "count": len(orders)}
-
-
-@router.post("/api/economy/marketplace/reviews", tags=["Economy Marketplace"])
-async def submit_review(req: SubmitReviewRequest):
-    """Submit a review for a listing."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    result = await m.submit_review(
-        order_id=req.listing_id,
-        reviewer_id=req.reviewer_id,
-        rating=req.rating,
-        description=f"{req.title}: {req.body}" if req.title and req.body else (req.title or req.body or ""),
-    )
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "review_id": result[1]}
-
-
-@router.get("/api/economy/marketplace/reputation/{user_id}", tags=["Economy Marketplace"])
-async def get_user_reputation(user_id: str):
-    """Get reputation score for a user based on reviews."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    reputation = await m.get_user_reputation(user_id)
-    return {"user_id": user_id, "reputation": reputation}
-
-
-@router.post("/api/economy/marketplace/check-expired", tags=["Economy Marketplace"])
-async def check_expired_listings():
-    """Check and expire old listings."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    expired = await m.check_expired()
-    return {"expired_count": len(expired), "expired_ids": expired}
-
-
-@router.get("/api/economy/marketplace/stats", tags=["Economy Marketplace"])
-async def marketplace_stats():
-    """Get marketplace engine statistics."""
-    m = _get_mp()
-    if not m:
-        raise HTTPException(status_code=503, detail="MarketplaceEngine not available")
-    return await m.get_stats()
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}

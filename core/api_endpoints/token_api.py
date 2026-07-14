@@ -1,265 +1,182 @@
 """
-TokenRegistry REST API endpoints for ASIMNEXUS.
-
-Provides REST API access to TokenRegistry operations including:
-token registration, minting, burning, locking, holdings, and statistics.
+Token API Routes
+================
+FastAPI router for token endpoints (/api/economy/tokens/*).
 """
 
-from typing import Optional, List
-from fastapi import HTTPException, Query
-from pydantic import BaseModel, Field
+import logging
+from typing import Optional
 
-from . import router, logger
+from fastapi import APIRouter, HTTPException
 
+logger = logging.getLogger(__name__)
 
+router = APIRouter(prefix="/api/economy/tokens", tags=["economy-tokens"])
+
+# Module-level singleton reference (reset by test fixture)
 _registry = None
+
 
 def _get_registry():
     global _registry
     if _registry is None:
-        try:
-            from economy.tokens import get_token_registry
-            _registry = get_token_registry()
-            logger.info("TokenRegistry loaded")
-        except Exception as e:
-            logger.warning(f"TokenRegistry unavailable: {e}")
+        from core.economy.tokens import get_token_registry
+        _registry = get_token_registry()
     return _registry
 
 
-# ─── Request Models ───────────────────────────────────────────────────────────
+# ── Static routes first (before /{token_id}) ────────────────────────────── #
 
 
-class RegisterTokenRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
-    symbol: str = Field(..., min_length=1, max_length=20)
-    standard: str = Field("NEXUS", pattern="^(NEXUS|SVT|HDT|NFT)$")
-    total_supply: float = Field(default=0, ge=0)
-    owner_id: str = Field("", min_length=0)
-    is_soul_bound: bool = False
-    metadata: dict = Field(default_factory=dict)
-
-
-class MintRequest(BaseModel):
-    token_id: str = ""
-    to_owner_id: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-
-
-class BurnRequest(BaseModel):
-    token_id: str = ""
-    from_owner_id: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-
-
-class LockRequest(BaseModel):
-    token_id: str = ""
-    owner_id: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-
-
-class UnlockRequest(BaseModel):
-    token_id: str = ""
-    owner_id: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-
-
-# ─── Endpoints ────────────────────────────────────────────────────────────────
-
-
-@router.post("/api/economy/tokens/register", tags=["Economy Tokens"])
-async def register_token(req: RegisterTokenRequest):
-    """Register a new token definition."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    token = await r.register_token(
-        name=req.name,
-        symbol=req.symbol,
-        standard=req.standard,
-        total_supply=req.total_supply,
-        is_soul_bound=req.is_soul_bound,
-        metadata=req.metadata,
-    )
-    return {"success": True, "token_id": token.token_id, "token": token.to_dict()}
-
-
-@router.get("/api/economy/tokens/stats", tags=["Economy Tokens"])
+@router.get("/stats")
 async def token_stats():
     """Get token registry statistics."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    return await r.get_stats()
+    registry = _get_registry()
+    stats = await registry.get_stats()
+    return stats
 
 
-@router.get("/api/economy/tokens/{token_id}", tags=["Economy Tokens"])
+@router.get("/holdings/{owner_id}")
+async def owner_holdings(owner_id: str):
+    """Get token holdings for an owner."""
+    registry = _get_registry()
+    holdings = await registry.get_owner_holdings(owner_id=owner_id)
+    return {
+        "holdings": [
+            {
+                "token_id": h.token_id,
+                "owner_id": h.holder_id,
+                "balance": h.amount,
+                "locked_amount": h.locked_amount,
+                "available": h.available,
+            }
+            for h in holdings
+        ]
+    }
+
+
+@router.post("/register")
+async def register_token(data: dict):
+    """Register a new token."""
+    registry = _get_registry()
+    name = data.get("name")
+    symbol = data.get("symbol")
+    decimals = data.get("decimals", 18)
+    standard = data.get("standard", "nexus")
+    is_soul_bound = data.get("is_soul_bound", False)
+    if not name or not symbol:
+        raise HTTPException(status_code=400, detail="name and symbol are required")
+    try:
+        token = await registry.register_token(
+            name=name,
+            symbol=symbol,
+            standard=standard,
+            decimals=int(decimals),
+            is_soul_bound=is_soul_bound,
+        )
+        return {"success": True, "token_id": token.token_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("")
+async def list_tokens(standard: Optional[str] = None):
+    """List all registered tokens."""
+    registry = _get_registry()
+    tokens = await registry.list_tokens(standard=standard)
+    return {
+        "tokens": [
+            {
+                "token_id": t.token_id,
+                "standard": t.standard,
+                "name": t.name,
+                "symbol": t.symbol,
+                "total_supply": t.total_supply,
+                "circulating_supply": t.circulating_supply,
+                "decimals": t.decimals,
+                "status": t.status,
+            }
+            for t in tokens
+        ],
+        "count": len(tokens),
+    }
+
+
+# ── Dynamic routes (with path params) ──────────────────────────────────── #
+
+
+@router.get("/{token_id}")
 async def get_token(token_id: str):
-    """Get token definition by ID."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    token = await r.get_token(token_id)
-    if not token:
-        raise HTTPException(status_code=404, detail=f"Token {token_id} not found")
-    return token.to_dict()
+    """Get token by ID."""
+    registry = _get_registry()
+    token = await registry.get_token(token_id)
+    if token is None:
+        raise HTTPException(status_code=404, detail="Token not found")
+    return {
+        "token_id": token.token_id,
+        "standard": token.standard,
+        "name": token.name,
+        "symbol": token.symbol,
+        "total_supply": token.total_supply,
+        "circulating_supply": token.circulating_supply,
+        "decimals": token.decimals,
+        "is_transferable": token.is_transferable,
+        "is_soul_bound": token.is_soul_bound,
+        "status": token.status,
+    }
 
 
-@router.get("/api/economy/tokens/by-symbol/{symbol}", tags=["Economy Tokens"])
-async def get_token_by_symbol(symbol: str):
-    """Get token definition by symbol."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    token = await r.get_token_by_symbol(symbol)
-    if not token:
-        raise HTTPException(status_code=404, detail=f"Token with symbol {symbol} not found")
-    return token.to_dict()
+@router.post("/{token_id}/mint")
+async def mint_tokens(token_id: str, data: dict):
+    """Mint tokens to an owner."""
+    registry = _get_registry()
+    recipient = data.get("recipient") or data.get("to_owner_id")
+    amount = data.get("amount", 0.0)
+    if not recipient:
+        raise HTTPException(status_code=400, detail="recipient is required")
+    success, msg = await registry.mint(token_id=token_id, recipient=recipient, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "event_id": msg}
 
 
-@router.get("/api/economy/tokens", tags=["Economy Tokens"])
-async def list_tokens(standard: Optional[str] = Query(None)):
-    """List all registered tokens, optionally filtered by standard."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    tokens = await r.list_tokens(standard=standard)
-    return {"tokens": [t.to_dict() for t in tokens], "count": len(tokens)}
-
-
-@router.post("/api/economy/tokens/mint", tags=["Economy Tokens"])
-async def mint(req: MintRequest):
-    """Mint new tokens to an owner."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.mint(req.token_id, req.amount, req.to_owner_id)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": req.token_id, "owner_id": req.to_owner_id, "amount": req.amount}
-
-
-@router.post("/api/economy/tokens/{token_id}/mint", tags=["Economy Tokens"])
-async def mint_token(token_id: str, req: MintRequest):
-    """Mint tokens to an owner (token_id from path, overrides body)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.mint(token_id, req.amount, req.to_owner_id)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": token_id, "owner_id": req.to_owner_id, "amount": req.amount}
-
-
-@router.post("/api/economy/tokens/burn", tags=["Economy Tokens"])
-async def burn(req: BurnRequest):
+@router.post("/{token_id}/burn")
+async def burn_tokens(token_id: str, data: dict):
     """Burn tokens from an owner."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.burn(req.from_owner_id, req.token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": req.token_id, "owner_id": req.from_owner_id, "amount": req.amount}
+    registry = _get_registry()
+    holder = data.get("holder") or data.get("from_owner_id")
+    amount = data.get("amount", 0.0)
+    if not holder:
+        raise HTTPException(status_code=400, detail="holder is required")
+    success, msg = await registry.burn(holder=holder, token_id=token_id, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "event_id": msg}
 
 
-@router.post("/api/economy/tokens/{token_id}/burn", tags=["Economy Tokens"])
-async def burn_token(token_id: str, req: BurnRequest):
-    """Burn tokens from an owner (token_id from path, overrides body)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.burn(req.from_owner_id, token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": token_id, "owner_id": req.from_owner_id, "amount": req.amount}
+@router.post("/{token_id}/lock")
+async def lock_tokens(token_id: str, data: dict):
+    """Lock tokens for an owner."""
+    registry = _get_registry()
+    holder_id = data.get("holder_id") or data.get("owner_id")
+    amount = data.get("amount", 0.0)
+    if not holder_id:
+        raise HTTPException(status_code=400, detail="holder_id is required")
+    success, msg = await registry.lock_tokens(token_id=token_id, holder_id=holder_id, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}
 
 
-@router.get("/api/economy/tokens/holdings/{owner_id}", tags=["Economy Tokens"])
-async def get_owner_holdings(owner_id: str):
-    """Get all token holdings for an owner."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    holdings = await r.get_owner_holdings(owner_id)
-    return {"owner_id": owner_id, "holdings": [h.to_dict() for h in holdings], "count": len(holdings)}
-
-
-@router.get("/api/economy/tokens/holdings/{owner_id}/{token_id}", tags=["Economy Tokens"])
-async def get_holding(owner_id: str, token_id: str):
-    """Get a specific holding for an owner and token."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    holding = await r.get_holding(owner_id, token_id)
-    if not holding:
-        raise HTTPException(status_code=404, detail=f"Holding not found for owner {owner_id}, token {token_id}")
-    return holding.to_dict()
-
-
-@router.get("/api/economy/tokens/balance/{owner_id}/{token_id}", tags=["Economy Tokens"])
-async def get_owner_balance(owner_id: str, token_id: str):
-    """Get balance of a specific token for an owner."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    balance = await r.get_owner_balance(owner_id, token_id)
-    return {"owner_id": owner_id, "token_id": token_id, "balance": balance}
-
-
-@router.post("/api/economy/tokens/lock", tags=["Economy Tokens"])
-async def lock_tokens(req: LockRequest):
-    """Lock tokens (e.g., for staking)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.lock_tokens(req.owner_id, req.token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": req.token_id, "owner_id": req.owner_id, "locked_amount": req.amount}
-
-
-@router.post("/api/economy/tokens/{token_id}/lock", tags=["Economy Tokens"])
-async def lock_tokens_path(token_id: str, req: LockRequest):
-    """Lock tokens (token_id from path, overrides body)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.lock_tokens(req.owner_id, token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": token_id, "owner_id": req.owner_id, "locked_amount": req.amount}
-
-
-@router.post("/api/economy/tokens/unlock", tags=["Economy Tokens"])
-async def unlock_tokens(req: UnlockRequest):
-    """Unlock previously locked tokens."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.unlock_tokens(req.owner_id, req.token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": req.token_id, "owner_id": req.owner_id, "unlocked_amount": req.amount}
-
-
-@router.post("/api/economy/tokens/{token_id}/unlock", tags=["Economy Tokens"])
-async def unlock_tokens_path(token_id: str, req: UnlockRequest):
-    """Unlock tokens (token_id from path, overrides body)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    result = await r.unlock_tokens(req.owner_id, token_id, req.amount)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "token_id": token_id, "owner_id": req.owner_id, "unlocked_amount": req.amount}
-
-
-@router.post("/api/economy/tokens/initialize-defaults", tags=["Economy Tokens"])
-async def initialize_default_tokens():
-    """Initialize default system tokens (NEXUS, SVT, HDT)."""
-    r = _get_registry()
-    if not r:
-        raise HTTPException(status_code=503, detail="TokenRegistry not available")
-    from economy.tokens import initialize_default_tokens as init_defaults
-    await init_defaults(r)
-    return {"success": True, "message": "Default tokens initialized"}
+@router.post("/{token_id}/unlock")
+async def unlock_tokens(token_id: str, data: dict):
+    """Unlock tokens for an owner."""
+    registry = _get_registry()
+    holder_id = data.get("holder_id") or data.get("owner_id")
+    amount = data.get("amount", 0.0)
+    if not holder_id:
+        raise HTTPException(status_code=400, detail="holder_id is required")
+    success, msg = await registry.unlock_tokens(token_id=token_id, holder_id=holder_id, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}

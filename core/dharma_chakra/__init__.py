@@ -1,12 +1,35 @@
+"""AsimNexus Dharma Chakra — Constitutional enforcement and veto engine."""
 
-"""
-STATUS: REAL — Auto-labeled by batch_label.py
-"""
-
-from .veto_engine import DharmaVetoEngine, VetoResult, VetoLevel, get_veto_engine
-from .safety_veto import SafetyVeto, SafetyLevel, SafetyPolicy, SafetyViolation
+from .constitution import (
+    DharmaChakraConstitution,
+    ConstitutionalCheck,
+    ConstitutionalRule,
+    ConstitutionalViolation,
+    SectorType,
+    ActionType,
+)
+from .veto_engine import (
+    DharmaVetoEngine,
+    ZKPConfirmationManager,
+    VetoLevel,
+    VetoResult,
+    PendingConfirmation,
+    get_veto_engine,
+    get_zkp_manager,
+)
 
 __all__ = [
-    "DharmaVetoEngine", "VetoResult", "VetoLevel", "get_veto_engine",
-    "SafetyVeto", "SafetyLevel", "SafetyPolicy", "SafetyViolation",
+    "DharmaChakraConstitution",
+    "ConstitutionalCheck",
+    "ConstitutionalRule",
+    "ConstitutionalViolation",
+    "SectorType",
+    "ActionType",
+    "DharmaVetoEngine",
+    "ZKPConfirmationManager",
+    "VetoLevel",
+    "VetoResult",
+    "PendingConfirmation",
+    "get_veto_engine",
+    "get_zkp_manager",
 ]

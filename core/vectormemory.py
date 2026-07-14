@@ -7,8 +7,8 @@ Local-first semantic memory with embeddings and retrieval.
 Supports chat history, user memories, and knowledge base.
 
 Backends:
-- SENTENCE_TRANSFORMERS (default): all-MiniLM-L6-v2, 384d, with cache
-- CHROMADB: ChromaDB persistent client with HNSW ANN indexing
+- CHROMADB (default): ChromaDB persistent client with HNSW ANN indexing
+- SENTENCE_TRANSFORMERS: all-MiniLM-L6-v2, 384d, with cache (fallback)
 - OPENAI: text-embedding-ada-002, 1536d
 - DUMMY: hash-based fallback when sentence-transformers not installed
 """
@@ -30,7 +30,7 @@ logger = logging.getLogger("AsimNexus.VectorMemory")
 
 # ─── Environment Configuration ────────────────────────────────────────────────
 _DEFAULT_DB_PATH = os.getenv("ASIM_VECTOR_DB_PATH", "data/vector_memory.db")
-_DEFAULT_EMBEDDING_BACKEND = os.getenv("ASIM_EMBEDDING_BACKEND", "sentence_transformers")
+_DEFAULT_EMBEDDING_BACKEND = os.getenv("ASIM_EMBEDDING_BACKEND", "chromadb")
 _DEFAULT_PRUNE_DAYS = int(os.getenv("ASIM_VECTOR_PRUNE_DAYS", "90"))
 _DEFAULT_KEEP_PER_TYPE = int(os.getenv("ASIM_VECTOR_KEEP_PER_TYPE", "100"))
 _DEFAULT_CHROMA_PATH = os.getenv("ASIM_CHROMA_PATH", "data/chromadb")
@@ -50,8 +50,8 @@ class MemoryType(Enum):
 
 class EmbeddingBackend(Enum):
     """Embedding generation backends."""
-    SENTENCE_TRANSFORMERS = "sentence_transformers"  # Local (default)
-    CHROMADB = "chromadb"                             # ChromaDB with HNSW
+    CHROMADB = "chromadb"                             # ChromaDB with HNSW (default)
+    SENTENCE_TRANSFORMERS = "sentence_transformers"  # Local fallback
     OPENAI = "openai"                                 # Cloud fallback
     DUMMY = "dummy"                                  # Testing / fallback
 
@@ -118,12 +118,15 @@ class SearchResult:
 class VectorMemory:
     """
     Local-first vector memory system.
-    Stores embeddings in SQLite + ChromaDB (optional), supports semantic search.
+    Stores embeddings in ChromaDB (primary) + SQLite metadata (fallback).
+
+    ChromaDB is the default backend with HNSW approximate nearest neighbor indexing.
+    Falls back to SQLite full-scan cosine similarity when ChromaDB is unavailable.
 
     Backward-compatible interface. Callers don't need to change.
     """
 
-    def __init__(self, db_path: str, embedding_backend: EmbeddingBackend = EmbeddingBackend.SENTENCE_TRANSFORMERS):
+    def __init__(self, db_path: str, embedding_backend: EmbeddingBackend = EmbeddingBackend.CHROMADB):
         self.db_path = db_path
         self.embedding_backend = embedding_backend
         self._embedding_dim = self._get_embedding_dimension()
@@ -138,17 +141,18 @@ class VectorMemory:
         self._chroma_available = False
 
         self._init_db()
-        if self.embedding_backend == EmbeddingBackend.CHROMADB:
-            self._init_chromadb()
+        # Always attempt ChromaDB init; gracefully falls back if chromadb not installed
+        self._init_chromadb()
 
         logger.info(
             f"🧠 VectorMemory initialized - Backend: {embedding_backend}, "
-            f"Dim: {self._embedding_dim}, Cache: {_EMBEDDING_CACHE_SIZE}"
+            f"Dim: {self._embedding_dim}, Cache: {_EMBEDDING_CACHE_SIZE}, "
+            f"ChromaDB: {'✅' if self._chroma_available else '❌'}"
         )
 
     def _get_embedding_dimension(self) -> int:
         """Get embedding dimension based on backend."""
-        if self.embedding_backend in (EmbeddingBackend.SENTENCE_TRANSFORMERS, EmbeddingBackend.CHROMADB):
+        if self.embedding_backend in (EmbeddingBackend.CHROMADB, EmbeddingBackend.SENTENCE_TRANSFORMERS):
             return 384  # all-MiniLM-L6-v2
         elif self.embedding_backend == EmbeddingBackend.OPENAI:
             return 1536  # text-embedding-ada-002
@@ -227,6 +231,28 @@ class VectorMemory:
             )
 
             collection_name = os.getenv("ASIM_CHROMA_COLLECTION", _DEFAULT_CHROMA_COLLECTION)
+
+            # Check if collection already exists with mismatched dimension
+            existing_collections = self._chroma_client.list_collections()
+            existing_names = {c.name for c in existing_collections}
+
+            if collection_name in existing_names:
+                existing = self._chroma_client.get_collection(name=collection_name)
+                # Peek at first record to check dimension
+                try:
+                    peek = existing.peek()
+                    if peek and peek.get("embeddings") and len(peek["embeddings"]) > 0:
+                        existing_dim = len(peek["embeddings"][0])
+                        if existing_dim != self._embedding_dim:
+                            logger.warning(
+                                f"⚠️  ChromaDB collection '{collection_name}' has dimension {existing_dim}, "
+                                f"expected {self._embedding_dim}. Deleting and recreating."
+                            )
+                            self._chroma_client.delete_collection(name=collection_name)
+                            existing = None
+                except Exception:
+                    # Collection might be empty, that's fine
+                    pass
 
             # Get or create collection with HNSW configuration
             self._chroma_collection = self._chroma_client.get_or_create_collection(
@@ -394,7 +420,7 @@ class VectorMemory:
         # Generate embedding
         embedding = self._generate_embedding(content)
 
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_add_memory(memory_id, content, embedding, memory_type, user_id, metadata)
         else:
             return self._sqlite_add_memory(memory_id, content, embedding, memory_type, user_id, metadata)
@@ -470,7 +496,7 @@ class VectorMemory:
 
     def get_memory(self, memory_id: str) -> Optional[Memory]:
         """Get a memory by ID."""
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_get_memory(memory_id)
         else:
             return self._sqlite_get_memory(memory_id)
@@ -560,13 +586,13 @@ class VectorMemory:
         Semantic search for memories.
         Returns list of SearchResult with similarity scores.
 
-        When ChromaDB backend is active, uses HNSW approximate nearest neighbor
+        When ChromaDB is available, uses HNSW approximate nearest neighbor
         for fast search. Otherwise, uses full scan with cosine similarity.
         """
         # Generate query embedding
         query_embedding = self._generate_embedding(query)
 
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_search(query_embedding, query, user_id, memory_type, limit, min_similarity)
         else:
             return self._sqlite_search(query_embedding, user_id, memory_type, limit, min_similarity)
@@ -715,7 +741,7 @@ class VectorMemory:
     def get_user_memories(self, user_id: str, memory_type: Optional[MemoryType] = None,
                           limit: int = 50) -> List[Memory]:
         """Get all memories for a user."""
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_get_user_memories(user_id, memory_type, limit)
         else:
             return self._sqlite_get_user_memories(user_id, memory_type, limit)
@@ -789,7 +815,7 @@ class VectorMemory:
 
     def delete_memory(self, memory_id: str) -> bool:
         """Delete a memory by ID."""
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_delete_memory(memory_id)
         else:
             return self._sqlite_delete_memory(memory_id)
@@ -836,7 +862,7 @@ class VectorMemory:
         Regenerates embedding if content changes.
         """
         try:
-            if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+            if self._chroma_available:
                 return self._chroma_update_memory(memory_id, content, metadata)
             else:
                 return self._sqlite_update_memory(memory_id, content, metadata)
@@ -948,7 +974,7 @@ class VectorMemory:
             "chromadb_available": self._chroma_available
         }
 
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             with sqlite3.connect(self.db_path) as conn:
                 total = conn.execute("SELECT COUNT(*) FROM chroma_metadata").fetchone()[0]
 
@@ -1039,7 +1065,7 @@ class VectorMemory:
 
         cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
 
-        if self._chroma_available and self.embedding_backend == EmbeddingBackend.CHROMADB:
+        if self._chroma_available:
             return self._chroma_prune(cutoff, keep_per_type)
         else:
             return self._sqlite_prune(cutoff, keep_per_type)
@@ -1129,6 +1155,111 @@ class VectorMemory:
         """Clear the embedding cache."""
         self._embedding_cache.clear()
         logger.info("🧹 Embedding cache cleared")
+
+    # ── Migration ──────────────────────────────────────────────────────────
+
+    def migrate_from_sqlite(self, batch_size: int = 100) -> Dict[str, Any]:
+        """
+        Migrate existing SQLite embeddings to ChromaDB.
+        Copies all memories from the SQLite 'memories' table into ChromaDB
+        and the 'chroma_metadata' table. Does NOT delete the original data.
+
+        Returns a summary dict with counts of migrated/skipped/failed records.
+        """
+        if not self._chroma_available:
+            logger.warning("⚠️  ChromaDB not available, cannot migrate")
+            return {"migrated": 0, "skipped": 0, "failed": 0, "error": "ChromaDB not available"}
+
+        migrated = 0
+        skipped = 0
+        failed = 0
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            total = conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0]
+
+            if total == 0:
+                logger.info("📭 No SQLite memories to migrate")
+                return {"migrated": 0, "skipped": 0, "failed": 0, "total": 0}
+
+            # Check which memory_ids already exist in chroma_metadata
+            existing = set(
+                row[0] for row in conn.execute("SELECT memory_id FROM chroma_metadata").fetchall()
+            )
+
+            offset = 0
+            while offset < total:
+                rows = conn.execute(
+                    "SELECT * FROM memories ORDER BY created_at ASC LIMIT ? OFFSET ?",
+                    (batch_size, offset)
+                ).fetchall()
+
+                for row in rows:
+                    memory_id = row["id"]
+                    if memory_id in existing:
+                        skipped += 1
+                        continue
+
+                    try:
+                        embedding_blob = row["embedding"]
+                        if not embedding_blob:
+                            skipped += 1
+                            continue
+
+                        embedding = self._deserialize_embedding(embedding_blob)
+                        content = row["content"]
+                        memory_type = row["memory_type"]
+                        user_id = row["user_id"]
+                        metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+                        created_at = row["created_at"]
+
+                        # Add to ChromaDB
+                        chroma_id = f"mem_{memory_id}"
+                        full_metadata = {
+                            "memory_id": memory_id,
+                            "memory_type": memory_type,
+                            "user_id": user_id,
+                            "created_at": created_at,
+                            **metadata
+                        }
+
+                        self._chroma_collection.add(
+                            ids=[chroma_id],
+                            embeddings=[embedding],
+                            documents=[content],
+                            metadatas=[full_metadata]
+                        )
+
+                        # Add to chroma_metadata table
+                        conn.execute("""
+                            INSERT INTO chroma_metadata
+                                (memory_id, chroma_id, content, memory_type, user_id, metadata, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            memory_id, chroma_id, content, memory_type, user_id,
+                            json.dumps(metadata), created_at
+                        ))
+
+                        migrated += 1
+
+                    except Exception as e:
+                        logger.warning(f"⚠️  Migration failed for memory {memory_id}: {e}")
+                        failed += 1
+
+                conn.commit()
+                offset += batch_size
+                logger.info(f"🔄 Migration progress: {offset}/{total}")
+
+        logger.info(
+            f"✅ Migration complete - migrated: {migrated}, "
+            f"skipped: {skipped}, failed: {failed}"
+        )
+        return {
+            "migrated": migrated,
+            "skipped": skipped,
+            "failed": failed,
+            "total": total
+        }
 
 
 # Global vector memory instance

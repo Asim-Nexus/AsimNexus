@@ -9,7 +9,6 @@ Tests for personal OS and Mirror integration.
 import pytest
 import asyncio
 
-
 def test_personal_os_status():
     """Test personal OS status endpoint."""
     try:
@@ -19,7 +18,6 @@ def test_personal_os_status():
     except ImportError:
         Pass
 
-
 @pytest.mark.asyncio
 async def test_mirror_reflect():
     """Test Mirror reflection."""
@@ -27,7 +25,6 @@ async def test_mirror_reflect():
     mirror = get_mirror("reflect_test")
     result = await mirror.reflect({"intent": "test action"})
     assert result.intent == "test action"
-
 
 def test_mirror_singleton():
     """Test Mirror singleton pattern."""

@@ -1,2 +1,0 @@
-auto: local_llm - <think>
-I'm glad to see you. I'm Qwen, a large-scale languag

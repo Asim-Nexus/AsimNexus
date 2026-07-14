@@ -4,12 +4,10 @@ Phase 4.1: Microkernel Architecture Tests
 import pytest
 from fastapi.testclient import TestClient
 
-
 def test_microkernel_exists():
     """Microkernel module exists."""
     from core.kernel.microkernel import ASIMMicrokernel
     assert ASIMMicrokernel is not None
-
 
 def test_microkernel_capability_manager():
     """CapabilityManager grants and checks capabilities."""
@@ -19,7 +17,6 @@ def test_microkernel_capability_manager():
     assert cap.process_id == "proc1"
     assert cap.resource_id == "res1"
 
-
 def test_microkernel_ipc():
     """IPCManager sends messages between processes."""
     from core.kernel.microkernel import ASIMMicrokernel
@@ -27,7 +24,6 @@ def test_microkernel_ipc():
     msg = kernel.send_message("p1", "p2", {"type": "test", "data": "hello"})
     assert msg.from_process == "p1"
     assert msg.to_process == "p2"
-
 
 def test_microkernel_status_endpoint():
     """Microkernel status endpoint works."""

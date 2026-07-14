@@ -1,225 +1,207 @@
 """
-WalletEngine REST API endpoints for ASIMNEXUS.
-
-Provides REST API access to WalletEngine operations including:
-wallet creation, deposits, withdrawals, transfers, freeze/close,
-balance inquiries, and transaction history.
+Wallet API Routes
+=================
+FastAPI router for wallet endpoints (/api/economy/wallet/*).
 """
 
-from typing import Optional, List
-from fastapi import HTTPException, Query
-from pydantic import BaseModel, Field
+import logging
+from typing import Optional
 
-from . import router, logger
+from fastapi import APIRouter, HTTPException
 
+logger = logging.getLogger(__name__)
 
+router = APIRouter(prefix="/api/economy/wallet", tags=["economy-wallet"])
+
+# Module-level singleton reference (reset by test fixture)
 _wallet = None
+
 
 def _get_wallet():
     global _wallet
     if _wallet is None:
-        try:
-            from economy.wallet import get_wallet_engine
-            _wallet = get_wallet_engine()
-            logger.info("WalletEngine loaded")
-        except Exception as e:
-            logger.warning(f"WalletEngine unavailable: {e}")
+        from core.economy.wallet import get_wallet_engine
+        _wallet = get_wallet_engine()
     return _wallet
 
 
-# ─── Request / Response Models ────────────────────────────────────────────────
+# ─── Static routes (must be before /{wallet_id}) ────────────────────────────
 
 
-class CreateWalletRequest(BaseModel):
-    owner_id: str = Field(..., min_length=1, description="Unique owner identifier")
-    owner_type: str = Field("user", pattern="^(user|agent|system)$")
-
-
-class DepositRequest(BaseModel):
-    wallet_id: str
-    amount: float = Field(..., gt=0)
-    token_type: str = "nexus"
-    memo: str = ""
-
-
-class WithdrawRequest(BaseModel):
-    wallet_id: str
-    amount: float = Field(..., gt=0)
-    token_type: str = "nexus"
-    memo: str = ""
-
-
-class TransferRequest(BaseModel):
-    from_wallet_id: str
-    to_wallet_id: str
-    amount: float = Field(..., gt=0)
-    token_type: str = "nexus"
-    memo: str = ""
-
-
-class FreezeRequest(BaseModel):
-    wallet_id: str
-    reason: str = ""
-
-
-# ─── Endpoints ────────────────────────────────────────────────────────────────
-
-# NOTE: Route ordering matters — static paths like /stats MUST come before /{wallet_id}
-# to avoid FastAPI matching "stats" as a wallet_id parameter.
-
-
-@router.post("/api/economy/wallet/create", tags=["Economy Wallet"])
-async def create_wallet(req: CreateWalletRequest):
-    """Create a new wallet for a user or agent."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    # Check for duplicate wallet for same owner
-    existing = await w.get_wallet_by_owner(req.owner_id)
-    if existing:
-        raise HTTPException(status_code=400, detail=f"Wallet already exists for owner {req.owner_id}")
-    wallet = await w.create_wallet(req.owner_id, owner_type=req.owner_type)
-    return {"success": True, "wallet_id": wallet.wallet_id, "wallet": wallet.to_dict()}
-
-
-@router.get("/api/economy/wallet/stats", tags=["Economy Wallet"])
+@router.get("/stats")
 async def wallet_stats():
-    """Get wallet engine statistics."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    return await w.get_stats()
+    """Get wallet system statistics."""
+    engine = _get_wallet()
+    stats = await engine.get_stats()
+    return stats
 
 
-@router.get("/api/economy/wallet/{wallet_id}", tags=["Economy Wallet"])
-async def get_wallet(wallet_id: str):
-    """Get wallet details by ID."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    entry = await w.get_wallet(wallet_id)
-    if not entry:
-        raise HTTPException(status_code=404, detail=f"Wallet {wallet_id} not found")
-    return entry.to_dict()
+@router.get("/supply/{token_type}")
+async def total_supply(token_type: str):
+    """Get total supply of a token."""
+    engine = _get_wallet()
+    supply = await engine.get_total_supply(token_type=token_type)
+    return {"total_supply": supply}
 
 
-@router.get("/api/economy/wallet/by-owner/{owner_id}", tags=["Economy Wallet"])
+@router.post("/create")
+async def create_wallet(data: dict):
+    """Create a new wallet."""
+    engine = _get_wallet()
+    owner_id = data.get("owner_id")
+    if not owner_id:
+        raise HTTPException(status_code=400, detail="owner_id is required")
+    try:
+        wallet = await engine.create_wallet(owner_id=owner_id)
+        return {"success": True, "wallet_id": wallet.wallet_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/deposit")
+async def deposit(data: dict):
+    """Deposit tokens to a wallet."""
+    engine = _get_wallet()
+    wallet_id = data.get("wallet_id")
+    token_type = data.get("token_type", "nexus")
+    amount = data.get("amount", 0.0)
+    if not wallet_id:
+        raise HTTPException(status_code=400, detail="wallet_id is required")
+    success, msg = await engine.deposit(wallet_id=wallet_id, token_type=token_type, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "tx_id": msg}
+
+
+@router.post("/withdraw")
+async def withdraw(data: dict):
+    """Withdraw tokens from a wallet."""
+    engine = _get_wallet()
+    wallet_id = data.get("wallet_id")
+    token_type = data.get("token_type", "nexus")
+    amount = data.get("amount", 0.0)
+    if not wallet_id:
+        raise HTTPException(status_code=400, detail="wallet_id is required")
+    success, msg = await engine.withdraw(wallet_id=wallet_id, token_type=token_type, amount=float(amount))
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "tx_id": msg}
+
+
+@router.post("/transfer")
+async def transfer(data: dict):
+    """Transfer tokens between wallets."""
+    engine = _get_wallet()
+    from_wallet_id = data.get("from_wallet_id")
+    to_wallet_id = data.get("to_wallet_id")
+    token_type = data.get("token_type", "nexus")
+    amount = data.get("amount", 0.0)
+    if not from_wallet_id or not to_wallet_id:
+        raise HTTPException(status_code=400, detail="from_wallet_id and to_wallet_id are required")
+    success, msg = await engine.transfer(
+        from_wallet_id=from_wallet_id,
+        to_wallet_id=to_wallet_id,
+        token_type=token_type,
+        amount=float(amount),
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True, "tx_id": msg}
+
+
+@router.post("/freeze")
+async def freeze_wallet(data: dict):
+    """Freeze a wallet."""
+    engine = _get_wallet()
+    wallet_id = data.get("wallet_id")
+    reason = data.get("reason", "")
+    if not wallet_id:
+        raise HTTPException(status_code=400, detail="wallet_id is required")
+    success = await engine.freeze_wallet(wallet_id=wallet_id, reason=reason)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to freeze wallet")
+    return {"success": True}
+
+
+# ─── Dynamic routes (with path parameters) ──────────────────────────────────
+
+
+@router.get("/by-owner/{owner_id}")
 async def get_wallet_by_owner(owner_id: str):
     """Get wallet by owner ID."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    entry = await w.get_wallet_by_owner(owner_id)
-    if not entry:
-        raise HTTPException(status_code=404, detail=f"Wallet for owner {owner_id} not found")
-    return entry.to_dict()
+    engine = _get_wallet()
+    wallet = await engine.get_wallet_by_owner(owner_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found for owner")
+    return {
+        "wallet_id": wallet.wallet_id,
+        "owner_id": wallet.owner_id,
+        "owner_type": wallet.owner_type,
+        "status": wallet.status,
+        "balances": {k: {"token_type": k, "available": v.available, "locked": v.locked, "total": v.total} for k, v in wallet.balances.items()},
+        "created_at": wallet.created_at,
+    }
 
 
-@router.get("/api/economy/wallet/{wallet_id}/balance", tags=["Economy Wallet"])
-async def get_balance(wallet_id: str, token_type: str = Query("nexus")):
-    """Get balance for a wallet and token type."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    balance = await w.get_balance(wallet_id, token_type)
-    if not balance:
-        raise HTTPException(status_code=404, detail=f"Wallet {wallet_id} or token {token_type} not found")
-    return {"wallet_id": wallet_id, "token_type": token_type, "balance": balance.to_dict()}
+@router.get("/{wallet_id}")
+async def get_wallet(wallet_id: str):
+    """Get wallet by ID."""
+    engine = _get_wallet()
+    wallet = await engine.get_wallet(wallet_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    return {
+        "wallet_id": wallet.wallet_id,
+        "owner_id": wallet.owner_id,
+        "owner_type": wallet.owner_type,
+        "status": wallet.status,
+        "balances": {k: {"token_type": k, "available": v.available, "locked": v.locked, "total": v.total} for k, v in wallet.balances.items()},
+        "created_at": wallet.created_at,
+    }
 
 
-@router.post("/api/economy/wallet/deposit", tags=["Economy Wallet"])
-async def deposit(req: DepositRequest):
-    """Deposit funds into a wallet."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    # Engine signature: deposit(self, wallet_id, token_type, amount, reference="", metadata=None)
-    result = await w.deposit(req.wallet_id, req.token_type, req.amount, reference=req.memo)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    tx = await w.get_transaction(result[1])
-    return {"success": True, "transaction_id": result[1], "transaction": tx.to_dict() if tx else {}}
+@router.get("/{wallet_id}/balance")
+async def get_balance(wallet_id: str):
+    """Get wallet balance."""
+    engine = _get_wallet()
+    wallet = await engine.get_wallet(wallet_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    return {
+        "wallet_id": wallet_id,
+        "balance": {k: v.available for k, v in wallet.balances.items()},
+    }
 
 
-@router.post("/api/economy/wallet/withdraw", tags=["Economy Wallet"])
-async def withdraw(req: WithdrawRequest):
-    """Withdraw funds from a wallet."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    # Engine signature: withdraw(self, wallet_id, token_type, amount, destination="", metadata=None)
-    result = await w.withdraw(req.wallet_id, req.token_type, req.amount, destination=req.memo)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    tx = await w.get_transaction(result[1])
-    return {"success": True, "transaction_id": result[1], "transaction": tx.to_dict() if tx else {}}
-
-
-@router.post("/api/economy/wallet/transfer", tags=["Economy Wallet"])
-async def transfer(req: TransferRequest):
-    """Transfer funds between wallets."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    # Engine signature: transfer(self, from_wallet_id, to_wallet_id, token_type, amount, description="", metadata=None)
-    result = await w.transfer(req.from_wallet_id, req.to_wallet_id, req.token_type, req.amount, description=req.memo)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    tx = await w.get_transaction(result[1])
-    return {"success": True, "transaction_id": result[1], "transaction": tx.to_dict() if tx else {}}
-
-
-@router.post("/api/economy/wallet/freeze", tags=["Economy Wallet"])
-async def freeze_wallet(req: FreezeRequest):
-    """Freeze a wallet."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    result = await w.freeze_wallet(req.wallet_id, reason=req.reason)
-    if not result:
-        raise HTTPException(status_code=400, detail=f"Failed to freeze wallet {req.wallet_id}")
-    return {"success": True, "wallet_id": req.wallet_id, "status": "frozen"}
-
-
-@router.post("/api/economy/wallet/{wallet_id}/close", tags=["Economy Wallet"])
+@router.post("/{wallet_id}/close")
 async def close_wallet(wallet_id: str):
     """Close a wallet."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    result = await w.close_wallet(wallet_id)
-    if not result:
-        raise HTTPException(status_code=400, detail=f"Failed to close wallet {wallet_id}")
-    return {"success": True, "wallet_id": wallet_id, "status": "closed"}
+    engine = _get_wallet()
+    success = await engine.close_wallet(wallet_id=wallet_id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to close wallet")
+    return {"success": True}
 
 
-@router.get("/api/economy/wallet/{wallet_id}/transactions", tags=["Economy Wallet"])
-async def list_transactions(wallet_id: str, limit: int = Query(50, ge=1, le=500)):
+@router.get("/{wallet_id}/transactions")
+async def list_transactions(wallet_id: str):
     """List transactions for a wallet."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    txns = await w.list_transactions(wallet_id, limit=limit)
-    return {"wallet_id": wallet_id, "transactions": [t.to_dict() for t in txns], "count": len(txns)}
-
-
-@router.get("/api/economy/wallet/{wallet_id}/transactions/{tx_id}", tags=["Economy Wallet"])
-async def get_transaction(wallet_id: str, tx_id: str):
-    """Get a specific transaction."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    tx = await w.get_transaction(tx_id)
-    if not tx:
-        raise HTTPException(status_code=404, detail=f"Transaction {tx_id} not found")
-    return tx.to_dict()
-
-
-@router.get("/api/economy/wallet/supply/{token_type}", tags=["Economy Wallet"])
-async def get_total_supply(token_type: str = "nexus"):
-    """Get total supply of a token type."""
-    w = _get_wallet()
-    if not w:
-        raise HTTPException(status_code=503, detail="WalletEngine not available")
-    supply = await w.get_total_supply(token_type)
-    return {"token_type": token_type, "total_supply": supply}
+    engine = _get_wallet()
+    txns = await engine.list_transactions(wallet_id=wallet_id)
+    return {
+        "transactions": [
+            {
+                "tx_id": t.tx_id,
+                "wallet_id": t.wallet_id,
+                "tx_type": t.tx_type,
+                "token_type": t.token_type,
+                "amount": t.amount,
+                "reference": t.reference,
+                "timestamp": t.timestamp,
+                "status": t.status,
+            }
+            for t in txns
+        ]
+    }

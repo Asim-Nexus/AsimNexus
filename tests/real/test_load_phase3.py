@@ -4,7 +4,6 @@ Phase 3.2: Load Testing Tests
 import pytest
 from fastapi.testclient import TestClient
 
-
 def test_health_endpoint_performance():
     """Health endpoint responds under 200ms."""
     from app import app
@@ -16,7 +15,6 @@ def test_health_endpoint_performance():
     assert response.status_code == 200
     assert elapsed < 1.0, f"Health endpoint too slow: {elapsed:.3f}s"
 
-
 def test_metrics_endpoint_performance():
     """Metrics endpoint responds under 500ms."""
     from app import app
@@ -27,7 +25,6 @@ def test_metrics_endpoint_performance():
     elapsed = time.time() - start
     assert response.status_code == 200
     assert elapsed < 1.0, f"Metrics endpoint too slow: {elapsed:.3f}s"
-
 
 def test_concurrent_requests():
     """System handles concurrent requests without errors."""

@@ -29,7 +29,7 @@ async def hardening_health():
 
     # Check RBAC
     try:
-        from security.rbac import get_rbac
+        from core.security.rbac import get_rbac
         rbac = get_rbac()
         results["rbac"] = {"available": True, "status": "active"}
     except Exception as e:
@@ -37,28 +37,28 @@ async def hardening_health():
 
     # Check Input Sanitizer
     try:
-        from security.input_sanitizer import InputSanitizer
+        from core.security.input_sanitizer import InputSanitizer
         results["input_sanitizer"] = {"available": True, "status": "active"}
     except Exception as e:
         results["input_sanitizer"] = {"available": False, "error": str(e)}
 
     # Check Audit Logger
     try:
-        from security.audit_logger import AuditLogger
+        from core.security.audit_logger import AuditLogger
         results["audit_logger"] = {"available": True, "status": "active"}
     except Exception as e:
         results["audit_logger"] = {"available": False, "error": str(e)}
 
     # Check Zero Trust
     try:
-        from security.zero_trust import ZeroTrust
+        from core.security.zero_trust import ZeroTrust
         results["zero_trust"] = {"available": True, "status": "active"}
     except Exception as e:
         results["zero_trust"] = {"available": False, "error": str(e)}
 
     # Check Risk Validator
     try:
-        from security.risk_validator import RiskValidator
+        from core.security.risk_validator import RiskValidator
         results["risk_validator"] = {"available": True, "status": "active"}
     except Exception as e:
         results["risk_validator"] = {"available": False, "error": str(e)}
@@ -92,7 +92,7 @@ async def verify_system_integrity():
 
     # Verify RBAC permissions
     try:
-        from security.rbac import get_rbac
+        from core.security.rbac import get_rbac
         rbac = get_rbac()
         results["rbac"] = {"status": "verified", "permissions": rbac.get_all_permissions() if hasattr(rbac, 'get_all_permissions') else "N/A"}
     except Exception as e:
@@ -100,7 +100,7 @@ async def verify_system_integrity():
 
     # Verify input sanitization rules
     try:
-        from security.input_sanitizer import InputSanitizer
+        from core.security.input_sanitizer import InputSanitizer
         sanitizer = InputSanitizer()
         rules = sanitizer.get_rules() if hasattr(sanitizer, 'get_rules') else {}
         results["input_sanitizer"] = {"status": "verified", "rules_count": len(rules) if rules else 0}
@@ -109,7 +109,7 @@ async def verify_system_integrity():
 
     # Verify zero trust policy
     try:
-        from security.zero_trust import ZeroTrust
+        from core.security.zero_trust import ZeroTrust
         zt = ZeroTrust()
         policy = zt.get_policy_summary() if hasattr(zt, 'get_policy_summary') else {}
         results["zero_trust"] = {"status": "verified", "policy": policy}
@@ -158,7 +158,7 @@ async def list_security_layers():
 
     # Layer 2: RBAC
     try:
-        from security.rbac import get_rbac
+        from core.security.rbac import get_rbac
         layers.append({
             "layer": 2,
             "name": "Role-Based Access Control",
@@ -170,7 +170,7 @@ async def list_security_layers():
 
     # Layer 3: Input Sanitization
     try:
-        from security.input_sanitizer import InputSanitizer
+        from core.security.input_sanitizer import InputSanitizer
         layers.append({
             "layer": 3,
             "name": "Input Sanitization",
@@ -182,7 +182,7 @@ async def list_security_layers():
 
     # Layer 4: Audit Logging
     try:
-        from security.audit_logger import AuditLogger
+        from core.security.audit_logger import AuditLogger
         layers.append({
             "layer": 4,
             "name": "Audit Logger",
@@ -194,7 +194,7 @@ async def list_security_layers():
 
     # Layer 5: Zero Trust
     try:
-        from security.zero_trust import ZeroTrust
+        from core.security.zero_trust import ZeroTrust
         layers.append({
             "layer": 5,
             "name": "Zero Trust",
@@ -206,7 +206,7 @@ async def list_security_layers():
 
     # Layer 6: Risk Validation
     try:
-        from security.risk_validator import RiskValidator
+        from core.security.risk_validator import RiskValidator
         layers.append({
             "layer": 6,
             "name": "Risk Validator",
@@ -218,7 +218,7 @@ async def list_security_layers():
 
     # Layer 7: Power Balance Constitution
     try:
-        from security.power_balance_constitution import PowerBalanceConstitution, SECTOR_BALANCE_MAP
+        from core.security.power_balance_constitution import PowerBalanceConstitution, SECTOR_BALANCE_MAP
         layers.append({
             "layer": 7,
             "name": "Power Balance Constitution",

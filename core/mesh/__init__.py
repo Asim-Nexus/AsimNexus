@@ -1,90 +1,69 @@
+# AsimNexus Mesh Layer
+# ====================
+# Offline-first P2P mesh network with CRDT sync
+# Consolidated hub — re-exports from both legacy mesh/ and core/mesh/ modules
 
-"""
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
+# --- Legacy mesh/ modules (copied from root mesh/) ---
+from .offline_sync_engine import OfflineSyncEngine, SyncPriority, SyncOperationStatus
+from .crdt_sync import CRDTStore, LWWRegister, GCounter, PNCounter
+from .mesh_node import MeshNode
+from .p2p_transport import P2PTransport
+from .node_registry import NodeRegistry
+from .multi_mesh_router import MultiMeshRouter
+from .autodiscovery import AutoDiscovery
+from .bootstrap import BootstrapService
+from .device_registry import DeviceRegistry
+from .hole_punching import HolePuncher
+from .kademlia_dht import KademliaDHT
+from .mesh_routing_agent_v2 import MeshRoutingAgentV2
+from .multi_hop_router import MultiHopRouter
+from .nat_traversal import NATTraversal
+from .network_intelligence import NetworkIntelligenceLayer
+from .p2p_integration import P2PIntegration
+from .relay import RelayService
+from .sms_gateway import SMSGateway
+from .stun_turn import STUNClient, NATDetector, TURNClient, NATClassification
 
-"""
-ASIMNEXUS Mesh Network Module
-================================
-Global mesh networking for all sectors, all countries, all people
-Connects everything together in a secure, decentralized mesh
-"""
+# --- Native core/mesh/ concept modules (all imports now resolved) ---
+from .mesh_coordinator import MeshCoordinator, NodeType, NodeTier, ConnectionState, get_mesh_coordinator
+from .federation_protocol import FederationProtocol, get_mesh_federation
+from .gossip_protocol import GossipProtocol, GossipMessage
+from .mesh_dna import MeshDNA, MeshNode as DNAMeshNode
+from .unified_mesh import UnifiedMeshCoordinator, MeshLayer, MeshPeer
 
-from .mesh_coordinator import (
-    MeshCoordinator,
-    MeshNode,
-    NodeType,
-    NodeTier,
-    ConnectionState,
-    get_mesh_coordinator,
+class P2PNetwork:
+    pass
+
+class OfflineSync:
+    pass
+
+
+# Re-export from root-level module: global_mesh.py
+from core.global_mesh import (
+    BootstrapNode,
+    EdgeNode,
+    GlobalMeshNetwork,
+    MeshRoute,
+    Region,
+    get_global_mesh_network,
+    reset_global_mesh_network,
 )
 
-from .clone_sync import (
-    CloneSynchronizer,
-    CloneState,
-    SyncPriority,
-    SyncDirection,
-    get_clone_synchronizer,
-)
-
-from .federation_protocol import (
-    FederationProtocol,
-    FederationMember,
-    FederationLevel,
-    TrustLevel,
-    get_federation,
-)
-
-from .distributed_storage import (
-    DistributedStorage,
-    DataShard,
-    StorageTier,
-    RedundancyLevel,
-    get_distributed_storage,
-)
-
-from .offline_sync import (
-    OfflineSynchronizer,
-    CRDTOperation,
-    SyncState,
-    OperationType,
-    get_offline_synchronizer,
-)
 
 __all__ = [
-    # Mesh Coordinator
-    'MeshCoordinator',
-    'MeshNode',
-    'NodeType',
-    'NodeTier',
-    'ConnectionState',
-    'get_mesh_coordinator',
-    
-    # Clone Sync
-    'CloneSynchronizer',
-    'CloneState',
-    'SyncPriority',
-    'SyncDirection',
-    'get_clone_synchronizer',
-    
-    # Federation
-    'FederationProtocol',
-    'FederationMember',
-    'FederationLevel',
-    'TrustLevel',
-    'get_federation',
-    
-    # Distributed Storage
-    'DistributedStorage',
-    'DataShard',
-    'StorageTier',
-    'RedundancyLevel',
-    'get_distributed_storage',
-    
-    # Offline Sync
-    'OfflineSynchronizer',
-    'CRDTOperation',
-    'SyncState',
-    'OperationType',
-    'get_offline_synchronizer',
+    # Legacy mesh/
+    "OfflineSyncEngine", "SyncPriority", "SyncOperationStatus",
+    "CRDTStore", "LWWRegister", "GCounter", "PNCounter",
+    "MeshNode", "P2PTransport", "NodeRegistry", "MultiMeshRouter",
+    "AutoDiscovery", "BootstrapService", "DeviceRegistry", "HolePuncher",
+    "KademliaDHT", "MeshRoutingAgentV2", "MultiHopRouter", "NATTraversal",
+    "NetworkIntelligenceLayer", "P2PIntegration", "RelayService", "SMSGateway",
+    "STUNClient", "NATDetector", "TURNClient", "NATClassification",
+    # Native core/mesh/ concept modules
+    "MeshCoordinator", "NodeType", "NodeTier", "ConnectionState", "get_mesh_coordinator",
+    "FederationProtocol", "GossipProtocol", "GossipMessage",
+    "MeshDNA", "DNAMeshNode",
+    "UnifiedMeshCoordinator", "MeshLayer", "MeshPeer",
+    # Placeholders
+    "P2PNetwork", "OfflineSync",
 ]

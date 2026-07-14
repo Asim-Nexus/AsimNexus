@@ -19,7 +19,7 @@ class TestHSMProduction:
     @pytest.mark.asyncio
     async def test_hsm_initialization(self):
         """Test HSM singleton creation"""
-        from security.hsm_production import get_hsm
+        from core.security.hsm_production import get_hsm
         hsm = get_hsm()
         
         status = hsm.status()
@@ -29,7 +29,7 @@ class TestHSMProduction:
     @pytest.mark.asyncio
     async def test_hsm_sign_action(self):
         """Test HSM signing action"""
-        from security.hsm_production import get_hsm
+        from core.security.hsm_production import get_hsm
         hsm = get_hsm()
         
         # Sign test data
@@ -42,7 +42,7 @@ class TestHSMProduction:
     @pytest.mark.asyncio
     async def test_software_fallback(self):
         """Test software fallback verification"""
-        from security.hsm_production import get_hsm
+        from core.security.hsm_production import get_hsm
         hsm = get_hsm()
         
         # Software fallback should work
@@ -66,7 +66,7 @@ class TestHSMGovernmentIntegration:
     
     def test_level3_decorator(self):
         """Test HMAC level-3 decorator usage"""
-        from security.hsm_production import HSMProduction
+        from core.security.hsm_production import HSMProduction
         hsm = HSMProduction()
         
         # Verify decorator exists

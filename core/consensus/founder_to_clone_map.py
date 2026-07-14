@@ -133,6 +133,14 @@ CLONE_NAMES: Dict[str, str] = {
 
 # ─── PUBLIC API ────────────────────────────────────────────────────────────────
 
+FOUNDER_CLONE_ROLES = [
+    "Dharma Guardian", "Tech Architect", "Community Weaver",
+    "Legal Counsel", "Economic Analyst", "Security Sentinel",
+    "Cultural Keeper", "Health Advisor", "Education Guide",
+    "Environment Watch", "Identity Protector", "Mesh Coordinator",
+    "Memory Keeper", "Contract Auditor", "Sovereignty Guard"
+]
+
 
 def get_clone_for_founder(role: FounderRole) -> List[str]:
     """Return the clone IDs mapped to a given founder role.

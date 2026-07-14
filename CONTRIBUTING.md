@@ -1,106 +1,101 @@
-# Contributing to AsimNexus — Labeling Rules
+# Contributing to AsimNexus
 
-> **tl;dr:** Every file MUST have a STATUS header. No exceptions.
+## Code Standards
 
-## The Three Labels
+### Docstrings
+- Every module file MUST have a module-level docstring describing its purpose.
+- `__init__.py` files should have a concise docstring describing the package.
+- Class and method docstrings follow Google-style conventions.
 
-### REAL
-- Code works, tested, wired to backend
-- Has `tests/real/test_<file>.py` with passing tests
-- Backend endpoint returns live data (if applicable)
-- No simulation stubs in critical path
+### `__init__.py` Conventions
+- Package `__init__.py` files should export the public API via `__all__`.
+- Use lazy imports inside functions (e.g., `get_*()` factory functions) to avoid circular imports.
+- Docstring-only `__init__.py` is acceptable for packages that are purely submodule collections.
 
-### PARTIAL
-- Framework/skeleton exists
-- Some logic works, some is simulation
-- Has `tests/prototype/` or `tests/integration/` tests
-- Document what's missing in the STATUS line
+### Imports
+- Use absolute imports (`from core.consensus import CloneConsensusVoting`).
+- Group imports: standard library → third-party → local.
+- Use `try/except ImportError` for optional dependencies with graceful fallbacks.
 
-### CONCEPT
-- Design doc, placeholder, or vision only
-- No working code (or only data structures)
-- No backend endpoint
-- Stored in `docs/vision/` or `core/concept/`
+### Error Handling
+- Use `try/except` with specific exception types, never bare `except:`.
+- Log errors with `logger.exception()` or `logger.error()`.
+- Return standardized API responses via [`routes/response.py`](routes/response.py) helpers: `ok()`, `error()`, `paginated()`.
 
-## File Header Template
-
-```python
-"""
-STATUS: REAL — <one-line description of what actually works>
-
-<rest of docstring>
-"""
-```
+### API Response Format
+All endpoints MUST return the standardized format:
 
 ```python
-"""
-STATUS: PARTIAL — <what works> ; <what's missing>
+# Success
+{"status": "ok", "data": {...}, "timestamp": "..."}
 
-<rest of docstring>
-"""
+# Error
+{"status": "error", "detail": "...", "code": 400, "timestamp": "..."}
+
+# Paginated
+{"status": "ok", "data": [...], "pagination": {"page": 1, "per_page": 20, "total": 100}, "timestamp": "..."}
 ```
 
-```python
-"""
-STATUS: CONCEPT — <what this would be in the future>
+## Testing
 
-<rest of docstring>
-"""
+### Test Suites
+
+| Suite | Location | Purpose |
+|-------|----------|---------|
+| Real | `tests/real/` | Full system integration tests (88 tests) |
+| E2E | `tests/e2e/` | End-to-end workflow tests (28 tests) |
+| Integration | `tests/integration/` | Component integration tests (470 tests) |
+| Unit | `tests/unit/` | Unit tests |
+| Performance | `tests/performance/` | Performance and load tests |
+| Security | `tests/security/` | Security-focused tests |
+
+### Running Tests
+
+```bash
+# Run all real tests
+pytest tests/real/ -v
+
+# Run all E2E tests
+pytest tests/e2e/ -v
+
+# Run all integration tests
+pytest tests/integration/ -v
+
+# Run full suite
+pytest tests/real/ tests/e2e/ tests/integration/ -v
 ```
 
-## Promotion Rules
-
-### CONCEPT → PARTIAL
-- [ ] At least one function works
-- [ ] Data structures defined
-- [ ] Tests exist (even if failing)
-- [ ] Clear path to REAL documented
-
-### PARTIAL → REAL
-- [ ] All simulation code replaced
-- [ ] Backend endpoint wired (if applicable)
-- [ ] `tests/real/` tests pass
-- [ ] No TODO/FIXME in critical path
-- [ ] STATUS header updated
-- [ ] `STATUS.md` updated
-- [ ] Second pair of eyes reviewed
-
-### REAL → NEVER DOWNGRADE
-- If a REAL component breaks, fix it. Don't relabel as PARTIAL.
-- If architecture changes, write migration plan.
-
-## Forbidden Words
-
-Never use these in code comments, docstrings, or documentation:
-
-- ❌ "world-ready"
-- ❌ "100% secure"
-- ❌ "production-grade" (unless audited)
-- ❌ "fully implemented" (unless 68+ tests pass)
-- ❌ "supercomputer" (unless running on HPC)
-- ❌ "all sectors connected" (unless integration tests prove it)
-
-**Use instead:**
-- ✅ "prototype with real core"
-- ✅ "beta with working backend"
-- ✅ "security framework (audit pending)"
-- ✅ "tested and passing"
-- ✅ "vision architecture"
+### Test Requirements
+- New features MUST include tests in the appropriate suite.
+- Real tests (`tests/real/`) should test the actual implementation, not mocks.
+- Integration tests should verify component interactions.
+- All tests MUST pass before merging.
 
 ## PR Checklist
 
 Before submitting PR:
-- [ ] All touched files have STATUS header
+- [ ] Code follows docstring and import conventions
 - [ ] Tests added for new logic
-- [ ] `pytest tests/real/ tests/prototype/ tests/integration/` passes
-- [ ] `STATUS.md` updated if component status changed
-- [ ] No forbidden words in new docs
-- [ ] `TRUTH.md` not contradicted
+- [ ] `pytest tests/real/ tests/e2e/ tests/integration/` passes
+- [ ] No `print()` statements in production code (use `logging`)
+- [ ] API endpoints use standardized response format
+- [ ] No forbidden patterns (bare except, wildcard imports)
 
-## Enforcement
+## Forbidden Patterns
 
-CI will reject PRs that:
-1. Add .py files without STATUS header
-2. Claim REAL without `tests/real/` tests
-3. Use forbidden words in docstrings
-4. Contradict `TRUTH.md`
+- ❌ Bare `except:` — always specify exception type
+- ❌ `from module import *` — use explicit imports
+- ❌ `print()` in production code — use `logging`
+- ❌ Hardcoded secrets or tokens
+- ❌ `# TODO` without an associated issue or ticket
+
+## Architecture Notes
+
+- **`app.py`**: FastAPI application entry point with 684+ routes. All route modules are registered via [`routes/__init__.py`](routes/__init__.py) `register_routes()`.
+- **`core/`**: Core subsystems — each in its own package with `__init__.py` exporting the public API.
+- **`routes/`**: API route modules — each has an `init_*()` function receiving `app_globals` dict.
+- **`routes/response.py`**: Standardized response helpers used by all route modules.
+- **`core/security/auth_middleware.py`**: Global `AuthMiddleware` for JWT Bearer token validation.
+- **`core/security_layer.py`**: `ZKPBridge` for zero-knowledge proofs.
+- **`knowledge/rag_engine.py`**: `RAGEngine` with ChromaDB vector store.
+- **`mesh/`**: Mesh networking — offline sync, multi-mesh routing, auto-discovery.

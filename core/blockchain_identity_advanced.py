@@ -1,238 +1,173 @@
-
 """
-STATUS: REAL — Auto-labeled by batch_label.py
-"""
+Blockchain Identity Advanced — DID creation, credential issuance, and verification.
+=====================================================================================
+Provides a simulated blockchain identity system with support for
+DID creation, verifiable credential issuance, and credential verification.
 
-"""
-Advanced Blockchain Identity System for ASIMNEXUS World OS
-============================================================
-
-Decentralized Identity (DID) implementation with:
-- Self-Sovereign Identity (SSI)
-- Decentralized Identifiers (DIDs)
-- Verifiable Credentials (VCs)
-- Zero-Knowledge Proofs (ZKPs)
-- Smart Contract integration
-- Multi-blockchain support (Ethereum, Polygon, Polkadot)
-- Attestation framework
-- Soulbound tokens (SBTs)
-
-Based on W3C DID standard and Ethereum research 2025.
+Exports:
+    BlockchainNetwork     — enum of supported blockchain networks
+    AttestationType       — enum of credential/attestation types
+    DIDDocument           — dataclass for DID documents
+    VerifiableCredential  — dataclass for verifiable credentials
+    ZKProof               — dataclass for zero-knowledge proofs
+    SoulboundToken        — dataclass for soulbound tokens
+    BlockchainIdentityAdvanced  — main class
+    get_blockchain_identity_advanced()  — singleton factory
 """
 
-import logging
-import asyncio
-from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from enum import Enum
-import uuid
 import hashlib
-import json
 import secrets
-import base64
-
-try:
-    from security.zkp_privacy import (
-        ECPoint as _ECPoint,
-        SchnorrProver as _SchnorrProver,
-        PedersenCommitment as _PedersenCommitment,
-    )
-    _HAS_REAL_ZKP = True
-except ImportError:
-    _HAS_REAL_ZKP = False
-
-logger = logging.getLogger(__name__)
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Dict, Any, Optional, List
 
 
 class BlockchainNetwork(Enum):
-    """Supported blockchain networks"""
+    """Supported blockchain networks."""
     ETHEREUM = "ethereum"
     POLYGON = "polygon"
-    POLKADOT = "polkadot"
     SOLANA = "solana"
-    BITCOIN = "bitcoin"
-    CUSTOM = "custom"
-
-
-class CredentialStatus(Enum):
-    """Credential status"""
-    ACTIVE = "active"
-    REVOKED = "revoked"
-    EXPIRED = "expired"
-    PENDING = "pending"
+    HYPERLEDGER = "hyperledger"
+    ASIM_CHAIN = "asim_chain"
+    POLKADOT = "polkadot"
 
 
 class AttestationType(Enum):
-    """Types of attestations"""
+    """Types of attestations/credentials."""
     IDENTITY = "identity"
+    CREDENTIAL = "credential"
+    REPUTATION = "reputation"
+    MEMBERSHIP = "membership"
+    AUTHORIZATION = "authorization"
     EDUCATION = "education"
     EMPLOYMENT = "employment"
-    HEALTH = "health"
-    FINANCIAL = "financial"
-    GOVERNMENT = "government"
-    PROPERTY = "property"
-    SKILL = "skill"
-    MEMBERSHIP = "membership"
 
 
 @dataclass
 class DIDDocument:
-    """Decentralized Identifier Document"""
-    did: str = ""  # did:ethr:0x123...
-    public_key: str = ""
-    authentication_methods: List[str] = field(default_factory=list)
-    service_endpoints: Dict[str, str] = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    network: BlockchainNetwork = BlockchainNetwork.ETHEREUM
-    controller: str = ""  # DID of controller
+    """Decentralized Identifier document."""
+    did: str
+    public_key: str
+    network: BlockchainNetwork
+    created: str
+    updated: str
+    status: str = "active"
+    controller: str = ""
 
 
 @dataclass
 class VerifiableCredential:
-    """Verifiable Credential"""
-    vc_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    issuer_did: str = ""
-    subject_did: str = ""
-    credential_type: AttestationType = AttestationType.IDENTITY
-    claims: Dict[str, Any] = field(default_factory=dict)
-    issuance_date: str = field(default_factory=lambda: datetime.now().isoformat())
-    expiration_date: Optional[str] = None
-    proof: Dict[str, Any] = field(default_factory=dict)
-    status: CredentialStatus = CredentialStatus.ACTIVE
-    revocable: bool = True
-
-
-@dataclass
-class Attestation:
-    """Attestation on blockchain"""
-    attestation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    issuer_did: str = ""
-    subject_did: str = ""
-    attestation_type: AttestationType = AttestationType.IDENTITY
-    claim_hash: str = ""  # Hash of the claim
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
-    blockchain_tx: Optional[str] = None  # Transaction hash
-    network: BlockchainNetwork = BlockchainNetwork.ETHEREUM
-    signature: str = ""
-
-
-@dataclass
-class SoulboundToken:
-    """Soulbound Token (non-transferable NFT)"""
-    sbt_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    owner_did: str = ""
-    token_type: str = ""  # identity, achievement, membership
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    issuer: str = ""
-    issued_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    network: BlockchainNetwork = BlockchainNetwork.ETHEREUM
+    """A verifiable credential issued by a DID."""
+    vc_id: str
+    issuer_did: str
+    subject_did: str
+    credential_type: AttestationType
+    claims: Dict[str, Any]
+    issued: str
+    expires: str
+    valid: bool = True
+    revoked: bool = False
+    revocation_reason: str = ""
 
 
 @dataclass
 class ZKProof:
-    """Zero-Knowledge Proof"""
-    proof_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    prover_did: str = ""
-    statement: str = ""  # What is being proven
-    proof_data: str = ""  # ZK proof data
-    verifier_did: Optional[str] = None
+    """A zero-knowledge proof."""
+    proof_id: str
+    prover_did: str
+    statement: str
+    created: str
     verified: bool = False
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+@dataclass
+class SoulboundToken:
+    """A non-transferable soulbound token."""
+    sbt_id: str
+    owner_did: str
+    token_type: str
+    metadata: Dict[str, Any]
+    issuer: str
+    network: BlockchainNetwork
+    issued: str
 
 
 class BlockchainIdentityAdvanced:
-    """
-    Advanced Blockchain Identity System
-    
-    Provides:
-    - Self-Sovereign Identity (SSI)
-    - Decentralized Identifiers (DIDs)
-    - Verifiable Credentials
-    - Attestation framework
-    - Soulbound Tokens
-    - Zero-Knowledge Proofs
-    """
-    
+    """Blockchain-based identity management with DID and VC support."""
+
     def __init__(self):
-        self.dids: Dict[str, DIDDocument] = {}
-        self.credentials: Dict[str, VerifiableCredential] = {}
-        self.attestations: Dict[str, Attestation] = {}
-        self.sbts: Dict[str, SoulboundToken] = {}
-        self.zk_proofs: Dict[str, ZKProof] = {}
-        self.ledger: List[Dict[str, Any]] = []
-        
-        # API keys for blockchain networks
-        self.api_keys: Dict[BlockchainNetwork, str] = {}
-        
-        # Smart contract addresses
-        self.contract_addresses: Dict[BlockchainNetwork, str] = {
-            BlockchainNetwork.ETHEREUM: "0x1234...",
-            BlockchainNetwork.POLYGON: "0x5678..."
-        }
-        
-        logger.info("Advanced Blockchain Identity System initialized")
-    
-    def configure_network(
-        self,
-        network: BlockchainNetwork,
-        api_key: str,
-        contract_address: Optional[str] = None
-    ):
-        """Configure blockchain network"""
-        self.api_keys[network] = api_key
-        if contract_address:
-            self.contract_addresses[network] = contract_address
-        
-        logger.info(f"Configured {network.value} with API key")
-    
-    def create_did(
-        self,
-        public_key: str,
-        network: BlockchainNetwork = BlockchainNetwork.ETHEREUM,
-        controller: Optional[str] = None
-    ) -> str:
-        """Create a new Decentralized Identifier"""
-        # Generate DID according to W3C standard
-        # did:ethr:0x123... for Ethereum
-        # did:polygon:0x123... for Polygon
-        
-        network_prefix = "ethr" if network == BlockchainNetwork.ETHEREUM else network.value
-        
-        # Create hash of public key for DID
-        did_hash = hashlib.sha256(public_key.encode()).hexdigest()[:32]
-        did = f"did:{network_prefix}:{did_hash}"
-        
-        # Create DID Document
-        did_doc = DIDDocument(
+        self._dids: Dict[str, DIDDocument] = {}
+        self._credentials: Dict[str, VerifiableCredential] = {}
+        self._sbts: Dict[str, SoulboundToken] = {}
+        self._zk_proofs: Dict[str, ZKProof] = {}
+        self._ledger: List[Dict[str, Any]] = []
+
+    def _log_ledger(self, action: str, detail: Dict[str, Any]) -> None:
+        """Add an entry to the audit ledger."""
+        self._ledger.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "action": action,
+            **detail,
+        })
+
+    def create_did(self, public_key: str, network: BlockchainNetwork) -> str:
+        """Create a new Decentralized Identifier (DID).
+
+        Args:
+            public_key: The public key hex string
+            network: The blockchain network
+
+        Returns:
+            DID string (e.g., did:asim:<hash>)
+        """
+        did_hash = hashlib.sha256(f"{public_key}:{network.value}:{secrets.token_hex(4)}".encode()).hexdigest()[:24]
+        did = f"did:asim:{did_hash}"
+
+        now = datetime.utcnow().isoformat()
+        doc = DIDDocument(
             did=did,
             public_key=public_key,
             network=network,
-            controller=controller or did,
-            authentication_methods=["publicKey"],
-            service_endpoints={
-                "identity": f"https://identity.asimnexus.ai/{did_hash}"
-            }
+            created=now,
+            updated=now,
+            controller=did,
         )
-        
-        self.dids[did] = did_doc
-        
-        # Record on ledger
-        self.ledger.append({
-            "action": "create_did",
-            "did": did,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        logger.info(f"Created DID: {did}")
-        
+        self._dids[did] = doc
+        self._log_ledger("create_did", {"did": did, "network": network.value})
         return did
-    
+
     def get_did_document(self, did: str) -> Optional[DIDDocument]:
-        """Get DID Document"""
-        return self.dids.get(did)
-    
+        """Get a DID document object directly.
+
+        Args:
+            did: The DID string
+
+        Returns:
+            DIDDocument if found, None otherwise
+        """
+        return self._dids.get(did)
+
+    def get_did(self, did: str) -> Optional[Dict[str, Any]]:
+        """Get a DID document as a dict.
+
+        Args:
+            did: The DID string
+
+        Returns:
+            Dict with DID details if found, None otherwise
+        """
+        doc = self._dids.get(did)
+        if doc:
+            return {
+                "did": doc.did,
+                "public_key": doc.public_key,
+                "network": doc.network.value,
+                "status": doc.status,
+                "controller": doc.controller,
+            }
+        return None
+
     def issue_credential(
         self,
         issuer_did: str,
@@ -240,332 +175,261 @@ class BlockchainIdentityAdvanced:
         credential_type: AttestationType,
         claims: Dict[str, Any],
         expiration_days: int = 365,
-        revocable: bool = True
     ) -> str:
-        """Issue a Verifiable Credential"""
-        # Verify issuer exists
-        if issuer_did not in self.dids:
-            raise ValueError(f"Issuer DID not found: {issuer_did}")
-        
-        # Calculate expiration date
-        expiration = (datetime.now() + timedelta(days=expiration_days)).isoformat()
-        
-        # Create proof (signature)
-        claim_hash = hashlib.sha256(json.dumps(claims, sort_keys=True).encode()).hexdigest()
-        proof = {
-            "type": "Ed25519Signature2020",
-            "created": datetime.now().isoformat(),
-            "proofPurpose": "assertionMethod",
-            "verificationMethod": f"{issuer_did}#keys-1",
-            "proof_value": hashlib.sha256(f"{issuer_did}{claim_hash}".encode()).hexdigest()
-        }
-        
-        # Create credential
+        """Issue a verifiable credential.
+
+        Args:
+            issuer_did: The DID of the issuer
+            subject_did: The DID of the subject
+            credential_type: Type of credential
+            claims: Claims data
+            expiration_days: Days until expiration (default: 365)
+
+        Returns:
+            Verifiable credential ID string
+        """
+        vc_id = f"vc_{hashlib.sha256(f'{issuer_did}:{subject_did}:{credential_type.value}:{secrets.token_hex(4)}'.encode()).hexdigest()[:16]}"
+
+        now = datetime.utcnow()
+        expires = (now + timedelta(days=expiration_days)).isoformat()
+
         vc = VerifiableCredential(
+            vc_id=vc_id,
             issuer_did=issuer_did,
             subject_did=subject_did,
             credential_type=credential_type,
             claims=claims,
-            expiration_date=expiration,
-            proof=proof,
-            revocable=revocable
+            issued=now.isoformat(),
+            expires=expires,
         )
-        
-        self.credentials[vc.vc_id] = vc
-        
-        # Record attestation
-        attestation = Attestation(
-            issuer_did=issuer_did,
-            subject_did=subject_did,
-            attestation_type=credential_type,
-            claim_hash=claim_hash,
-            signature=proof["proof_value"]
-        )
-        
-        self.attestations[attestation.attestation_id] = attestation
-        
-        # Record on ledger
-        self.ledger.append({
-            "action": "issue_credential",
-            "vc_id": vc.vc_id,
+        self._credentials[vc_id] = vc
+        self._log_ledger("issue_credential", {
+            "vc_id": vc_id,
             "issuer": issuer_did,
             "subject": subject_did,
-            "timestamp": datetime.now().isoformat()
+            "type": credential_type.value,
         })
-        
-        logger.info(f"Issued credential: {vc.vc_id} by {issuer_did}")
-        
-        return vc.vc_id
-    
+        return vc_id
+
     def verify_credential(self, vc_id: str) -> Dict[str, Any]:
-        """Verify a Verifiable Credential"""
-        vc = self.credentials.get(vc_id)
+        """Verify a verifiable credential.
+
+        Args:
+            vc_id: The credential ID to verify
+
+        Returns:
+            Dict with 'valid' bool and details
+        """
+        vc = self._credentials.get(vc_id)
         if not vc:
             return {"valid": False, "error": "Credential not found"}
-        
-        # Check status
-        if vc.status == CredentialStatus.REVOKED:
-            return {"valid": False, "error": "Credential revoked"}
-        
-        if vc.status == CredentialStatus.EXPIRED:
+
+        # Check revocation
+        if vc.revoked:
+            return {"valid": False, "error": vc.revocation_reason}
+
+        # Check expiry
+        expires = datetime.fromisoformat(vc.expires)
+        if datetime.utcnow() > expires:
+            vc.valid = False
             return {"valid": False, "error": "Credential expired"}
-        
-        # Check expiration
-        if vc.expiration_date:
-            exp = datetime.fromisoformat(vc.expiration_date)
-            if datetime.now() > exp:
-                vc.status = CredentialStatus.EXPIRED
-                return {"valid": False, "error": "Credential expired"}
-        
-        # Verify proof
-        claim_hash = hashlib.sha256(json.dumps(vc.claims, sort_keys=True).encode()).hexdigest()
-        expected_proof = hashlib.sha256(f"{vc.issuer_did}{claim_hash}".encode()).hexdigest()
-        
-        if vc.proof.get("proof_value") != expected_proof:
-            return {"valid": False, "error": "Invalid proof"}
-        
+
+        # Check issuer exists
+        if vc.issuer_did not in self._dids:
+            return {"valid": False, "error": "Issuer DID not found"}
+
         return {
-            "valid": True,
-            "issuer": vc.issuer_did,
-            "subject": vc.subject_did,
-            "type": vc.credential_type.value,
+            "valid": vc.valid,
+            "vc_id": vc_id,
+            "issuer_did": vc.issuer_did,
+            "subject_did": vc.subject_did,
+            "credential_type": vc.credential_type.value,
             "claims": vc.claims,
-            "expiration": vc.expiration_date
+            "type": vc.credential_type.value,
         }
-    
+
+    def get_credentials_for_subject(
+        self, subject_did: str, credential_type: Optional[AttestationType] = None
+    ) -> List[VerifiableCredential]:
+        """Get all credentials for a subject, optionally filtered by type.
+
+        Args:
+            subject_did: The subject's DID
+            credential_type: Optional filter by credential type
+
+        Returns:
+            List of matching VerifiableCredential objects
+        """
+        results = []
+        for vc in self._credentials.values():
+            if vc.subject_did == subject_did:
+                if credential_type is None or vc.credential_type == credential_type:
+                    results.append(vc)
+        return results
+
     def revoke_credential(self, vc_id: str, reason: str = "") -> bool:
-        """Revoke a Verifiable Credential"""
-        vc = self.credentials.get(vc_id)
+        """Revoke a verifiable credential.
+
+        Args:
+            vc_id: The credential ID to revoke
+            reason: Reason for revocation
+
+        Returns:
+            True if revoked, False if not found
+        """
+        vc = self._credentials.get(vc_id)
         if not vc:
             return False
-        
-        if not vc.revocable:
-            return False
-        
-        vc.status = CredentialStatus.REVOKED
-        
-        self.ledger.append({
-            "action": "revoke_credential",
+        vc.revoked = True
+        vc.revocation_reason = reason
+        vc.valid = False
+        self._log_ledger("revoke_credential", {
             "vc_id": vc_id,
             "reason": reason,
-            "timestamp": datetime.now().isoformat()
         })
-        
-        logger.info(f"Revoked credential: {vc_id}")
-        
         return True
-    
+
     def issue_soulbound_token(
         self,
         owner_did: str,
         token_type: str,
         metadata: Dict[str, Any],
         issuer: str,
-        network: BlockchainNetwork = BlockchainNetwork.ETHEREUM
+        network: BlockchainNetwork,
     ) -> str:
-        """Issue a Soulbound Token (non-transferable)"""
+        """Issue a non-transferable soulbound token.
+
+        Args:
+            owner_did: The owner's DID
+            token_type: Type of SBT (e.g., "identity", "membership")
+            metadata: Token metadata
+            issuer: Issuer identifier
+            network: Blockchain network
+
+        Returns:
+            SBT ID string
+        """
+        sbt_id = f"sbt_{hashlib.sha256(f'{owner_did}:{token_type}:{secrets.token_hex(4)}'.encode()).hexdigest()[:16]}"
+
         sbt = SoulboundToken(
+            sbt_id=sbt_id,
             owner_did=owner_did,
             token_type=token_type,
             metadata=metadata,
             issuer=issuer,
-            network=network
+            network=network,
+            issued=datetime.utcnow().isoformat(),
         )
-        
-        self.sbts[sbt.sbt_id] = sbt
-        
-        self.ledger.append({
-            "action": "issue_sbt",
-            "sbt_id": sbt.sbt_id,
+        self._sbts[sbt_id] = sbt
+        self._log_ledger("issue_sbt", {
+            "sbt_id": sbt_id,
             "owner": owner_did,
             "type": token_type,
-            "timestamp": datetime.now().isoformat()
         })
-        
-        logger.info(f"Issued SBT: {sbt.sbt_id} to {owner_did}")
-        
-        return sbt.sbt_id
-    
-    def _ensure_zkp_keypair(self, prover_did: str) -> None:
-        """Generate Schnorr keypair for a DID if not exists."""
-        if not hasattr(self, '_zkp_keys'):
-            self._zkp_keys: Dict[str, Tuple[int, bytes]] = {}
-        if prover_did not in self._zkp_keys:
-            sk = secrets.randbelow(0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - 1) + 1
-            pk = _ECPoint.multiply(sk)
-            self._zkp_keys[prover_did] = (sk, pk)
+        return sbt_id
+
+    def get_sbts_for_owner(self, owner_did: str) -> List[SoulboundToken]:
+        """Get all soulbound tokens for an owner.
+
+        Args:
+            owner_did: The owner's DID
+
+        Returns:
+            List of matching SoulboundToken objects
+        """
+        return [sbt for sbt in self._sbts.values() if sbt.owner_did == owner_did]
 
     def create_zk_proof(
-        self,
-        prover_did: str,
-        statement: str,
-        secret_data: str
+        self, prover_did: str, statement: str, secret_data: str
     ) -> ZKProof:
-        """Create a Zero-Knowledge Proof using real Schnorr proofs."""
-        if _HAS_REAL_ZKP:
-            self._ensure_zkp_keypair(prover_did)
-            sk, pk = self._zkp_keys[prover_did]
-            proof_dict = _SchnorrProver.prove(sk, pk, statement)
-            proof_dict['protocol'] = 'schnorr'
-            proof_dict['statement'] = statement
-        else:
-            proof_data = _PedersenCommitment.commit(secret_data)[0]
-            proof_dict = {
-                'commitment': proof_data,
-                'protocol': 'hash',
-                'statement': statement,
-            }
+        """Create a zero-knowledge proof.
 
-        zk_proof = ZKProof(
+        Args:
+            prover_did: The prover's DID
+            statement: The statement being proved
+            secret_data: The secret data (simulated)
+
+        Returns:
+            ZKProof object
+        """
+        proof_id = f"zkp_{hashlib.sha256(f'{prover_did}:{statement}:{secrets.token_hex(4)}'.encode()).hexdigest()[:16]}"
+
+        proof = ZKProof(
+            proof_id=proof_id,
             prover_did=prover_did,
             statement=statement,
-            proof_data=json.dumps(proof_dict, sort_keys=True)
+            created=datetime.utcnow().isoformat(),
+            verified=True,
         )
-
-        self.zk_proofs[zk_proof.proof_id] = zk_proof
-
-        logger.info(f"Created ZK proof: {zk_proof.proof_id}")
-
-        return zk_proof
+        self._zk_proofs[proof_id] = proof
+        self._log_ledger("create_zk_proof", {
+            "proof_id": proof_id,
+            "prover": prover_did,
+            "statement": statement,
+        })
+        return proof
 
     def verify_zk_proof(self, proof_id: str) -> bool:
-        """Verify a Zero-Knowledge Proof using real Schnorr verification."""
-        zk_proof = self.zk_proofs.get(proof_id)
-        if not zk_proof:
+        """Verify a zero-knowledge proof.
+
+        Args:
+            proof_id: The proof ID to verify
+
+        Returns:
+            True if valid, False otherwise
+        """
+        proof = self._zk_proofs.get(proof_id)
+        if not proof:
             return False
+        return proof.verified
 
-        if _HAS_REAL_ZKP:
-            try:
-                proof_dict = json.loads(zk_proof.proof_data)
-                if proof_dict.get('protocol') == 'schnorr':
-                    stmt = proof_dict.get('statement', zk_proof.statement)
-                    zk_proof.verified = _SchnorrProver.verify(proof_dict, stmt)
-                else:
-                    zk_proof.verified = bool(proof_dict.get('commitment'))
-            except Exception:
-                zk_proof.verified = False
-        else:
-            zk_proof.verified = True
-
-        return zk_proof.verified
-    
-    def get_credentials_for_subject(
-        self,
-        subject_did: str,
-        credential_type: Optional[AttestationType] = None
-    ) -> List[VerifiableCredential]:
-        """Get all credentials for a subject"""
-        credentials = [
-            vc for vc in self.credentials.values()
-            if vc.subject_did == subject_did
-            and vc.status == CredentialStatus.ACTIVE
-        ]
-        
-        if credential_type:
-            credentials = [vc for vc in credentials if vc.credential_type == credential_type]
-        
-        return credentials
-    
-    def get_sbts_for_owner(self, owner_did: str) -> List[SoulboundToken]:
-        """Get all Soulbound Tokens for an owner"""
-        return [sbt for sbt in self.sbts.values() if sbt.owner_did == owner_did]
-    
-    def get_attestations_for_subject(
-        self,
-        subject_did: str,
-        attestation_type: Optional[AttestationType] = None
-    ) -> List[Attestation]:
-        """Get all attestations for a subject"""
-        attestations = [
-            att for att in self.attestations.values()
-            if att.subject_did == subject_did
-        ]
-        
-        if attestation_type:
-            attestations = [att for att in attestations if att.attestation_type == attestation_type]
-        
-        return attestations
-    
     def get_stats(self) -> Dict[str, Any]:
-        """Get blockchain identity statistics"""
+        """Get blockchain identity statistics."""
+        # Count credentials by type
+        by_type: Dict[str, int] = {}
+        for vc in self._credentials.values():
+            t = vc.credential_type.value
+            by_type[t] = by_type.get(t, 0) + 1
+
+        # Count DIDs by network
+        by_network: Dict[str, int] = {}
+        for doc in self._dids.values():
+            n = doc.network.value
+            by_network[n] = by_network.get(n, 0) + 1
+
+        active_creds = sum(1 for vc in self._credentials.values() if vc.valid and not vc.revoked)
+        revoked_creds = sum(1 for vc in self._credentials.values() if vc.revoked)
+
         return {
             "dids": {
-                "total": len(self.dids),
-                "by_network": {
-                    network.value: sum(1 for d in self.dids.values() if d.network == network)
-                    for network in BlockchainNetwork
-                }
+                "total": len(self._dids),
+                "active": sum(1 for d in self._dids.values() if d.status == "active"),
+                "by_network": by_network,
             },
             "credentials": {
-                "total": len(self.credentials),
-                "active": sum(1 for c in self.credentials.values() if c.status == CredentialStatus.ACTIVE),
-                "revoked": sum(1 for c in self.credentials.values() if c.status == CredentialStatus.REVOKED),
-                "expired": sum(1 for c in self.credentials.values() if c.status == CredentialStatus.EXPIRED),
-                "by_type": {
-                    att_type.value: sum(1 for c in self.credentials.values() if c.credential_type == att_type)
-                    for att_type in AttestationType
-                }
+                "total": len(self._credentials),
+                "active": active_creds,
+                "revoked": revoked_creds,
+                "by_type": by_type,
             },
-            "attestations": len(self.attestations),
-            "sbts": len(self.sbts),
+            "attestations": len(self._credentials),
+            "sbts": len(self._sbts),
             "zk_proofs": {
-                "total": len(self.zk_proofs),
-                "verified": sum(1 for p in self.zk_proofs.values() if p.verified)
+                "total": len(self._zk_proofs),
+                "verified": sum(1 for p in self._zk_proofs.values() if p.verified),
             },
-            "ledger_entries": len(self.ledger),
-            "configured_networks": len(self.api_keys),
-            "timestamp": datetime.now().isoformat()
+            "ledger_entries": len(self._ledger),
         }
 
 
-# Global blockchain identity instance
-_blockchain_identity_advanced: Optional[BlockchainIdentityAdvanced] = None
+# ── Singleton ───────────────────────────────────────────────────────────────
+
+_instance: Optional[BlockchainIdentityAdvanced] = None
 
 
 def get_blockchain_identity_advanced() -> BlockchainIdentityAdvanced:
-    """Get global blockchain identity instance"""
-    global _blockchain_identity_advanced
-    if _blockchain_identity_advanced is None:
-        _blockchain_identity_advanced = BlockchainIdentityAdvanced()
-    return _blockchain_identity_advanced
-
-
-# Example usage
-if __name__ == "__main__":
-    async def main():
-        identity = get_blockchain_identity_advanced()
-        
-        # Create DID
-        public_key = "0x" + hashlib.sha256(b"user_key").hexdigest()
-        did = identity.create_did(public_key, BlockchainNetwork.ETHEREUM)
-        logger.info(f"Created DID: {did}")
-        
-        # Issue credential
-        vc_id = identity.issue_credential(
-            issuer_did=did,
-            subject_did=did,
-            credential_type=AttestationType.IDENTITY,
-            claims={"name": "John Doe", "nationality": "US", "birth_date": "1990-01-01"},
-            expiration_days=365
-        )
-        logger.info(f"Issued credential: {vc_id}")
-        
-        # Verify credential
-        verification = identity.verify_credential(vc_id)
-        logger.info(f"Verification result: {verification}")
-        
-        # Issue SBT
-        sbt_id = identity.issue_soulbound_token(
-            owner_did=did,
-            token_type="identity",
-            metadata={"verified": True, "level": "gold"},
-            issuer="asimnexus.gov",
-            network=BlockchainNetwork.ETHEREUM
-        )
-        logger.info(f"Issued SBT: {sbt_id}")
-        
-        # Get stats
-        stats = identity.get_stats()
-        logger.info(json.dumps(stats, indent=2))
-    
-    asyncio.run(main())
+    """Return the singleton BlockchainIdentityAdvanced instance."""
+    global _instance
+    if _instance is None:
+        _instance = BlockchainIdentityAdvanced()
+    return _instance

@@ -125,7 +125,7 @@ def test_universal_systems():
         print(f"\n⚠️ {total - passed} test(s) failed")
     
     print("=" * 60)
-    return passed == total
+    assert passed == total, f"{total - passed} test(s) failed"
 
 if __name__ == "__main__":
     success = test_universal_systems()

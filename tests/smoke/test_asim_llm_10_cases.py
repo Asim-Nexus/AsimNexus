@@ -43,11 +43,11 @@ CYAN   = "\033[96m"
 BOLD   = "\033[1m"
 RESET  = "\033[0m"
 
-
 # ─── DATA STRUCTURES ──────────────────────────────────────────────────────────
 
 @dataclass
 class TestCase:
+    __test__ = False  # pytest: dataclass generates __init__
     id: int
     name: str
     message: str
@@ -57,9 +57,9 @@ class TestCase:
     category: str = "general"
     lang: str = "en"
 
-
 @dataclass
 class TestResult:
+    __test__ = False  # pytest: dataclass generates __init__
     case_id: int
     name: str
     passed: bool
@@ -68,7 +68,6 @@ class TestResult:
     error: str = ""
     checks_passed: int = 0
     checks_total: int = 0
-
 
 # ─── 10 TEST CASES ────────────────────────────────────────────────────────────
 
@@ -184,7 +183,6 @@ TEST_CASES: List[TestCase] = [
     ),
 ]
 
-
 # ─── HTTP HELPERS ─────────────────────────────────────────────────────────────
 
 def chat_request(backend: str, message: str, clone: str = "AsimNexus",
@@ -204,7 +202,6 @@ def chat_request(backend: str, message: str, clone: str = "AsimNexus",
     except Exception as e:
         return {"error": str(e)}
 
-
 def health_check(backend: str) -> bool:
     try:
         r = urllib.request.urlopen(f"{backend}/health", timeout=5)
@@ -212,7 +209,6 @@ def health_check(backend: str) -> bool:
         return d.get("status") in ("ok", "online", "healthy")
     except Exception:
         return False
-
 
 # ─── TEST RUNNER ──────────────────────────────────────────────────────────────
 
@@ -257,7 +253,6 @@ def run_test(case: TestCase, backend: str, token: Optional[str] = None) -> TestR
         checks_total=checks_total,
     )
 
-
 def print_result(r: TestResult, verbose: bool = False) -> None:
     icon  = f"{GREEN}PASS{RESET}" if r.passed else f"{RED}FAIL{RESET}"
     check = f"{r.checks_passed}/{r.checks_total}" if r.checks_total > 0 else "no checks"
@@ -270,7 +265,6 @@ def print_result(r: TestResult, verbose: bool = False) -> None:
     if not r.passed and not r.error and r.response:
         preview = r.response[:150].replace("\n", " ")
         print(f"        {YELLOW}Got: {preview}{RESET}")
-
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
@@ -348,7 +342,6 @@ def main():
         print(f"  {RED}{BOLD}{failed} tests failed — LLM needs attention.{RESET}\n")
 
     sys.exit(0 if failed == 0 else 1)
-
 
 if __name__ == "__main__":
     main()

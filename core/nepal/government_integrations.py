@@ -64,7 +64,7 @@ async def verify_citizen_identity(citizen_id: str) -> Dict:
     """Verify citizen identity via government systems (async)"""
     try:
         from core.nepal.tax_llm import get_tax_llm
-        from mesh.sms_gateway import get_sms_gateway
+        from core.mesh.sms_gateway import get_sms_gateway
         
         tax_llm = await get_tax_llm()
         # Could check tax records for identity

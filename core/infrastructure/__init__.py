@@ -1,42 +1,24 @@
+"""AsimNexus infrastructure module."""
 
-"""
-STATUS: PARTIAL — Auto-labeled by batch_label.py
-"""
-
-"""
-ASIMNEXUS Infrastructure Layer
-==============================
-Global CDN, Federated Mesh, Multi-Region Infrastructure
-"""
-
-from .global_cdn import (
-    GlobalCDNSystem,
-    EdgeLocation,
-    CloudProvider,
-    RegionTier,
-    get_cdn_system,
+# Re-export from root-level module: cdn.py
+from core.cdn import (
+    CDNManager,
+    get_cdn_manager,
 )
 
-from .federated_mesh import (
-    FederatedMeshNetwork,
-    MeshNode,
-    NodeType,
-    NodeStatus,
-    get_mesh_network,
+
+
+# Re-export from root-level module: disaster_recovery.py
+from core.disaster_recovery import (
+    DisasterRecoveryManager,
+    get_disaster_recovery_manager,
 )
 
-__all__ = [
-    # CDN
-    'GlobalCDNSystem',
-    'EdgeLocation',
-    'CloudProvider',
-    'RegionTier',
-    'get_cdn_system',
-    
-    # Mesh
-    'FederatedMeshNetwork',
-    'MeshNode',
-    'NodeType',
-    'NodeStatus',
-    'get_mesh_network',
-]
+
+
+# Re-export from root-level module: redis_manager.py
+from core.redis_manager import (
+    AsimRedisManager,
+    MemoryRedis,
+    redis_manager,
+)

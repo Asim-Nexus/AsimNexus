@@ -25,7 +25,7 @@ logger = logging.getLogger("ASIM_ZKP")
 
 # Real ZKP primitives
 try:
-    from security.zkp_privacy import (
+    from core.security.zkp_privacy import (
         ECPoint as _ECPoint,
         SchnorrProver as _SchnorrProver,
         PedersenCommitment as _PedersenCommitment,

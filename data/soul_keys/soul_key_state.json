@@ -1,0 +1,232 @@
+{
+  "soul_keys": {
+    "test-001": {
+      "citizen_id": "test-001",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T11:05:37.954799Z",
+      "last_verified": "2026-07-05T11:05:37.954799Z",
+      "device_fingerprint": "fp-123",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON": {
+      "citizen_id": "NID-SINGLETON",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T11:36:15.402491Z",
+      "last_verified": "2026-07-05T11:36:15.402491Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-TEST": {
+      "citizen_id": "NID-SINGLETON-TEST",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T11:38:42.631134Z",
+      "last_verified": "2026-07-05T11:38:42.631134Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-764adc40": {
+      "citizen_id": "NID-SINGLETON-764adc40",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T12:21:13.067298Z",
+      "last_verified": "2026-07-05T12:21:13.067298Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-03c7e899": {
+      "citizen_id": "NID-SINGLETON-03c7e899",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:06:54.707087Z",
+      "last_verified": "2026-07-05T13:06:54.707087Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-3a1fe5ab": {
+      "citizen_id": "NID-SINGLETON-3a1fe5ab",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:09:19.468642Z",
+      "last_verified": "2026-07-05T13:09:19.468642Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-b1fafc4f": {
+      "citizen_id": "NID-SINGLETON-b1fafc4f",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:12:40.849204Z",
+      "last_verified": "2026-07-05T13:12:40.849204Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-d917a77e": {
+      "citizen_id": "NID-SINGLETON-d917a77e",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:42:13.005326Z",
+      "last_verified": "2026-07-05T13:42:13.005326Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-b0c7e5d9": {
+      "citizen_id": "NID-SINGLETON-b0c7e5d9",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:46:16.994094Z",
+      "last_verified": "2026-07-05T13:46:16.994094Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-167c2146": {
+      "citizen_id": "NID-SINGLETON-167c2146",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:50:08.666949Z",
+      "last_verified": "2026-07-05T13:50:08.666949Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-19c9643a": {
+      "citizen_id": "NID-SINGLETON-19c9643a",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:54:04.687975Z",
+      "last_verified": "2026-07-05T13:54:04.687975Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-a5528073": {
+      "citizen_id": "NID-SINGLETON-a5528073",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T13:59:00.518616Z",
+      "last_verified": "2026-07-05T13:59:00.518616Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-c58343d9": {
+      "citizen_id": "NID-SINGLETON-c58343d9",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T14:01:33.779698Z",
+      "last_verified": "2026-07-05T14:01:33.779698Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-9bb24ae0": {
+      "citizen_id": "NID-SINGLETON-9bb24ae0",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T14:04:51.948804Z",
+      "last_verified": "2026-07-05T14:04:51.948804Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "test-citizen-001": {
+      "citizen_id": "test-citizen-001",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T14:46:58.073899Z",
+      "last_verified": "2026-07-05T14:46:58.073899Z",
+      "device_fingerprint": "TPM-FINGERPRINT-A1B2C3D4E5F6",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "citizen-001": {
+      "citizen_id": "citizen-001",
+      "merkle_root": "cda030ce83403c3c0a1f269862717ba68bcd11765157a5d5402f5725e1a557f3",
+      "life_events": [
+        {
+          "event_id": "citizen-001_birth_registration_1783262818",
+          "event_type": "birth_registration",
+          "timestamp": "2026-07-05T14:46:58.584446Z",
+          "data_hash": "f7a18611f42eff8d5fba80546da0ef7d14b8fabaa96b421081ec5e571057ab73",
+          "metadata": {}
+        },
+        {
+          "event_id": "citizen-001_citizenship_1783262818",
+          "event_type": "citizenship",
+          "timestamp": "2026-07-05T14:46:58.584446Z",
+          "data_hash": "1757d2fb9628c1340a1bd8c09566704474f94666e09dfb8a0d691e30f8a802d3",
+          "metadata": {}
+        }
+      ],
+      "created_at": "2026-07-05T14:46:58.568824Z",
+      "last_verified": "2026-07-05T14:46:58.584446Z",
+      "device_fingerprint": "TPM-FINGERPRINT-A1B2C3D4E5F6",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "citizen-002": {
+      "citizen_id": "citizen-002",
+      "merkle_root": "fdafe25c7b3fe68f124a005863e15931547c420f4cb0fca392cb52baffe44814",
+      "life_events": [
+        {
+          "event_id": "citizen-002_education_certificate_1783262818",
+          "event_type": "education_certificate",
+          "timestamp": "2026-07-05T14:46:58.584446Z",
+          "data_hash": "68bf0109c6f8a87bfa96d1ecd9503326ba35cf4a6086988a1d2c8a20fbef00d1",
+          "metadata": {}
+        }
+      ],
+      "created_at": "2026-07-05T14:46:58.584446Z",
+      "last_verified": "2026-07-05T14:46:58.584446Z",
+      "device_fingerprint": "TPM-FINGERPRINT-A1B2C3D4E5F6",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-86324670": {
+      "citizen_id": "NID-SINGLETON-86324670",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T17:39:17.307471Z",
+      "last_verified": "2026-07-05T17:39:17.307471Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    },
+    "NID-SINGLETON-dce929c6": {
+      "citizen_id": "NID-SINGLETON-dce929c6",
+      "merkle_root": "",
+      "life_events": [],
+      "created_at": "2026-07-05T17:39:53.179853Z",
+      "last_verified": "2026-07-05T17:39:53.179853Z",
+      "device_fingerprint": "",
+      "revoked": false,
+      "revocation_reason": ""
+    }
+  },
+  "lockout_records": [
+    {
+      "record_id": "LOCK_e3d78bf49e72",
+      "citizen_id": "nonexistent",
+      "session_id": "session-002",
+      "state": "incident_reported",
+      "detected_at": "2026-07-05T14:46:58.506306Z",
+      "device_fingerprint_attempted": "unknown-device",
+      "device_fingerprint_registered": "",
+      "reason": "Test",
+      "resolved_at": "",
+      "ncsc_incident_id": "NCSC-BC4D9C07"
+    }
+  ],
+  "updated_at": "2026-07-05T17:39:53.180853Z"
+}

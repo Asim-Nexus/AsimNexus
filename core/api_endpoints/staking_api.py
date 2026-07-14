@@ -1,266 +1,208 @@
 """
-StakingEngine REST API endpoints for ASIMNEXUS.
-
-Provides REST API access to StakingEngine operations including:
-staking positions, unstaking, reward distribution, validator management,
-slashing, and statistics.
+Staking API Routes
+==================
+FastAPI router for staking endpoints (/api/economy/staking/*).
 """
 
+import logging
 from typing import Optional
-from fastapi import HTTPException, Query
-from pydantic import BaseModel, Field
 
-from . import router, logger
+from fastapi import APIRouter, HTTPException
 
+logger = logging.getLogger(__name__)
 
+router = APIRouter(prefix="/api/economy/staking", tags=["economy-staking"])
+
+# Module-level singleton reference (reset by test fixture)
 _staking = None
+
 
 def _get_staking():
     global _staking
     if _staking is None:
-        try:
-            from economy.staking import get_staking_engine
-            _staking = get_staking_engine()
-            logger.info("StakingEngine loaded")
-        except Exception as e:
-            logger.warning(f"StakingEngine unavailable: {e}")
+        from core.economy.staking import get_staking_engine
+        _staking = get_staking_engine()
     return _staking
 
 
-# ─── Request Models ───────────────────────────────────────────────────────────
+# ── Static routes first ────────────────────────────────────────────────── #
 
 
-class StakeRequest(BaseModel):
-    staker_id: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-    token_type: str = "nexus"
-    lock_days: int = Field(default=30, ge=7, le=365)
-    auto_compound: bool = False
-    validator_id: Optional[str] = None
+@router.get("/stats")
+async def staking_stats():
+    """Get staking system statistics."""
+    engine = _get_staking()
+    stats = await engine.get_stats()
+    return stats
 
 
-class UnstakeRequest(BaseModel):
-    stake_id: str
-    staker_id: str = Field(..., min_length=1)
+@router.get("/positions")
+async def get_stake_positions(staker_id: str = ""):
+    """Get stake positions for a user."""
+    engine = _get_staking()
+    if not staker_id:
+        raise HTTPException(status_code=400, detail="staker_id is required")
+    stakes = await engine.get_stakes_for_user(user_id=staker_id)
+    return {
+        "stakes": [
+            {
+                "stake_id": s.stake_id,
+                "staker_id": s.staker_id,
+                "validator_id": s.validator_id,
+                "amount": s.amount,
+                "status": s.status,
+                "lock_days": s.lock_days,
+                "created_at": s.created_at,
+                "apy_at_stake": s.apy_at_stake,
+                "auto_compound": s.auto_compound,
+            }
+            for s in stakes
+        ]
+    }
 
 
-class ClaimUnstakedRequest(BaseModel):
-    stake_id: str
-    staker_id: str = Field(..., min_length=1)
+@router.post("/validators/jail")
+async def jail_validator(data: dict):
+    """Jail a validator."""
+    engine = _get_staking()
+    validator_id = data.get("validator_id")
+    reason = data.get("reason", "Unknown violation")
+    if not validator_id:
+        raise HTTPException(status_code=400, detail="validator_id is required")
+    result = await engine.jail_validator(validator_id=validator_id, reason=reason)
+    if not result:
+        raise HTTPException(status_code=400, detail="Failed to jail validator")
+    return {"success": True}
 
 
-class RegisterValidatorRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
-    owner_id: str = Field(..., min_length=1)
-    commission_rate: float = Field(default=0.1, ge=0, le=1)
-    description: str = ""
-    website: str = ""
+@router.post("/validators/unjail")
+async def unjail_validator(data: dict):
+    """Unjail a validator."""
+    engine = _get_staking()
+    validator_id = data.get("validator_id")
+    if not validator_id:
+        raise HTTPException(status_code=400, detail="validator_id is required")
+    result = await engine.unjail_validator(validator_id=validator_id)
+    if not result:
+        raise HTTPException(status_code=400, detail="Failed to unjail validator")
+    return {"success": True}
 
 
-class JailValidatorRequest(BaseModel):
-    validator_id: str
-    reason: str = ""
-
-
-class UnjailValidatorRequest(BaseModel):
-    validator_id: str
-
-
-class SlashRequest(BaseModel):
-    validator_id: str
-    slash_percent: float = Field(default=0.1, gt=0, le=1)
-    reason: str = ""
-
-
-# ─── Endpoints ────────────────────────────────────────────────────────────────
-
-
-@router.post("/api/economy/staking/stake", tags=["Economy Staking"])
-async def stake(req: StakeRequest):
-    """Create a new staking position."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.stake(
-        staker_id=req.staker_id,
-        amount=req.amount,
-        token_type=req.token_type,
-        lock_days=req.lock_days,
-        auto_compound=req.auto_compound,
-        validator_id=req.validator_id,
-    )
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    stake_obj = await s.get_stake(result[1])
-    return {"success": True, "stake_id": result[1], "stake": stake_obj.to_dict() if stake_obj else {}}
-
-
-@router.post("/api/economy/staking/unstake", tags=["Economy Staking"])
-async def unstake(req: UnstakeRequest):
-    """Request unstaking (starts cooldown period)."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.unstake(req.stake_id, req.staker_id)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "stake_id": req.stake_id, "message": result[1]}
-
-
-@router.post("/api/economy/staking/claim", tags=["Economy Staking"])
-async def claim_unstaked(req: ClaimUnstakedRequest):
-    """Claim unstaked funds after cooldown."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.claim_unstaked(req.stake_id, req.staker_id)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "stake_id": req.stake_id, "message": result[1]}
-
-
-@router.get("/api/economy/staking/positions/{stake_id}", tags=["Economy Staking"])
-async def get_stake(stake_id: str):
-    """Get a staking position by ID."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    stake_obj = await s.get_stake(stake_id)
-    if not stake_obj:
-        raise HTTPException(status_code=404, detail=f"Stake {stake_id} not found")
-    return stake_obj.to_dict()
-
-
-@router.get("/api/economy/staking/positions", tags=["Economy Staking"])
-async def get_stakes_for_user(staker_id: str = Query(..., min_length=1)):
-    """Get all staking positions for a user."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    stakes = await s.get_stakes_for_user(staker_id)
-    return {"staker_id": staker_id, "stakes": [st.to_dict() for st in stakes], "count": len(stakes)}
-
-
-@router.get("/api/economy/staking/total-staked", tags=["Economy Staking"])
-async def get_total_staked(token_type: str = Query("nexus")):
-    """Get total staked amount."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    total = await s.get_total_staked(token_type=token_type)
-    return {"token_type": token_type, "total_staked": total}
-
-
-@router.post("/api/economy/staking/distribute-rewards", tags=["Economy Staking"])
-async def distribute_all_rewards():
-    """Distribute rewards to all eligible staking positions."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    count = await s.distribute_all_rewards()
-    return {"success": True, "positions_rewarded": count}
-
-
-@router.get("/api/economy/staking/rewards/{staker_id}", tags=["Economy Staking"])
-async def get_rewards_history(staker_id: str, limit: int = Query(50, ge=1, le=500)):
-    """Get reward distribution history for a user."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    rewards = await s.get_rewards_history(staker_id, limit=limit)
-    return {"staker_id": staker_id, "rewards": [r.to_dict() for r in rewards], "count": len(rewards)}
-
-
-@router.post("/api/economy/staking/validators", tags=["Economy Staking"])
-async def register_validator(req: RegisterValidatorRequest):
+@router.post("/validators")
+async def register_validator(data: dict):
     """Register a new validator."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
+    engine = _get_staking()
+    name = data.get("name")
+    owner_id = data.get("owner_id")
+    commission_rate = data.get("commission_rate", 0.1)
+    self_stake = data.get("self_stake", 0.0)
+    if not name or not owner_id:
+        raise HTTPException(status_code=400, detail="name and owner_id are required")
     try:
-        validator = await s.register_validator(
-            name=req.name,
-            owner_id=req.owner_id,
-            commission_rate=req.commission_rate,
-            description=req.description,
+        validator = await engine.register_validator(
+            name=name,
+            owner_id=owner_id,
+            commission_rate=float(commission_rate),
+            self_stake=float(self_stake),
         )
-    except ValueError as e:
+        return {"success": True, "validator_id": validator.validator_id}
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"success": True, "validator_id": validator.validator_id, "validator": validator.to_dict()}
 
 
-@router.get("/api/economy/staking/validators/{validator_id}", tags=["Economy Staking"])
+@router.get("/validators")
+async def list_validators():
+    """List all validators."""
+    engine = _get_staking()
+    validators = await engine.list_validators()
+    return {
+        "validators": [
+            {
+                "validator_id": v.validator_id,
+                "name": v.name,
+                "owner_id": v.owner_id,
+                "commission_rate": v.commission_rate,
+                "total_staked": v.total_staked,
+                "status": v.status,
+            }
+            for v in validators
+        ]
+    }
+
+
+@router.get("/validators/{validator_id}")
 async def get_validator(validator_id: str):
     """Get a validator by ID."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    validator = await s.get_validator(validator_id)
-    if not validator:
-        raise HTTPException(status_code=404, detail=f"Validator {validator_id} not found")
-    return validator.to_dict()
+    engine = _get_staking()
+    validator = await engine.get_validator(validator_id=validator_id)
+    if validator is None:
+        raise HTTPException(status_code=404, detail="Validator not found")
+    return {
+        "validator_id": validator.validator_id,
+        "name": validator.name,
+        "owner_id": validator.owner_id,
+        "commission_rate": validator.commission_rate,
+        "total_staked": validator.total_staked,
+        "status": validator.status,
+    }
 
 
-@router.get("/api/economy/staking/validators", tags=["Economy Staking"])
-async def list_validators(status: Optional[str] = Query(None, pattern="^(active|jailed|inactive)$")):
-    """List all validators, optionally filtered by status."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    validators = await s.list_validators(status=status)
-    return {"validators": [v.to_dict() for v in validators], "count": len(validators)}
+@router.post("/stake")
+async def stake(data: dict):
+    """Stake tokens with a validator."""
+    engine = _get_staking()
+    staker_id = data.get("staker_id")
+    validator_id = data.get("validator_id")
+    amount = data.get("amount", 0.0)
+    token_type = data.get("token_type", "nexus")
+    lock_days = data.get("lock_days", 30)
+    auto_compound = data.get("auto_compound", False)
+    if not staker_id or not validator_id:
+        raise HTTPException(status_code=400, detail="staker_id and validator_id are required")
+    success, stake_id = await engine.stake(
+        staker_id=staker_id,
+        token_type=token_type,
+        validator_id=validator_id,
+        amount=float(amount),
+        lock_days=int(lock_days),
+        auto_compound=auto_compound,
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=stake_id)
+    return {"success": True, "stake_id": stake_id}
 
 
-@router.post("/api/economy/staking/validators/jail", tags=["Economy Staking"])
-async def jail_validator(req: JailValidatorRequest):
-    """Jail a validator."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.jail_validator(req.validator_id, reason=req.reason)
-    if not result:
-        raise HTTPException(status_code=400, detail=f"Failed to jail validator {req.validator_id}")
-    return {"success": True, "validator_id": req.validator_id, "status": "jailed"}
+@router.post("/unstake")
+async def unstake(data: dict):
+    """Unstake tokens from a position."""
+    engine = _get_staking()
+    stake_id = data.get("stake_id")
+    staker_id = data.get("staker_id")
+    if not stake_id or not staker_id:
+        raise HTTPException(status_code=400, detail="stake_id and staker_id are required")
+    success, msg = await engine.unstake(stake_id=stake_id, user_id=staker_id)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}
 
 
-@router.post("/api/economy/staking/validators/unjail", tags=["Economy Staking"])
-async def unjail_validator(req: UnjailValidatorRequest):
-    """Unjail a validator."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.unjail_validator(req.validator_id)
-    if not result:
-        raise HTTPException(status_code=400, detail=f"Failed to unjail validator {req.validator_id}")
-    return {"success": True, "validator_id": req.validator_id, "status": "active"}
+@router.post("/claim")
+async def claim_rewards(data: dict):
+    """Claim rewards for a stake position."""
+    engine = _get_staking()
+    stake_id = data.get("stake_id")
+    staker_id = data.get("staker_id")
+    if not stake_id or not staker_id:
+        raise HTTPException(status_code=400, detail="stake_id and staker_id are required")
+    success, msg = await engine.claim_unstaked(stake_id=stake_id, user_id=staker_id)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg)
+    return {"success": True}
 
 
-@router.post("/api/economy/staking/slash", tags=["Economy Staking"])
-async def slash_validator(req: SlashRequest):
-    """Slash a validator's staked funds."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    result = await s.slash(req.validator_id, slash_percent=req.slash_percent, reason=req.reason)
-    if not result[0]:
-        raise HTTPException(status_code=400, detail=result[1])
-    return {"success": True, "validator_id": req.validator_id, "message": result[1]}
-
-
-@router.post("/api/economy/staking/unlock-matured", tags=["Economy Staking"])
-async def unlock_stakes():
-    """Unlock all matured staking positions."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    unlocked = await s.unlock_stakes()
-    return {"unlocked_count": len(unlocked), "unlocked_ids": unlocked}
-
-
-@router.get("/api/economy/staking/stats", tags=["Economy Staking"])
-async def staking_stats():
-    """Get staking engine statistics."""
-    s = _get_staking()
-    if not s:
-        raise HTTPException(status_code=503, detail="StakingEngine not available")
-    return await s.get_stats()
+@router.post("/distribute-rewards")
+async def distribute_rewards():
+    """Distribute rewards to all stakers."""
+    engine = _get_staking()
+    result = await engine.distribute_all_rewards()
+    return {"success": True, "result": result}
